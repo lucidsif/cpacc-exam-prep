@@ -1,4 +1,4 @@
-window.BEAR_BANK = [
+export const BEAR_BANK = [
   // ===== DOMAIN 1: Disabilities & AT =====
   {
     id: 1001, domain: 1, type: "recall",

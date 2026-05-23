@@ -1,4 +1,4 @@
-window.LEGAL = {
+export const LEGAL = {
   jurisdictions: [
     {
       id: "un",

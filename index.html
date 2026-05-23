@@ -11,12 +11,24 @@
 <button class="home-btn" id="home-btn" aria-label="Go to home page">⌂ Home</button>
 <main class="wrap" id="app" tabindex="-1"></main>
 
-<script src="questions.js"></script>
-<script src="bear-questions.js"></script>
-<script src="bear-flashcards.js"></script>
-<script src="disabilities.js"></script>
-<script src="legal.js"></script>
+<script type="module">
+import { CPACC_BANK } from './data/questions.js';
+import { BEAR_BANK } from './data/bear-questions.js';
+import { BEAR_FLASHCARDS } from './data/bear-flashcards.js';
+import { DISABILITIES } from './data/disabilities.js';
+import { LEGAL } from './data/legal.js';
+
+// Bridge: the inline app script (below) still reads from window.* during
+// Phase 2. Phase 3 will inline-import these directly.
+window.CPACC_BANK = CPACC_BANK;
+window.BEAR_BANK = BEAR_BANK;
+window.BEAR_FLASHCARDS = BEAR_FLASHCARDS;
+window.DISABILITIES = DISABILITIES;
+window.LEGAL = LEGAL;
+window.dispatchEvent(new Event('data-ready'));
+</script>
 <script>
+window.addEventListener('data-ready', () => {
 (function () {
   const TEST_SIZE = 20;
   // Match BoK weighting: D1=40%, D2=40%, D3=20%  -> 8/8/4 of 20
@@ -749,6 +761,7 @@
 
   render();
 })();
+});
 </script>
 </body>
 </html>

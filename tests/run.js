@@ -1,30 +1,37 @@
 // Smoke tests for the CPACC test-maker data files.
 // Run: node tests/run.js
 // Exits 0 on pass, 1 on any failure.
+//
+// Data files are ES modules under data/. We load them with dynamic
+// import() (works in CJS since Node 14) and read the named exports.
 
 const path = require('path');
+const url = require('url');
 const ROOT = path.join(__dirname, '..');
 
 let failed = 0;
 let total = 0;
-function test(name, fn) {
+async function test(name, fn) {
   total++;
   try {
-    fn();
+    await fn();
     console.log('  ✓', name);
   } catch (e) {
     failed++;
     console.error('  ✗', name, '\n     ', e.message);
   }
 }
-function load(file) {
-  const win = {};
-  global.window = win;
-  delete require.cache[require.resolve(path.join(ROOT, file))];
-  require(path.join(ROOT, file));
-  return win;
+
+// Cache loaded modules so we don't re-import on every test
+const _cache = {};
+async function load(relPath) {
+  if (_cache[relPath]) return _cache[relPath];
+  const fileUrl = url.pathToFileURL(path.join(ROOT, relPath)).href;
+  const mod = await import(fileUrl);
+  _cache[relPath] = mod;
+  return mod;
 }
-function assertEq(a, b, msg) { if (a !== b) throw new Error(`${msg || 'expected equal'}: got ${a}, want ${b}`); }
+
 function assertTrue(c, msg) { if (!c) throw new Error(msg || 'expected truthy'); }
 
 function validateQuestionBank(bank, label) {
@@ -44,114 +51,118 @@ function validateQuestionBank(bank, label) {
   }
 }
 
-console.log('CPACC test-maker · smoke tests\n');
+async function main() {
+  console.log('CPACC test-maker · smoke tests\n');
 
-console.log('questions.js');
-test('loads and exposes CPACC_BANK', () => {
-  const w = load('questions.js');
-  assertTrue(Array.isArray(w.CPACC_BANK));
-});
-test('all questions valid structure', () => {
-  const w = load('questions.js');
-  validateQuestionBank(w.CPACC_BANK, 'CPACC_BANK');
-});
-test('has all three domains represented', () => {
-  const w = load('questions.js');
-  const ds = new Set(w.CPACC_BANK.map(q => q.domain));
-  assertTrue(ds.has(1) && ds.has(2) && ds.has(3), 'missing one of D1/D2/D3');
-});
+  console.log('data/questions.js');
+  await test('loads and exposes CPACC_BANK', async () => {
+    const m = await load('data/questions.js');
+    assertTrue(Array.isArray(m.CPACC_BANK));
+  });
+  await test('all questions valid structure', async () => {
+    const m = await load('data/questions.js');
+    validateQuestionBank(m.CPACC_BANK, 'CPACC_BANK');
+  });
+  await test('has all three domains represented', async () => {
+    const m = await load('data/questions.js');
+    const ds = new Set(m.CPACC_BANK.map(q => q.domain));
+    assertTrue(ds.has(1) && ds.has(2) && ds.has(3), 'missing one of D1/D2/D3');
+  });
 
-console.log('\nbear-questions.js');
-test('loads and exposes BEAR_BANK', () => {
-  const w = load('bear-questions.js');
-  assertTrue(Array.isArray(w.BEAR_BANK));
-});
-test('all questions valid structure', () => {
-  const w = load('bear-questions.js');
-  validateQuestionBank(w.BEAR_BANK, 'BEAR_BANK');
-});
-test('IDs do not collide with CPACC_BANK', () => {
-  const c = load('questions.js').CPACC_BANK;
-  const b = load('bear-questions.js').BEAR_BANK;
-  const cIds = new Set(c.map(q => q.id));
-  for (const q of b) {
-    assertTrue(!cIds.has(q.id), `BEAR id ${q.id} collides with CPACC bank`);
-  }
-});
+  console.log('\ndata/bear-questions.js');
+  await test('loads and exposes BEAR_BANK', async () => {
+    const m = await load('data/bear-questions.js');
+    assertTrue(Array.isArray(m.BEAR_BANK));
+  });
+  await test('all questions valid structure', async () => {
+    const m = await load('data/bear-questions.js');
+    validateQuestionBank(m.BEAR_BANK, 'BEAR_BANK');
+  });
+  await test('IDs do not collide with CPACC_BANK', async () => {
+    const c = (await load('data/questions.js')).CPACC_BANK;
+    const b = (await load('data/bear-questions.js')).BEAR_BANK;
+    const cIds = new Set(c.map(q => q.id));
+    for (const q of b) {
+      assertTrue(!cIds.has(q.id), `BEAR id ${q.id} collides with CPACC bank`);
+    }
+  });
 
-console.log('\nbear-flashcards.js');
-test('loads and exposes BEAR_FLASHCARDS', () => {
-  const w = load('bear-flashcards.js');
-  assertTrue(Array.isArray(w.BEAR_FLASHCARDS));
-  assertTrue(w.BEAR_FLASHCARDS.length > 0);
-});
-test('every card has id, tag, front, back', () => {
-  const cards = load('bear-flashcards.js').BEAR_FLASHCARDS;
-  const ids = new Set();
-  for (const c of cards) {
-    assertTrue(Number.isInteger(c.id), 'card missing id');
-    assertTrue(!ids.has(c.id), `duplicate flashcard id ${c.id}`);
-    ids.add(c.id);
-    assertTrue(typeof c.tag === 'string' && c.tag.length > 0, `card ${c.id} missing tag`);
-    assertTrue(typeof c.front === 'string' && c.front.length > 0, `card ${c.id} missing front`);
-    assertTrue(typeof c.back === 'string' && c.back.length > 0, `card ${c.id} missing back`);
-  }
-});
+  console.log('\ndata/bear-flashcards.js');
+  await test('loads and exposes BEAR_FLASHCARDS', async () => {
+    const m = await load('data/bear-flashcards.js');
+    assertTrue(Array.isArray(m.BEAR_FLASHCARDS));
+    assertTrue(m.BEAR_FLASHCARDS.length > 0);
+  });
+  await test('every card has id, tag, front, back', async () => {
+    const cards = (await load('data/bear-flashcards.js')).BEAR_FLASHCARDS;
+    const ids = new Set();
+    for (const c of cards) {
+      assertTrue(Number.isInteger(c.id), 'card missing id');
+      assertTrue(!ids.has(c.id), `duplicate flashcard id ${c.id}`);
+      ids.add(c.id);
+      assertTrue(typeof c.tag === 'string' && c.tag.length > 0, `card ${c.id} missing tag`);
+      assertTrue(typeof c.front === 'string' && c.front.length > 0, `card ${c.id} missing front`);
+      assertTrue(typeof c.back === 'string' && c.back.length > 0, `card ${c.id} missing back`);
+    }
+  });
 
-console.log('\ndisabilities.js');
-test('loads and exposes DISABILITIES', () => {
-  const w = load('disabilities.js');
-  assertTrue(w.DISABILITIES && Array.isArray(w.DISABILITIES.categories) && Array.isArray(w.DISABILITIES.items));
-});
-test('every item references a known category', () => {
-  const d = load('disabilities.js').DISABILITIES;
-  const catIds = new Set(d.categories.map(c => c.id));
-  for (const item of d.items) {
-    assertTrue(catIds.has(item.category), `item ${item.id} references unknown category ${item.category}`);
-  }
-});
-test('every category has emoji and color; every item has required fields', () => {
-  const d = load('disabilities.js').DISABILITIES;
-  for (const c of d.categories) {
-    assertTrue(c.id && c.label && c.emoji && c.color, `category ${c.id} missing fields`);
-  }
-  const ids = new Set();
-  for (const item of d.items) {
-    assertTrue(item.id && item.name && item.emoji && item.description, `item ${item.id} missing required fields`);
-    assertTrue(!ids.has(item.id), `duplicate disability id ${item.id}`);
-    ids.add(item.id);
-  }
-});
+  console.log('\ndata/disabilities.js');
+  await test('loads and exposes DISABILITIES', async () => {
+    const m = await load('data/disabilities.js');
+    assertTrue(m.DISABILITIES && Array.isArray(m.DISABILITIES.categories) && Array.isArray(m.DISABILITIES.items));
+  });
+  await test('every item references a known category', async () => {
+    const d = (await load('data/disabilities.js')).DISABILITIES;
+    const catIds = new Set(d.categories.map(c => c.id));
+    for (const item of d.items) {
+      assertTrue(catIds.has(item.category), `item ${item.id} references unknown category ${item.category}`);
+    }
+  });
+  await test('every category has emoji and color; every item has required fields', async () => {
+    const d = (await load('data/disabilities.js')).DISABILITIES;
+    for (const c of d.categories) {
+      assertTrue(c.id && c.label && c.emoji && c.color, `category ${c.id} missing fields`);
+    }
+    const ids = new Set();
+    for (const item of d.items) {
+      assertTrue(item.id && item.name && item.emoji && item.description, `item ${item.id} missing required fields`);
+      assertTrue(!ids.has(item.id), `duplicate disability id ${item.id}`);
+      ids.add(item.id);
+    }
+  });
 
-console.log('\nlegal.js');
-test('loads and exposes LEGAL', () => {
-  const w = load('legal.js');
-  assertTrue(w.LEGAL && Array.isArray(w.LEGAL.jurisdictions) && Array.isArray(w.LEGAL.items));
-});
-test('every item references a known jurisdiction', () => {
-  const d = load('legal.js').LEGAL;
-  const jurIds = new Set(d.jurisdictions.map(j => j.id));
-  for (const item of d.items) {
-    assertTrue(jurIds.has(item.jurisdiction), `legal item ${item.id} references unknown jurisdiction ${item.jurisdiction}`);
-  }
-});
-test('every item has id, name, summary, year; ids unique', () => {
-  const items = load('legal.js').LEGAL.items;
-  const ids = new Set();
-  for (const item of items) {
-    assertTrue(item.id && item.name && item.summary && item.year, `legal item ${item.id || '(no id)'} missing required fields`);
-    assertTrue(!ids.has(item.id), `duplicate legal id ${item.id}`);
-    ids.add(item.id);
-  }
-});
-test('CPACC-relevant filter leaves all jurisdictions populated', () => {
-  const d = load('legal.js').LEGAL;
-  const visible = d.items.filter(i => i.cpacc !== false);
-  const jurs = new Set(visible.map(i => i.jurisdiction));
-  for (const j of d.jurisdictions) {
-    assertTrue(jurs.has(j.id), `jurisdiction ${j.id} has no CPACC-relevant items`);
-  }
-});
+  console.log('\ndata/legal.js');
+  await test('loads and exposes LEGAL', async () => {
+    const m = await load('data/legal.js');
+    assertTrue(m.LEGAL && Array.isArray(m.LEGAL.jurisdictions) && Array.isArray(m.LEGAL.items));
+  });
+  await test('every item references a known jurisdiction', async () => {
+    const d = (await load('data/legal.js')).LEGAL;
+    const jurIds = new Set(d.jurisdictions.map(j => j.id));
+    for (const item of d.items) {
+      assertTrue(jurIds.has(item.jurisdiction), `legal item ${item.id} references unknown jurisdiction ${item.jurisdiction}`);
+    }
+  });
+  await test('every item has id, name, summary, year; ids unique', async () => {
+    const items = (await load('data/legal.js')).LEGAL.items;
+    const ids = new Set();
+    for (const item of items) {
+      assertTrue(item.id && item.name && item.summary && item.year, `legal item ${item.id || '(no id)'} missing required fields`);
+      assertTrue(!ids.has(item.id), `duplicate legal id ${item.id}`);
+      ids.add(item.id);
+    }
+  });
+  await test('CPACC-relevant filter leaves all jurisdictions populated', async () => {
+    const d = (await load('data/legal.js')).LEGAL;
+    const visible = d.items.filter(i => i.cpacc !== false);
+    const jurs = new Set(visible.map(i => i.jurisdiction));
+    for (const j of d.jurisdictions) {
+      assertTrue(jurs.has(j.id), `jurisdiction ${j.id} has no CPACC-relevant items`);
+    }
+  });
 
-console.log(`\n${total - failed}/${total} passed${failed ? `, ${failed} failed` : ''}`);
-process.exit(failed ? 1 : 0);
+  console.log(`\n${total - failed}/${total} passed${failed ? `, ${failed} failed` : ''}`);
+  process.exit(failed ? 1 : 0);
+}
+
+main().catch(e => { console.error(e); process.exit(1); });

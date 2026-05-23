@@ -6,7 +6,7 @@
 //   q, choices {A,B,C,D}, answer, why {A,B,C,D}, cite
 //
 // Domains follow BoK weighting: D1=40%, D2=40%, D3=20%.
-window.CPACC_BANK = [
+export const CPACC_BANK = [
 
   // =====================================================================
   // DOMAIN ONE — Disabilities, Challenges, and Assistive Technologies (40%)

@@ -20,12 +20,13 @@ The app is accessible (**WCAG 2.2 AA conformant** — see _Accessibility_ sectio
 | File | Contents |
 |---|---|
 | `index.html` | The app (single page; all UI and state) |
+| `styles/app.css` | All styles, organized into commented sections |
 | `server.js` | Minimal Node server: serves the app, proxies chat to the Anthropic API, persists missed-questions |
-| `questions.js` | Main CPACC question bank, tagged with domain, type, and BoK page citation |
-| `bear-questions.js` | Question bank generated from the user's Bear-app `#cpacc` / `#a11y/*` notes |
-| `bear-flashcards.js` | Dense study flashcards distilled from the same notes |
-| `disabilities.js` | Human-disabilities reference dataset |
-| `legal.js` | History, laws, and standards reference dataset |
+| `data/questions.js` | Main CPACC question bank, tagged with domain, type, and BoK page citation |
+| `data/bear-questions.js` | Question bank generated from the user's Bear-app `#cpacc` / `#a11y/*` notes |
+| `data/bear-flashcards.js` | Dense study flashcards distilled from the same notes |
+| `data/disabilities.js` | Human-disabilities reference dataset |
+| `data/legal.js` | History, laws, and standards reference dataset |
 | `tests/run.js` | Node-based smoke tests validating every data file |
 | `CPACC_BoK.pdf` | Source document (from accessibilityassociation.org) |
 
@@ -65,7 +66,7 @@ Validates that every data file (`questions.js`, `bear-questions.js`, `bear-flash
 
 - The server binds to all interfaces, so any device on the same Wi-Fi can open the LAN URL.
 - Missed questions are persisted server-side in `data.json` (gitignored). Both desktop and phone read/write that file, so a question you miss on one device shows up in the missed list on the other.
-- If you open `index.html` directly via `file://` (no server), the app still works but falls back to per-browser `localStorage` for the missed list.
+- The app uses native ES modules, so it must be served over `http://` (run `node server.js`). Opening `index.html` directly via `file://` is no longer supported — browsers block module loading from the file scheme.
 
 **Security note:** no auth means anyone on the same Wi-Fi can hit your app. Home Wi-Fi: fine. Public Wi-Fi: don't run it without adding a token.
 
@@ -85,7 +86,7 @@ The actual CPACC exam is **100 multiple-choice questions in 2 hours** (~72 sec/q
 
 ## Growing the question banks
 
-Append items to `window.CPACC_BANK` in `questions.js` or `window.BEAR_BANK` in `bear-questions.js`. Each item:
+Append items to `CPACC_BANK` in `data/questions.js` or `BEAR_BANK` in `data/bear-questions.js`. Each item:
 
 ```js
 {

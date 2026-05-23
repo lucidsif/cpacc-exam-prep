@@ -1,4 +1,4 @@
-window.DISABILITIES = {
+export const DISABILITIES = {
   categories: [
     { id: "visual", label: "Visual / Vision", emoji: "👁️", color: "#7aa2ff",
       summary: "Conditions affecting sight — from low vision to blindness, color vision deficiency, and field-of-vision loss." },

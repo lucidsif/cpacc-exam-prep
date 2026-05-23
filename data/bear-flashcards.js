@@ -1,4 +1,4 @@
-window.BEAR_FLASHCARDS = [
+export const BEAR_FLASHCARDS = [
   {
     id: 1,
     tag: "stats",

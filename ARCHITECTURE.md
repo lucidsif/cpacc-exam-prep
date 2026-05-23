@@ -11,49 +11,84 @@ A one-sitting tour of how the app fits together. Aimed at contributors who want 
 
 These constraints are what keep the project readable for new contributors. Please respect them, or open an issue arguing for a change before sending a PR that breaks them.
 
-## High-level data flow
+## High-level architecture
 
+```mermaid
+graph TD
+  accTitle: High-level architecture of the CPACC test-maker app
+  accDescr: index.html loads main.js which imports data and provenance, creates state, and runs a render dispatcher. The dispatcher delegates to one of seven view modules. Views read from a shared state object and never mutate it directly — they invoke actions defined in main.js. The chat endpoints are served either by a local Node server or by Cloudflare Pages Functions, and proxy to the Anthropic Messages API.
+
+  H[index.html<br/>page shell: skip link, home button, &lt;main&gt;]
+  M[src/main.js<br/>imports data + provenance<br/>creates state, defines actions<br/>runs render dispatcher]
+  S[src/state.js<br/>single mutable bag]
+  ST[src/storage.js<br/>missed-set: server probe<br/>+ localStorage fallback]
+  P[src/provenance.js<br/>IBM-style AI badge + dialog]
+  V[src/views/*<br/>home · question · results<br/>flashcards · disabilities · legal · chat]
+  D[data/*.js<br/>ES modules<br/>+ *_PROVENANCE constants]
+  CL[src/chat.js<br/>fetch wrappers]
+  SRV[/POST /chat /chat-general<br/>GET /chat-status/]
+  LN[server.js<br/>local Node http<br/>also serves /missed]
+  CF[functions/<br/>Cloudflare Pages Functions]
+  A[Anthropic Messages API]
+
+  H -->|script type=module| M
+  M --> S
+  M --> ST
+  M --> P
+  M --> V
+  M --> CL
+  V --> D
+  V --> P
+  CL --> SRV
+  SRV -.->|local dev| LN
+  SRV -.->|prod deploy| CF
+  LN --> A
+  CF --> A
 ```
-                    ┌──────────────────────┐
-                    │      index.html      │  ← page shell (skip link,
-                    │  loads src/main.js   │     home button, <main>)
-                    └──────────┬───────────┘
-                               │ <script type="module">
-                               ▼
-                    ┌──────────────────────┐
-                    │       main.js        │  ← imports data + provenance,
-                    │  • creates state     │     defines actions, runs the
-                    │  • defines actions   │     render dispatcher.
-                    │  • render() loop     │
-                    └────┬────────┬────────┘
-                         │        │
-                         ▼        ▼
-              ┌──────────────┐  ┌──────────────┐
-              │   state.js   │  │  storage.js  │ ← missed-set persistence
-              │ (mutable     │  │ (server +    │   (server fallback to
-              │  bag)        │  │  localStorage)│   localStorage on CF)
-              └──────────────┘  └──────────────┘
-                         │
-                         ▼
-        ┌────────────────────────────────────────────┐
-        │            src/views/* render funcs        │
-        │  home   question   results   flashcards    │
-        │  disabilities   legal   chat (fragment)    │
-        └────────────────────────────────────────────┘
-                         │
-                         ▼ data input
-              ┌──────────────────────────┐
-              │  data/*.js (ES modules)  │
-              │  + *_PROVENANCE constants│
-              └──────────────────────────┘
-```
+
+**Plain-text description (read this if the diagram doesn't render or you're using a screen reader):**
+
+- `index.html` is the page shell — skip link, home button, and a `<main>` element.
+- It loads `src/main.js` as a native ES module. `main.js` is the orchestrator: it imports the data files and their provenance constants, creates the shared mutable state object, defines all action callbacks, and runs the render dispatcher.
+- `src/state.js` exports a factory for the single mutable state bag.
+- `src/storage.js` handles missed-question persistence. It probes the server's `/missed` endpoint once at boot; if that fails (e.g. on Cloudflare Pages, which doesn't host that endpoint), it falls back to per-browser `localStorage` for the rest of the session.
+- `src/provenance.js` renders the IBM-style AI transparency badge and the page-level "About AI in this app" dialog.
+- `src/views/*` are the per-screen render functions (home, question, results, flashcards, disabilities, legal, and the chat fragment shared by question + results). They read from state, render HTML strings, and wire event handlers.
+- `data/*.js` exports the question banks, flashcards, and reference datasets plus a `*_PROVENANCE` constant per file.
+- `src/chat.js` exposes thin fetch wrappers for the chat endpoints.
+- The chat endpoints (`POST /chat`, `POST /chat-general`, `GET /chat-status`) are served either by `server.js` (local Node http, which also handles `/missed`) or by `functions/` (Cloudflare Pages Functions). Both implementations proxy to the Anthropic Messages API.
 
 ## The render loop
+
+```mermaid
+flowchart TD
+  accTitle: Render dispatcher decision tree
+  accDescr: render() inspects the state object in this priority order and returns after the first match. legal view, then disabilities, then flashcards, then submitted (results), then empty questions array (home), and finally falls through to the question view. After every state mutation, render() is called again.
+
+  A[Action mutates state]
+  A --> R{{render dispatcher}}
+  R -->|state.legal set| L[renderLegal]
+  R -->|state.disabilities set| D[renderDisabilities]
+  R -->|state.flashcards set| F[renderFlashcards]
+  R -->|state.submitted true| RR[renderResults]
+  R -->|state.questions.length === 0| H[renderHome]
+  R -->|otherwise| Q[renderQuestion]
+```
+
+**Plain-text description:** every state mutation calls `render()` again. The dispatcher checks state fields in this priority order and returns at the first match:
+
+1. `state.legal` → `renderLegal`
+2. `state.disabilities` → `renderDisabilities`
+3. `state.flashcards` → `renderFlashcards`
+4. `state.submitted === true` → `renderResults`
+5. `state.questions.length === 0` → `renderHome`
+6. otherwise → `renderQuestion`
+
+There is no router, no virtual DOM, no reactive framework. The pattern in code:
 
 ```js
 function render() {
   // wire the home button (lives outside <main>)
-  // …
   if (state.legal)          return renderLegal(ctx);
   if (state.disabilities)   return renderDisabilities(ctx);
   if (state.flashcards)     return renderFlashcards(ctx);
@@ -62,8 +97,6 @@ function render() {
   return renderQuestion(ctx);
 }
 ```
-
-Every state mutation calls `render()` again. The dispatcher decides which view applies based on the state shape. This is intentionally simple — there is no router, no virtual DOM, no reactive framework.
 
 ## State
 
@@ -121,6 +154,38 @@ Every dataset exports a `*_PROVENANCE` constant alongside the data. `src/provena
 
 See `AI_TRANSPARENCY.md` for the full rationale and per-bucket details.
 
+## Chat request lifecycle
+
+```mermaid
+sequenceDiagram
+  accTitle: Per-question chat tutor request flow
+  accDescr: User submits a chat message. The browser POSTs to /chat with the question text, choices, correct answer, BoK rationale, and chat history. The server (local Node or Cloudflare Function) builds a system prompt grounding Claude in the question context and forwards the request to the Anthropic Messages API. The reply is returned unmodified to the browser, which appends it to the chat log. Errors fall back to a visible error message in the transcript.
+
+  participant U as User
+  participant B as Browser (src/chat.js)
+  participant E as Endpoint<br/>(server.js or functions/chat.js)
+  participant A as Anthropic API
+  U->>B: Type and submit message
+  B->>B: Push to chat history, re-render
+  B->>E: POST /chat<br/>{question, choices, answer, why, cite, history, userMessage}
+  E->>E: Build system prompt with question context
+  E->>A: POST /v1/messages
+  A-->>E: { content: [{ text }] }
+  E-->>B: 200 OK (passthrough)
+  B->>B: Append assistant message, re-render
+  B-->>U: Reply visible in chat log<br/>(with "AI live response" banner)
+```
+
+**Plain-text description:** when the user sends a chat message,
+
+1. The browser pushes the message into the chat history and re-renders (showing the user's message immediately).
+2. It POSTs to `/chat` with the question text, choices, correct letter, the user's submitted answer (if any), per-choice rationale, the BoK citation, the prior chat history, and the new message.
+3. The endpoint (local `server.js` or `functions/chat.js`) builds a system prompt that grounds Claude in the question context, then forwards to the Anthropic Messages API.
+4. The unmodified API response is returned to the browser.
+5. The browser appends the assistant reply to the history and re-renders.
+
+If any step fails, the error is shown as a red message in the transcript. The chat log itself is a `role="log" aria-live="polite"` region so screen readers announce new messages politely.
+
 ## Server / Functions
 
 Two parallel server implementations cover the two deploy modes:
@@ -149,6 +214,39 @@ The runner discovers every `tests/*.test.js` and calls its exported `run({ test,
 | DOM smoke tests (jsdom) | `views.test.js` — asserts every view's accessibility contracts |
 
 54+ tests as of writing; every PR should keep this green.
+
+```mermaid
+graph LR
+  accTitle: Test suite layers
+  accDescr: The test runner discovers every *.test.js file in tests/. There are three layers: data smoke tests (inline in run.js) validate data file structure and provenance. Unit tests cover pure logic in sampling, scoring, and storage. DOM smoke tests use jsdom to assert view-level accessibility contracts.
+
+  R[tests/run.js<br/>runner]
+  DS[Data smoke<br/>inline in run.js]
+  U[Unit tests]
+  V[DOM smoke<br/>jsdom]
+  R --> DS
+  R --> U
+  R --> V
+  DS --> DSa[Banks well-formed<br/>+ unique IDs]
+  DS --> DSb[Provenance present<br/>matches FactSheet shape]
+  U --> Ua[sampling.test.js]
+  U --> Ub[scoring.test.js]
+  U --> Uc[storage.test.js]
+  V --> Va[index.html shell<br/>has skip link, main]
+  V --> Vb[Every view has<br/>1 h1, no broken aria-describedby]
+  V --> Vc[Question view:<br/>radiogroup, verdict, submit-answer states]
+  V --> Vd[Revealed radios use<br/>aria-disabled, not disabled]
+  V --> Ve[Provenance badge structure<br/>+ dialog labeling]
+```
+
+**Plain-text description:** the runner has three layers:
+
+- **Data smoke tests** (inline in `tests/run.js`): every data file loads, every question has the required fields, IDs are unique across the CPACC and Bear banks, and every dataset exports a `*_PROVENANCE` constant in the IBM FactSheet shape.
+- **Unit tests**:
+  - `sampling.test.js` covers `shuffle`, `sampleQuestions`, `sampleMissedQuestions` with a deterministic injected RNG.
+  - `scoring.test.js` covers `scoreTest` (perfect/zero/partial/domain breakdown) and `domainLabel`.
+  - `storage.test.js` covers the missed-set store with mocked `fetch` and an in-memory `localStorage` polyfill.
+- **DOM smoke tests** (`views.test.js`, using jsdom): assert the accessibility contracts of every view — index.html shell has the skip link and focusable main; every view has exactly one h1; the question view's radiogroup, verdict region, submit-answer button states, and aria-describedby targets all resolve; revealed radios use `aria-disabled` not native `disabled`; the provenance badge has the expected structure (labeled summary, dual-encoded confidence pill, semantic `<dl>` card); and the AI-info dialog is properly labelled.
 
 ## Things that look weird and aren't
 

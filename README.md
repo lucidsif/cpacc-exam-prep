@@ -1,18 +1,38 @@
 # CPACC Practice Test
 
-Single-page web app with a question bank grounded in the **IAAP CPACC Body of Knowledge (Oct 2023, v4.0)**, plus an optional per-question chat tutor powered by the Anthropic API.
+Single-page web app for studying the **IAAP CPACC Body of Knowledge (Oct 2023, v4.0)**. Includes weighted practice tests, study flashcards, a comprehensive human-disabilities reference, a history/laws/standards reference, and an optional Claude-powered tutor chat.
+
+## What's in it
+
+- **Weighted practice test** — 20 questions drawn from a curated CPACC bank, matched to the BoK domain mix (40 / 40 / 20)
+- **Bear notes practice** — 20 questions drawn from a separate bank generated from the user's personal `#cpacc` / `#a11y/*` study notes
+- **Missed-question practice** — focused review of items missed in any prior session (shared across devices via the server)
+- **Bear notes flashcards** — 50 dense study cards distilled from the notes, with prevalence, lists, and key facts
+- **Human disabilities reference** — 71 conditions across 9 categories (visual, auditory, speech, motor, neurological, cognitive, psychological, multiple, other), with description, key facts, and accessibility solutions
+- **History, laws & standards reference** — 51 CPACC-relevant items grouped by jurisdiction (UN, EU, USA, Canada, Other Nations, Technical Standards, Timeline)
+- **Per-question chat tutor** — discuss any practice question with Claude, with the question and BoK rationale provided as context
+- **Home-page chat tutor** — free-form CPACC chat from the home page
+
+The app is accessible (**WCAG 2.2 AA conformant** — see _Accessibility_ section).
 
 ## Files
 
-- `index.html` — the app (start → 20 random questions → graded results → per-question chat)
-- `questions.js` — bank of CPACC-style items, each tagged with domain, type, and BoK page citation
-- `server.js` — minimal Node server: serves the app and proxies chat to the Anthropic API
-- `CPACC_BoK.pdf` — the source document (downloaded from accessibilityassociation.org)
+| File | Contents |
+|---|---|
+| `index.html` | The app (single page; all UI and state) |
+| `server.js` | Minimal Node server: serves the app, proxies chat to the Anthropic API, persists missed-questions |
+| `questions.js` | Main CPACC question bank, tagged with domain, type, and BoK page citation |
+| `bear-questions.js` | Question bank generated from the user's Bear-app `#cpacc` / `#a11y/*` notes |
+| `bear-flashcards.js` | Dense study flashcards distilled from the same notes |
+| `disabilities.js` | Human-disabilities reference dataset |
+| `legal.js` | History, laws, and standards reference dataset |
+| `tests/run.js` | Node-based smoke tests validating every data file |
+| `CPACC_BoK.pdf` | Source document (from accessibilityassociation.org) |
 
 ## Run
 
 ```bash
-# Required only if you want the per-question chat feature
+# Required only if you want chat tutor features
 export ANTHROPIC_API_KEY=sk-ant-...
 
 # Optional: pick a model (default: claude-sonnet-4-6)
@@ -21,7 +41,7 @@ export ANTHROPIC_MODEL=claude-opus-4-7
 node server.js
 ```
 
-On startup the server prints the URLs it's reachable at, e.g.:
+On startup the server prints the URLs it's reachable at:
 
 ```
 CPACC test app running:
@@ -29,35 +49,43 @@ CPACC test app running:
   LAN:    http://192.168.1.42:8787   (open this on your phone — same Wi-Fi)
 ```
 
-Open the `Local:` URL on this Mac, and the `LAN:` URL on your phone's browser. Both devices share the same missed-questions list (see below).
+Open `Local:` on your computer and `LAN:` on your phone — both devices share the same missed-questions list.
 
-Without an API key, the test still works — only the "Discuss this question" chat is disabled.
+Without an API key, all features work except the chat tutor.
+
+## Tests
+
+```bash
+node tests/run.js
+```
+
+Validates that every data file (`questions.js`, `bear-questions.js`, `bear-flashcards.js`, `disabilities.js`, `legal.js`) loads, has expected structure, and has unique IDs. No external dependencies.
 
 ## Phone access & shared missed list
 
-- The server binds to all interfaces, so any device on the same Wi-Fi can open the LAN URL — no passcode, no API key on the phone.
-- Missed questions are persisted server-side in `data.json` (in this folder). Both Mac and phone read/write that file, so a question you miss on one device shows up in the missed list on the other.
+- The server binds to all interfaces, so any device on the same Wi-Fi can open the LAN URL.
+- Missed questions are persisted server-side in `data.json` (gitignored). Both desktop and phone read/write that file, so a question you miss on one device shows up in the missed list on the other.
 - If you open `index.html` directly via `file://` (no server), the app still works but falls back to per-browser `localStorage` for the missed list.
 
-**Security note:** no auth means anyone on the same Wi-Fi can hit your app and missed list. Home Wi-Fi: fine. Coffee shop: don't run it there without adding a token.
+**Security note:** no auth means anyone on the same Wi-Fi can hit your app. Home Wi-Fi: fine. Public Wi-Fi: don't run it without adding a token.
 
 ## Sampling
 
-Each test draws 20 questions weighted to the BoK domain mix:
+Each weighted practice test draws 20 questions matched to the BoK domain mix:
 
 - Domain 1 (Disabilities & AT) — **40%** → 8 questions
 - Domain 2 (Accessibility & UD) — **40%** → 8 questions
 - Domain 3 (Standards, Laws & Mgmt) — **20%** → 4 questions
 
-Retakes reshuffle the bank.
+Bear practice tests use the same sampling against the Bear bank. Retakes reshuffle.
 
 ## Real exam vs this app
 
 The actual CPACC exam is **100 multiple-choice questions in 2 hours** (~72 sec/question, ~70% pass). This app is a study tool, not a length-accurate mock.
 
-## Growing the bank
+## Growing the question banks
 
-Append items to `window.CPACC_BANK` in `questions.js`. Each item:
+Append items to `window.CPACC_BANK` in `questions.js` or `window.BEAR_BANK` in `bear-questions.js`. Each item:
 
 ```js
 {
@@ -68,6 +96,29 @@ Append items to `window.CPACC_BANK` in `questions.js`. Each item:
   choices: { A: "…", B: "…", C: "…", D: "…" },
   answer: "B",
   why: { A: "why wrong…", B: "why right…", C: "…", D: "…" },
-  cite: "BoK p.42"                // page in CPACC_BoK.pdf
+  cite: "BoK p.42"
 }
 ```
+
+Item IDs across both banks must be unique. The smoke tests in `tests/run.js` will fail if they collide.
+
+## Accessibility
+
+The app targets **WCAG 2.2 AA conformance**. Highlights:
+
+- All interactive elements are real `<button>` / `<input>` elements (no clickable `<div>`s) — keyboard accessible (SC 2.1.1, 4.1.2)
+- Visible focus indicator on every focusable element (SC 2.4.7) — 3px solid amber ring (`--focus-ring`)
+- `Skip to main content` link (SC 2.4.1)
+- Headings use a proper hierarchy (`<h1>` page / `<h2>` panels / `<h3>` items) (SC 1.3.1, 2.4.6)
+- Question choices are wrapped in `role="radiogroup"` with a label (SC 1.3.1)
+- Chat logs use `role="log"` + `aria-live="polite"` so screen readers announce new messages (SC 4.1.3)
+- Verdict (correct/incorrect) uses `aria-live="polite"` and includes a ✓/✗ marker, not color alone (SC 1.4.1, 4.1.3)
+- Border color (`--border`) hits ≥3:1 contrast against all panel backgrounds (SC 1.4.11)
+- Target sizes ≥24×24 CSS px (SC 2.5.8)
+- `scroll-margin-top` prevents the sticky anchor bar from obscuring focused items (SC 2.4.11)
+- Decorative emoji are `aria-hidden="true"` so they don't pollute the accessible name (SC 1.1.1)
+- All form inputs have accessible labels (SC 3.3.2)
+
+## Origin of the Bear-derived content
+
+`bear-questions.js`, `bear-flashcards.js`, and parts of `disabilities.js` / `legal.js` were generated from the original author's personal Bear study notes tagged `#cpacc` and `#a11y/*`. The content is paraphrased and reorganized; raw notes are not in this repo.

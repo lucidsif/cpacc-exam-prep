@@ -2,6 +2,7 @@
 
 import { escapeHtml } from '../dom.js';
 import { TEST_SIZE } from '../sampling.js';
+import { renderChatProvenanceBanner } from '../provenance.js';
 
 /**
  * Render the home page into ctx.app and wire its event handlers.
@@ -83,12 +84,14 @@ export function renderHome(ctx) {
         </div>
       </div>
       <div class="cite">Real CPACC exam: 100 multiple-choice questions in 2 hours, ~70% pass. (Per IAAP exam info — not from the BoK itself.)</div>
+      <div class="cite"><button type="button" class="linkish" data-open-ai-info aria-label="Open the About AI in this app dialog">🤖 About AI in this app</button> — provenance, confidence levels, and limitations of every content type.</div>
       <div class="cite">Chat tutor: ${state.chatEnabled ? 'enabled' : 'disabled (optional — set ANTHROPIC_API_KEY and run via <code>node server.js</code> to enable per-question chat)'}.</div>
       ${state.chatEnabled ? `
       <div class="panel">
         <h2 class="qmeta"><span class="qmeta-emoji" aria-hidden="true">💬</span> Ask the CPACC tutor</h2>
         <div class="qtext" style="font-size:14px;color:var(--muted);margin-bottom:10px">Free-form chat — ask about disabilities, laws, WCAG, UD principles, anything CPACC-related.</div>
         <div class="chat">
+          ${renderChatProvenanceBanner()}
           <div class="log" id="home-log" role="log" aria-live="polite" aria-label="Chat conversation">${state.homeChat.history.map(m => `<div class="msg ${m.role}">${escapeHtml(m.content)}</div>`).join('') || `<div class="msg assistant">Hi — ask me anything CPACC-related.</div>`}</div>
           <div class="chat-input">
             <label for="home-input" class="sr-only">Ask the tutor a question</label>

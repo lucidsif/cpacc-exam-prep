@@ -11,11 +11,12 @@
 // and delegates to the right view. Views never call each other; they
 // invoke `actions.*` callbacks to mutate state and re-render.
 
-import { CPACC_BANK } from '../data/questions.js';
-import { BEAR_BANK } from '../data/bear-questions.js';
-import { BEAR_FLASHCARDS } from '../data/bear-flashcards.js';
-import { DISABILITIES } from '../data/disabilities.js';
-import { LEGAL } from '../data/legal.js';
+import { CPACC_BANK, CPACC_BANK_PROVENANCE } from '../data/questions.js';
+import { BEAR_BANK, BEAR_BANK_PROVENANCE } from '../data/bear-questions.js';
+import { BEAR_FLASHCARDS, BEAR_FLASHCARDS_PROVENANCE } from '../data/bear-flashcards.js';
+import { DISABILITIES, DISABILITIES_PROVENANCE } from '../data/disabilities.js';
+import { LEGAL, LEGAL_PROVENANCE } from '../data/legal.js';
+import { renderAiInfoDialog, installAiInfoDialog } from './provenance.js';
 
 import { createState, resetState } from './state.js';
 import { createMissedStore } from './storage.js';
@@ -36,6 +37,22 @@ const homeBtn = document.getElementById('home-btn');
 const state = createState();
 const missed = createMissedStore();
 const data = { CPACC_BANK, BEAR_BANK, BEAR_FLASHCARDS, DISABILITIES, LEGAL };
+const provenance = {
+  CPACC_BANK: CPACC_BANK_PROVENANCE,
+  BEAR_BANK: BEAR_BANK_PROVENANCE,
+  BEAR_FLASHCARDS: BEAR_FLASHCARDS_PROVENANCE,
+  DISABILITIES: DISABILITIES_PROVENANCE,
+  LEGAL: LEGAL_PROVENANCE,
+};
+
+// Lookup the right provenance for a given question by its id. CPACC bank
+// uses ids < 1000; BEAR bank uses ids ≥ 1000. Item-level `provenance` field
+// overrides the bank default.
+const _cpaccIds = new Set(CPACC_BANK.map(q => q.id));
+function provenanceForQuestion(q) {
+  if (q && q.provenance) return q.provenance;
+  return _cpaccIds.has(q?.id) ? provenance.CPACC_BANK : provenance.BEAR_BANK;
+}
 
 // -------- actions --------------------------------------------------------
 
@@ -134,7 +151,7 @@ function render() {
     };
   }
 
-  const ctx = { app, state, data, missed, actions: {
+  const ctx = { app, state, data, missed, provenance, provenanceForQuestion, actions: {
     render, startTest, startFlashcards, openDisabilities, openLegal,
     submitAll, sendHomeChat, clearHomeChat, sendChat,
   }};
@@ -157,6 +174,11 @@ fetchChatStatus().then(enabled => {
 
 // Load missed set from server (or local fallback), then first paint.
 missed.fetchFromServer().then(render);
+
+// Append the (initially closed) "About AI in this app" dialog to the document
+// body so it's available from any view via the data-open-ai-info trigger.
+document.body.insertAdjacentHTML('beforeend', renderAiInfoDialog());
+installAiInfoDialog();
 
 // Render once immediately so the user sees something while async loads.
 render();

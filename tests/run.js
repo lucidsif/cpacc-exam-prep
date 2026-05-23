@@ -139,6 +139,31 @@ async function dataSmokeTests() {
     const jurs = new Set(visible.map(i => i.jurisdiction));
     for (const j of d.jurisdictions) assertTrue(jurs.has(j.id), `jurisdiction ${j.id} has no CPACC-relevant items`);
   });
+
+  // Provenance constants — every dataset must declare a default provenance so
+  // the UI can render an AI-transparency badge even for items that don't carry
+  // a per-item override.
+  await test('every dataset exports a *_PROVENANCE object with the IBM FactSheet shape', async () => {
+    const cases = [
+      ['data/questions.js', 'CPACC_BANK_PROVENANCE'],
+      ['data/bear-questions.js', 'BEAR_BANK_PROVENANCE'],
+      ['data/bear-flashcards.js', 'BEAR_FLASHCARDS_PROVENANCE'],
+      ['data/disabilities.js', 'DISABILITIES_PROVENANCE'],
+      ['data/legal.js', 'LEGAL_PROVENANCE'],
+    ];
+    for (const [file, name] of cases) {
+      const mod = await load(file);
+      const p = mod[name];
+      assertTrue(p, `${file}: missing export ${name}`);
+      assertTrue(['ai-from-source', 'ai-from-notes', 'ai-live'].includes(p.category), `${name}: bad category ${p.category}`);
+      assertTrue(typeof p.label === 'string' && p.label.length, `${name}: missing label`);
+      assertTrue(Array.isArray(p.citations) && p.citations.length, `${name}: must list at least one citation`);
+      assertTrue(typeof p.generatedBy === 'string' && p.generatedBy.length, `${name}: missing generatedBy`);
+      assertTrue(typeof p.humanReview === 'string' && p.humanReview.length, `${name}: missing humanReview`);
+      assertTrue(['high', 'medium', 'low', 'variable'].includes(p.confidence), `${name}: bad confidence ${p.confidence}`);
+      assertTrue(Array.isArray(p.limitations), `${name}: limitations must be an array`);
+    }
+  });
 }
 
 async function main() {

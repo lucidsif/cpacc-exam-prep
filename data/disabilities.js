@@ -1,3 +1,28 @@
+/**
+ * AI provenance for the Human Disabilities reference.
+ *
+ * Mixed sources: AI-organized from the author's notes, with prevalence
+ * stats cross-referenced against external authorities (WHO, CDC, Epilepsy
+ * Foundation) where cited inline. Item-level `keyFacts` arrays often
+ * include their own sourcing.
+ */
+export const DISABILITIES_PROVENANCE = {
+  category: 'ai-from-notes',
+  label: 'AI-derived from author\'s notes (with external stats)',
+  citations: [
+    'Author\'s Bear notes tagged #a11y/disabilities',
+    'WHO, CDC, Epilepsy Foundation prevalence data cited inline in keyFacts',
+  ],
+  generatedBy: 'Claude Sonnet 4.6',
+  generatedAt: '2025-04',
+  humanReview: 'Stats cross-checked against authoritative sources by the author. Descriptions paraphrased from notes.',
+  confidence: 'medium',
+  limitations: [
+    'Prevalence numbers can shift year-to-year; verify against current WHO/CDC data.',
+    'Accessibility-solutions lists are not exhaustive.',
+  ],
+};
+
 export const DISABILITIES = {
   categories: [
     { id: "visual", label: "Visual / Vision", emoji: "👁️", color: "#7aa2ff",

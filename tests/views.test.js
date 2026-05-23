@@ -77,6 +77,7 @@ export async function run({ test, assertTrue, assertEq }) {
       app: dom.window.document.getElementById('app'),
       state: fakeState,
       data: { CPACC_BANK: [fakeQuestion], BEAR_BANK: [], BEAR_FLASHCARDS: [], DISABILITIES: { categories: [], items: [] }, LEGAL: { jurisdictions: [], items: [] } },
+      provenance: {},
       missed: fakeMissed,
       actions: fakeActions,
     });
@@ -199,6 +200,67 @@ export async function run({ test, assertTrue, assertEq }) {
     assertTrue(card.hasAttribute('aria-label'), 'card needs aria-label');
   });
 
+  await test('renderProvenanceBadge produces a <details> with labeled summary, confidence pill, and dl card', async () => {
+    const dom = makeDom();
+    const { renderProvenanceBadge } = await loadView('src/provenance.js');
+    const prov = {
+      category: 'ai-from-source',
+      label: 'AI-authored from BoK',
+      citations: ['IAAP BoK Oct 2023'],
+      generatedBy: 'Claude Sonnet 4.6',
+      generatedAt: '2025-04',
+      humanReview: 'Author reviewed against citation.',
+      confidence: 'high',
+      limitations: ['Not endorsed by IAAP.'],
+    };
+    const html = renderProvenanceBadge(prov, 'Question 1');
+    const wrap = dom.window.document.createElement('div');
+    wrap.innerHTML = html;
+    const det = wrap.querySelector('details.provenance');
+    assertTrue(det, 'no <details> rendered');
+    const summary = det.querySelector('summary');
+    assertTrue(summary, 'no <summary>');
+    assertTrue(summary.getAttribute('aria-label').includes('Question 1'), 'aria-label should include the item label');
+    // Decorative emoji must be hidden from AT
+    const emoji = summary.querySelector('.pv-icon');
+    assertEq(emoji.getAttribute('aria-hidden'), 'true');
+    // Confidence pill carries text, glyph (aria-hidden), AND color class — SC 1.4.1 dual encoding
+    const pill = summary.querySelector('.pv-conf');
+    assertTrue(pill.classList.contains('pv-conf-high'), 'confidence pill should have a color class');
+    assertTrue(pill.textContent.toLowerCase().includes('high'), 'confidence pill must include the word "High"');
+    const glyph = pill.querySelector('.pv-conf-glyph');
+    assertEq(glyph.getAttribute('aria-hidden'), 'true');
+    // Provenance card uses <dl> for semantic field pairs (SC 1.3.1)
+    const dl = det.querySelector('dl.provenance-card');
+    assertTrue(dl, 'provenance card should be a <dl>');
+    const dts = dl.querySelectorAll('dt');
+    const dds = dl.querySelectorAll('dd');
+    assertTrue(dts.length >= 5, 'expected ≥5 provenance fields');
+    assertEq(dts.length, dds.length, 'dt/dd count must match');
+  });
+
+  await test('renderChatProvenanceBanner exposes an "About AI in this app" trigger', async () => {
+    const dom = makeDom();
+    const { renderChatProvenanceBanner } = await loadView('src/provenance.js');
+    const wrap = dom.window.document.createElement('div');
+    wrap.innerHTML = renderChatProvenanceBanner();
+    const trigger = wrap.querySelector('[data-open-ai-info]');
+    assertTrue(trigger, 'banner must contain a data-open-ai-info trigger');
+    assertEq(trigger.tagName, 'BUTTON');
+  });
+
+  await test('renderAiInfoDialog produces a labelled <dialog> with a close button', async () => {
+    const dom = makeDom();
+    const { renderAiInfoDialog } = await loadView('src/provenance.js');
+    const wrap = dom.window.document.createElement('div');
+    wrap.innerHTML = renderAiInfoDialog();
+    const dlg = wrap.querySelector('dialog#ai-info-dialog');
+    assertTrue(dlg, 'no dialog rendered');
+    assertEq(dlg.getAttribute('aria-labelledby'), 'ai-info-title');
+    assertTrue(wrap.querySelector('#ai-info-title'), 'aria-labelledby target must exist');
+    assertTrue(wrap.querySelector('[data-close-ai-info]'), 'dialog needs a close trigger');
+  });
+
   await test('decorative emoji in renderHome have aria-hidden="true"', async () => {
     const dom = makeDom();
     const { renderHome } = await loadView('src/views/home.js');
@@ -206,6 +268,7 @@ export async function run({ test, assertTrue, assertEq }) {
       app: dom.window.document.getElementById('app'),
       state: fakeState,
       data: { CPACC_BANK: [fakeQuestion], BEAR_BANK: [], BEAR_FLASHCARDS: [], DISABILITIES: { categories: [], items: [] }, LEGAL: { jurisdictions: [], items: [] } },
+      provenance: {},
       missed: fakeMissed,
       actions: fakeActions,
     });

@@ -4,6 +4,7 @@ import { escapeHtml, scrollIntoViewMotionSafe } from '../dom.js';
 import { domainLabel, scoreTest } from '../scoring.js';
 import { TEST_SIZE } from '../sampling.js';
 import { renderChatFragment } from './chat.js';
+import { renderProvenanceBadge } from '../provenance.js';
 
 /**
  * Render the results page.
@@ -19,7 +20,7 @@ import { renderChatFragment } from './chat.js';
  * }} ctx
  */
 export function renderResults(ctx) {
-  const { app, state, missed, actions } = ctx;
+  const { app, state, missed, actions, provenanceForQuestion } = ctx;
   const { correct, total, pct, domainStats } = scoreTest(state.questions, state.answers);
 
   const cells = state.questions.map((q, i) => {
@@ -43,9 +44,11 @@ export function renderResults(ctx) {
           </div>`;
     }).join('');
     const chatOpen = state.chats[q.id]?.open;
+    const prov = provenanceForQuestion ? provenanceForQuestion(q) : null;
     return `
         <div class="panel" data-qid="${q.id}" id="result-q-${i}">
           <h2 class="qmeta">Q${i+1} · ${domainLabel(q.domain)} · ${q.type} · your answer: ${picked || '—'} · correct: ${q.answer}</h2>
+          ${renderProvenanceBadge(prov, `Question ${i + 1}`)}
           <p class="qtext">${escapeHtml(q.q)}</p>
           ${choices}
           ${q.cite ? `<div class="cite">Source: ${escapeHtml(q.cite)}</div>` : ''}

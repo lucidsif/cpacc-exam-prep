@@ -1,3 +1,18 @@
+/** AI provenance for the Bear-notes flashcards. Same source as BEAR_BANK. */
+export const BEAR_FLASHCARDS_PROVENANCE = {
+  category: 'ai-from-notes',
+  label: 'AI-derived from author\'s notes',
+  citations: ['Author\'s Bear notes tagged #cpacc/practice and #a11y/*'],
+  generatedBy: 'Claude Sonnet 4.6',
+  generatedAt: '2025-04',
+  humanReview: 'Spot-checked by the author for factual alignment.',
+  confidence: 'medium',
+  limitations: [
+    'Cards distill the author\'s notes — may not match how the BoK frames concepts.',
+    'Not endorsed by IAAP.',
+  ],
+};
+
 export const BEAR_FLASHCARDS = [
   {
     id: 1,

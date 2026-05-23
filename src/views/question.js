@@ -2,6 +2,7 @@
 
 import { escapeHtml } from '../dom.js';
 import { domainLabel } from '../scoring.js';
+import { renderProvenanceBadge, renderChatProvenanceBanner, CHAT_PROVENANCE } from '../provenance.js';
 
 /**
  * Render the current question and wire its handlers.
@@ -16,8 +17,9 @@ import { domainLabel } from '../scoring.js';
  * }} ctx
  */
 export function renderQuestion(ctx) {
-  const { app, state, missed, actions } = ctx;
+  const { app, state, missed, actions, provenanceForQuestion } = ctx;
   const q = state.questions[state.index];
+  const prov = provenanceForQuestion ? provenanceForQuestion(q) : null;
   const committed = state.answers[q.id];
   const pending = state.pending[q.id];
   const revealed = !!state.revealed[q.id];
@@ -62,6 +64,7 @@ export function renderQuestion(ctx) {
       <div class="sub">Question ${state.index + 1} of ${state.questions.length} · answered ${answered}/${state.questions.length}</div>
       <div class="panel">
         <div class="qmeta">${domainLabel(q.domain)} · ${q.type}</div>
+        ${renderProvenanceBadge(prov, `Question ${state.index + 1}`)}
         <p class="qtext">${escapeHtml(q.q)}</p>
         <div id="kbd-hint" class="cite" style="display:block;margin-bottom:8px">Select an answer, then choose <b>Submit answer</b>.<span class="kbd-only"> Use arrow keys to move between choices.</span></div>
         <div id="choices" role="radiogroup" aria-label="Answer choices" aria-describedby="kbd-hint" ${revealed ? 'aria-disabled="true"' : ''}>${choicesHtml}</div>

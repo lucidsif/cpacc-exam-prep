@@ -2,6 +2,7 @@
 
 import { escapeHtml } from '../dom.js';
 import { shuffle } from '../sampling.js';
+import { renderProvenanceBadge } from '../provenance.js';
 
 /**
  * Render the active flashcards session.
@@ -12,13 +13,15 @@ import { shuffle } from '../sampling.js';
  * }} ctx
  */
 export function renderFlashcards(ctx) {
-  const { app, state, actions } = ctx;
+  const { app, state, actions, provenance } = ctx;
+  const prov = provenance?.BEAR_FLASHCARDS;
   const fc = state.flashcards;
   const card = fc.cards[fc.index];
 
   app.innerHTML = `
       <h1>Bear notes flashcards</h1>
       <div class="sub">Card ${fc.index + 1} of ${fc.cards.length}</div>
+      ${renderProvenanceBadge(prov, 'these flashcards')}
       <div class="panel">
         <button type="button" class="flashcard" id="card" aria-label="${fc.flipped ? 'Showing back. Click to flip to front.' : 'Showing front. Click to flip to back.'}" aria-pressed="${fc.flipped}">
           <span class="tag-pill">${escapeHtml(card.tag || 'card')}</span>

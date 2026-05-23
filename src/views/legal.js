@@ -1,6 +1,7 @@
 // src/views/legal.js — history/laws/standards reference (jurisdiction grid + detail list).
 
 import { escapeHtml, scrollIntoViewMotionSafe } from '../dom.js';
+import { renderProvenanceBadge } from '../provenance.js';
 
 /** Pick an emoji for a legal item based on its `type` field. */
 function emojiForType(type) {
@@ -28,10 +29,11 @@ function emojiForType(type) {
  * }} ctx
  */
 export function renderLegal(ctx) {
-  const { app, state, data, actions } = ctx;
+  const { app, state, data, actions, provenance } = ctx;
   const d = data.LEGAL;
   const view = state.legal.view;
   const visible = d.items.filter(i => i.cpacc !== false);
+  const prov = provenance?.LEGAL;
 
   if (view === 'categories') {
     const cards = d.jurisdictions.filter(c => visible.some(i => i.jurisdiction === c.id)).map(c => {
@@ -46,6 +48,7 @@ export function renderLegal(ctx) {
     app.innerHTML = `
         <h1>History, laws & standards</h1>
         <div class="sub">${visible.length} CPACC-relevant items across ${d.jurisdictions.filter(c => visible.some(i => i.jurisdiction === c.id)).length} groups. Tap a group to browse.</div>
+        ${renderProvenanceBadge(prov, 'the laws and standards reference')}
         <div class="cat-grid">${cards}</div>
       `;
     document.querySelectorAll('[data-jur]').forEach(el => {

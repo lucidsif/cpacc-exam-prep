@@ -149,7 +149,68 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .dis-anchor-bar .anchor { background: var(--panel-2); border: 1px solid var(--border); padding: 6px 12px; border-radius: 999px; font-size: 12px; color: var(--text); text-decoration: none; cursor: pointer; min-height: 24px; line-height: 1.2; font-family: inherit; }
 .dis-anchor-bar .anchor:hover { border-color: var(--accent); }
 
-/* 9. Home button
+/* 9. AI provenance badge + dialog (IBM-style transparency)
+   ------------------------------------------------------------ */
+.provenance { margin: 8px 0; }
+.provenance > summary {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  background: #11151f; border: 1px solid var(--border); border-radius: 999px;
+  padding: 5px 12px; font-size: 12px; color: var(--text);
+  cursor: pointer; user-select: none;
+  list-style: none;  /* hide default disclosure marker */
+}
+.provenance > summary::-webkit-details-marker { display: none; }
+.provenance > summary::marker { display: none; }
+.provenance > summary:hover { border-color: var(--accent); }
+.provenance .pv-cat { font-weight: 600; }
+.provenance .pv-conf {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 1px 8px; border-radius: 999px; font-weight: 500;
+  border: 1px solid currentColor;
+}
+.provenance .pv-conf-glyph { font-size: 11px; line-height: 1; }
+.provenance .pv-conf-high { color: #67e3a6; }
+.provenance .pv-conf-med  { color: #e3c067; }
+.provenance .pv-conf-low  { color: #ff9a9a; }
+.provenance .pv-conf-var  { color: #b9c1cf; }
+.provenance .pv-chev { font-size: 10px; transition: transform .15s; }
+.provenance[open] .pv-chev { transform: rotate(90deg); }
+.provenance-card {
+  margin: 8px 0 0; padding: 12px 14px; background: #11151f;
+  border: 1px solid var(--border); border-radius: 8px;
+  display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px;
+  font-size: 13px;
+}
+.provenance-card dt { font-weight: 600; color: var(--muted); }
+.provenance-card dd { margin: 0; color: #cbd2e0; }
+.provenance-card .pv-limits { margin: 4px 0 0; padding-left: 18px; }
+.provenance-card .pv-limits li { line-height: 1.45; }
+
+.pv-banner {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin-bottom: 10px; padding: 8px 12px;
+  background: #2a210f; border-left: 3px solid #d9a441; border-radius: 4px;
+  color: #e9d6a8; font-size: 13px;
+}
+.pv-banner .pv-icon { font-size: 16px; }
+.pv-info-link { color: var(--accent); font-weight: 600; }
+
+.ai-dialog {
+  max-width: 640px; width: calc(100% - 32px);
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--border); border-radius: 12px;
+  padding: 20px 24px; box-shadow: 0 16px 48px rgba(0,0,0,0.5);
+}
+.ai-dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+.ai-dialog h2 { font-size: 20px; }
+.ai-dialog h3 { font-size: 15px; margin: 16px 0 4px; color: var(--accent); }
+.ai-dialog p, .ai-dialog li { line-height: 1.55; font-size: 14px; }
+.ai-dialog .secondary.small { padding: 4px 10px; }
+
+/* Hint text shown only on devices whose primary pointer is fine (mouse/keyboard).
+   (Defined below near other media queries.) */
+
+/* 10. Home button
    ------------------------------------------------------------
    In normal document flow at the top of the page so it never overlaps
    the heading and scales correctly under reflow / zoom (WCAG 1.4.10).

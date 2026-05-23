@@ -1,6 +1,7 @@
 // src/views/disabilities.js — human-disabilities reference (category grid + detail list).
 
 import { escapeHtml, scrollIntoViewMotionSafe } from '../dom.js';
+import { renderProvenanceBadge } from '../provenance.js';
 
 // Per-category top-line stat pills (curated from the source notes).
 const CATEGORY_STATS = {
@@ -25,9 +26,10 @@ const CATEGORY_STATS = {
  * }} ctx
  */
 export function renderDisabilities(ctx) {
-  const { app, state, data, actions } = ctx;
+  const { app, state, data, actions, provenance } = ctx;
   const d = data.DISABILITIES;
   const view = state.disabilities.view;
+  const prov = provenance?.DISABILITIES;
 
   if (view === 'categories') {
     const cards = d.categories.map(c => {
@@ -42,6 +44,7 @@ export function renderDisabilities(ctx) {
     app.innerHTML = `
         <h1>Human disabilities</h1>
         <div class="sub">${d.items.length} conditions across ${d.categories.length} categories. Tap a category to browse.</div>
+        ${renderProvenanceBadge(prov, 'the disabilities reference')}
         <div class="cat-grid" role="list">${cards}</div>
       `;
     document.querySelectorAll('[data-cat]').forEach(el => {

@@ -4,6 +4,7 @@
 // The parent view is responsible for wiring data-send / data-input handlers.
 
 import { escapeHtml } from '../dom.js';
+import { renderChatProvenanceBanner } from '../provenance.js';
 
 /**
  * Render the per-question chat panel as an HTML string.
@@ -15,6 +16,7 @@ export function renderChatFragment(q, chat) {
     || `<div class="msg assistant">Ask me anything about this question — why an option is wrong, what the BoK says, edge cases, related concepts.</div>`;
   return `
       <div class="chat">
+        ${renderChatProvenanceBanner()}
         <div class="log" id="log-${q.id}" role="log" aria-live="polite" aria-label="Discussion of this question">${logHtml}</div>
         <div class="chat-input">
           <input type="text" data-input="${q.id}" placeholder="Type a question and press Enter..." aria-label="Ask about this question" />

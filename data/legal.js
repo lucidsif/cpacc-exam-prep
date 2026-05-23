@@ -1,3 +1,28 @@
+/**
+ * AI provenance for the History, Laws & Standards reference.
+ *
+ * AI-authored from public information about laws, conventions, and
+ * standards (year of passage, scope, jurisdiction). Each item carries
+ * its own year and a `cite`/`type` field; some include direct quotes
+ * from law text.
+ */
+export const LEGAL_PROVENANCE = {
+  category: 'ai-from-source',
+  label: 'AI-authored from public legal records',
+  citations: [
+    'Public records of laws, treaties, conventions, and standards',
+    'Cross-referenced with author\'s notes tagged #a11y/legal',
+  ],
+  generatedBy: 'Claude Sonnet 4.6',
+  generatedAt: '2025-04',
+  humanReview: 'Author verified key facts (year, jurisdiction, scope) against authoritative sources.',
+  confidence: 'high',
+  limitations: [
+    'Summaries — consult the actual legislation for binding interpretation.',
+    'Coverage focuses on CPACC-relevant items; the `cpacc: false` flag hides items considered out of scope for the exam.',
+  ],
+};
+
 export const LEGAL = {
   jurisdictions: [
     {

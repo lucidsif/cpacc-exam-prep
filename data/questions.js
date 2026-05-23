@@ -6,6 +6,32 @@
 //   q, choices {A,B,C,D}, answer, why {A,B,C,D}, cite
 //
 // Domains follow BoK weighting: D1=40%, D2=40%, D3=20%.
+/**
+ * AI provenance for the main CPACC question bank.
+ *
+ * Every item in CPACC_BANK was AI-authored from the IAAP CPACC Body of
+ * Knowledge PDF and carries a `cite` field pointing to the source page.
+ * The author reviewed each item against its cited page before release.
+ *
+ * Per-item override: an item may include its own `provenance` field that
+ * supersedes this default — used when a question has a different source
+ * (e.g. external WHO stat) or a known confidence caveat (`flag`).
+ */
+export const CPACC_BANK_PROVENANCE = {
+  category: 'ai-from-source',
+  label: 'AI-authored from BoK',
+  citations: ['IAAP CPACC Body of Knowledge (October 2023, v4.0)'],
+  generatedBy: 'Claude Sonnet 4.6',
+  generatedAt: '2025-04',
+  humanReview: 'Item-by-item review against the cited BoK pages by the author.',
+  confidence: 'high',
+  limitations: [
+    'Study aid — not equivalent to the actual IAAP exam.',
+    'Some items carry a `flag` field indicating known uncertainty.',
+    'Not authorized or endorsed by IAAP.',
+  ],
+};
+
 export const CPACC_BANK = [
 
   // =====================================================================

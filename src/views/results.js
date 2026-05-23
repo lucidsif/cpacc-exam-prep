@@ -1,6 +1,6 @@
 // src/views/results.js — final results page with per-question review + chats.
 
-import { escapeHtml } from '../dom.js';
+import { escapeHtml, scrollIntoViewMotionSafe } from '../dom.js';
 import { domainLabel, scoreTest } from '../scoring.js';
 import { TEST_SIZE } from '../sampling.js';
 import { renderChatFragment } from './chat.js';
@@ -45,7 +45,7 @@ export function renderResults(ctx) {
     const chatOpen = state.chats[q.id]?.open;
     return `
         <div class="panel" data-qid="${q.id}" id="result-q-${i}">
-          <div class="qmeta">Q${i+1} · ${domainLabel(q.domain)} · ${q.type} · your answer: ${picked || '—'} · correct: ${q.answer}</div>
+          <h2 class="qmeta">Q${i+1} · ${domainLabel(q.domain)} · ${q.type} · your answer: ${picked || '—'} · correct: ${q.answer}</h2>
           <p class="qtext">${escapeHtml(q.q)}</p>
           ${choices}
           ${q.cite ? `<div class="cite">Source: ${escapeHtml(q.cite)}</div>` : ''}
@@ -89,7 +89,7 @@ export function renderResults(ctx) {
   document.querySelectorAll('[data-jump]').forEach(cell => {
     cell.onclick = () => {
       const el = document.getElementById('result-q-' + cell.dataset.jump);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (el) scrollIntoViewMotionSafe(el);
     };
   });
 

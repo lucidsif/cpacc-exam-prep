@@ -1,6 +1,6 @@
 // src/views/disabilities.js — human-disabilities reference (category grid + detail list).
 
-import { escapeHtml } from '../dom.js';
+import { escapeHtml, scrollIntoViewMotionSafe } from '../dom.js';
 
 // Per-category top-line stat pills (curated from the source notes).
 const CATEGORY_STATS = {
@@ -101,7 +101,7 @@ export function renderDisabilities(ctx) {
   document.querySelectorAll('[data-anchor]').forEach(el => {
     el.onclick = () => {
       const target = document.getElementById('dis-' + el.dataset.anchor);
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (target) scrollIntoViewMotionSafe(target);
     };
   });
 }

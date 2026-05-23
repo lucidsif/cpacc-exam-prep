@@ -1,0 +1,23 @@
+name: Wrong answer
+description: A question's marked answer or rationale is incorrect.
+title: "[answer] "
+labels: ["content", "wrong-answer"]
+body:
+  - type: input
+    attributes:
+      label: Question ID
+      placeholder: "1042"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What's wrong
+      placeholder: "The marked answer is B, but per BoK p.47 the correct answer is C because…"
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Citation / source
+      placeholder: "CPACC BoK Oct 2023 v4.0, p.47"
+    validations:
+      required: false

@@ -113,13 +113,32 @@ export async function run({ test, assertTrue, assertEq }) {
     assertEq(v.getAttribute('tabindex'), '-1');
     assertEq(v.getAttribute('aria-live'), 'polite');
 
-    // status counter
-    const sub = doc.querySelector('.sub[role="status"]');
-    assertTrue(sub, 'progress counter missing role=status');
-    assertEq(sub.getAttribute('aria-live'), 'polite');
+    // Progress counter is plain text — intentionally NOT a live region.
+    // (Per accessibility-lead Phase 6 review: only one polite live region
+    // per view to avoid dueling announcements with #verdict.)
+    const sub = doc.querySelector('.sub');
+    assertTrue(sub, 'progress counter missing');
+    assertEq(sub.hasAttribute('aria-live'), false, 'counter should not be a live region');
+    assertEq(sub.hasAttribute('role'), false, 'counter should not carry role=status');
 
     // 4 radios
     assertEq(doc.querySelectorAll('input[type="radio"][name="choice"]').length, 4);
+  });
+
+  await test('renderQuestion uses aria-disabled (not disabled) on revealed radios so keyboard review still works', async () => {
+    const dom = makeDom();
+    const { renderQuestion } = await loadView('src/views/question.js');
+    renderQuestion({
+      app: dom.window.document.getElementById('app'),
+      state: { ...fakeState, answers: { 1: 'B' }, revealed: { 1: true } },
+      missed: fakeMissed,
+      actions: fakeActions,
+    });
+    const radios = dom.window.document.querySelectorAll('input[type="radio"][name="choice"]');
+    for (const r of radios) {
+      assertEq(r.hasAttribute('disabled'), false, 'revealed radios must not use native disabled');
+      assertEq(r.getAttribute('aria-disabled'), 'true', 'revealed radios must use aria-disabled');
+    }
   });
 
   await test('renderQuestion submit-answer disabled when no pending answer', async () => {

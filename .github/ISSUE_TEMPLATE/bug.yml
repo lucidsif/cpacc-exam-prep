@@ -1,0 +1,21 @@
+name: Bug
+description: Something's broken (not specific to accessibility or question content).
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    attributes:
+      label: What happens
+      placeholder: "When I click 'Practice missed', the page goes blank."
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: false
+  - type: input
+    attributes:
+      label: Browser / OS
+    validations:
+      required: false

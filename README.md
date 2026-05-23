@@ -1,5 +1,9 @@
 # CPACC Practice Test
 
+[![CI](https://github.com/USER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/USER/REPO/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![WCAG 2.2 AA](https://img.shields.io/badge/WCAG-2.2%20AA-blue.svg)](#accessibility)
+
 Single-page web app for studying the **IAAP CPACC Body of Knowledge (Oct 2023, v4.0)**. Includes weighted practice tests, study flashcards, a comprehensive human-disabilities reference, a history/laws/standards reference, and an optional Claude-powered tutor chat.
 
 ## What's in it

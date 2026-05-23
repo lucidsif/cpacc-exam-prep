@@ -36,7 +36,7 @@ export function renderQuestion(ctx) {
     }
     return `
         <label class="choice ${cls}">
-          <input type="radio" name="choice" value="${letter}" ${isSel ? 'checked' : ''} ${revealed ? 'disabled' : ''} />
+          <input type="radio" name="choice" value="${letter}" ${isSel ? 'checked' : ''} ${revealed ? 'aria-disabled="true"' : ''} />
           <b>${letter}.</b> ${escapeHtml(q.choices[letter])}
           ${revealed && (letter === q.answer || letter === committed) ? `<div class="why"><b>${letter === q.answer ? 'Correct' : 'Why not'}:</b> ${escapeHtml(q.why[letter])}</div>` : ''}
         </label>`;
@@ -45,8 +45,8 @@ export function renderQuestion(ctx) {
   const answered = Object.keys(state.answers).length;
   const verdictHtml = revealed
     ? (committed === q.answer
-        ? `<div class="why" style="border-left-color:var(--right)"><b style="color:var(--right)">✓ Correct.</b></div>`
-        : `<div class="why" style="border-left-color:var(--wrong)"><b style="color:var(--wrong)">✗ Incorrect.</b> Correct answer: <b>${q.answer}</b>.</div>`)
+        ? `<div class="why" style="border-left-color:var(--right)"><b style="color:var(--right)"><span aria-hidden="true">✓ </span>Correct.</b></div>`
+        : `<div class="why" style="border-left-color:var(--wrong)"><b style="color:var(--wrong)"><span aria-hidden="true">✗ </span>Incorrect.</b> Correct answer: <b>${q.answer}</b>.</div>`)
     : '';
 
   const canSubmitAnswer = !revealed && !!pending;
@@ -59,7 +59,7 @@ export function renderQuestion(ctx) {
 
   app.innerHTML = `
       <h1>CPACC Practice Test</h1>
-      <div class="sub" role="status" aria-live="polite">Question ${state.index + 1} of ${state.questions.length} · answered ${answered}/${state.questions.length}</div>
+      <div class="sub">Question ${state.index + 1} of ${state.questions.length} · answered ${answered}/${state.questions.length}</div>
       <div class="panel">
         <div class="qmeta">${domainLabel(q.domain)} · ${q.type}</div>
         <p class="qtext">${escapeHtml(q.q)}</p>

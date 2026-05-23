@@ -1,6 +1,6 @@
 // src/views/legal.js — history/laws/standards reference (jurisdiction grid + detail list).
 
-import { escapeHtml } from '../dom.js';
+import { escapeHtml, scrollIntoViewMotionSafe } from '../dom.js';
 
 /** Pick an emoji for a legal item based on its `type` field. */
 function emojiForType(type) {
@@ -98,7 +98,7 @@ export function renderLegal(ctx) {
   document.querySelectorAll('[data-anchor]').forEach(el => {
     el.onclick = () => {
       const target = document.getElementById('dis-' + el.dataset.anchor);
-      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (target) scrollIntoViewMotionSafe(target);
     };
   });
 }

@@ -1,0 +1,16 @@
+# Local runtime state (server writes this on missed-question updates)
+data.json
+
+# macOS
+.DS_Store
+
+# Editor/tooling
+.vscode/
+.idea/
+*.swp
+
+# Node (none used yet, but in case)
+node_modules/
+
+# Backups created when patching external files (e.g., Bear DB)
+*.backup-*

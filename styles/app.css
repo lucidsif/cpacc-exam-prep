@@ -50,6 +50,14 @@ a { color: var(--accent); }
 .skip-link:focus { left: 12px; }
 button.linkish { background: none; border: none; color: inherit; font: inherit; padding: 0; cursor: pointer; text-align: left; }
 
+/* Hint text shown only on devices whose primary pointer is fine (mouse/keyboard).
+   Touch-primary devices (phones, most tablets) hide it via the media query below.
+   Using display:none also removes it from the accessibility tree, so VoiceOver
+   on iPhone won't read out keyboard-specific instructions. */
+@media (pointer: coarse) {
+  .kbd-only { display: none; }
+}
+
 /* 4. Layout
    ------------------------------------------------------------ */
 .wrap { max-width: 820px; margin: 0 auto; padding: 32px 20px 80px; }

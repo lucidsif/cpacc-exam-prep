@@ -529,7 +529,7 @@ window.addEventListener('data-ready', () => {
       <div class="panel">
         <div class="qmeta">${domainLabel(q.domain)} · ${q.type}</div>
         <p class="qtext">${escapeHtml(q.q)}</p>
-        <div id="kbd-hint" class="cite" style="display:block;margin-bottom:8px">Use the ↑ / ↓ arrow keys to move between choices, then press <b>Submit answer</b>.</div>
+        <div id="kbd-hint" class="cite" style="display:block;margin-bottom:8px">Select an answer, then choose <b>Submit answer</b>. Keyboard users: arrow keys move between choices.</div>
         <div id="choices" role="radiogroup" aria-label="Answer choices" aria-describedby="kbd-hint" ${revealed ? 'aria-disabled="true"' : ''}>${choicesHtml}</div>
         <div id="verdict" tabindex="-1" aria-live="polite" aria-atomic="true">${verdictHtml}</div>
         ${revealed && q.cite ? `<div class="cite">Source: ${escapeHtml(q.cite)}</div>` : ''}

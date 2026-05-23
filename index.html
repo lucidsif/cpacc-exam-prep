@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CPACC Practice Test</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #181b22;
+    --panel-2: #1f2330;
+    --text: #e6e8ee;
+    --muted: #9aa3b2;
+    --accent: #7aa2ff;
+    --accent-2: #5bd3a8;
+    --wrong: #ff7a7a;
+    --right: #5bd3a8;
+    --border: #708098; /* hits 3:1+ non-text contrast against all panel backgrounds */
+    --focus-ring: #ffd479;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  :focus { outline: none; }
+  :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; border-radius: 4px; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  .skip-link { position: absolute; left: -9999px; top: 8px; z-index: 200; background: var(--focus-ring); color: #0b1020; padding: 10px 16px; border-radius: 6px; font-weight: 700; text-decoration: none; }
+  .skip-link:focus { left: 12px; }
+  button.linkish { background: none; border: none; color: inherit; font: inherit; padding: 0; cursor: pointer; text-align: left; }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 32px 20px 80px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin-bottom: 24px; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin-bottom: 16px; }
+  .qmeta { color: var(--muted); font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.04em; font-weight: 700; }
+  .qmeta-emoji { font-size: 18px; vertical-align: middle; margin-right: 6px; text-transform: none; }
+  .qtext { font-size: 17px; margin: 0 0 16px; }
+  .choice { display: block; background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; margin: 8px 0; cursor: pointer; transition: border-color .15s, background .15s; }
+  .choice:hover { border-color: var(--accent); }
+  .choice input { margin-right: 10px; }
+  .choice.selected { border-color: var(--accent); background: #20263a; }
+  .choice.correct { border-color: var(--right); background: #163127; }
+  .choice.incorrect { border-color: var(--wrong); background: #3a1d1d; }
+  .nav { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
+  button { background: var(--accent); color: #0b1020; border: 0; border-radius: 8px; padding: 10px 16px; font-weight: 600; cursor: pointer; }
+  button.secondary { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  button.small { padding: 6px 10px; font-size: 13px; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .progress { color: var(--muted); font-size: 14px; }
+  .why { margin-top: 10px; padding: 10px 12px; background: #11151f; border-left: 3px solid var(--accent); border-radius: 4px; font-size: 14px; color: #cbd2e0; }
+  .why b { color: var(--text); }
+  .cite { display: inline-block; margin-top: 8px; font-size: 12px; color: var(--muted); }
+  .flag { margin-top: 8px; padding: 8px 10px; border-left: 3px solid #d9a441; background: #2a210f; color: #e9d6a8; font-size: 13px; border-radius: 4px; }
+  .flag b { color: #ffd479; }
+  .score { font-size: 32px; font-weight: 700; }
+  .score small { font-size: 14px; font-weight: 400; color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 6px; margin: 12px 0 4px; }
+  .cell { aspect-ratio: 1/1; min-width: 24px; min-height: 24px; border-radius: 6px; background: var(--panel-2); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--muted); border: 1px solid var(--border); font-family: inherit; cursor: pointer; padding: 0; }
+  .cell.answered { background: #20263a; color: var(--text); border-color: var(--accent); }
+  .cell.right { background: #163127; color: var(--right); border-color: var(--right); }
+  .cell.wrong { background: #3a1d1d; color: var(--wrong); border-color: var(--wrong); }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .pill { display: inline-block; font-size: 12px; padding: 3px 8px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--border); color: var(--muted); margin-right: 6px; }
+  a { color: var(--accent); }
+
+  /* Chat */
+  .chat { margin-top: 12px; border: 1px solid var(--border); border-radius: 8px; background: #11151f; padding: 12px; }
+  .chat .log { max-height: 320px; overflow-y: auto; margin-bottom: 8px; }
+  .msg { padding: 8px 10px; border-radius: 6px; margin: 6px 0; font-size: 14px; white-space: pre-wrap; }
+  .msg.user { background: #1a2236; color: #cfd6e6; }
+  .msg.assistant { background: #14241d; color: #d3e8d9; }
+  .msg.error { background: #321; color: var(--wrong); }
+  .chat-input { display: flex; gap: 8px; }
+  .chat-input input { flex: 1; background: var(--panel-2); border: 1px solid var(--border); color: var(--text); border-radius: 6px; padding: 8px 10px; font: inherit; }
+  .toggle { font-size: 13px; color: var(--accent); cursor: pointer; user-select: none; background: none; border: 0; padding: 0; font-family: inherit; font-weight: 600; }
+  .home-btn { position: absolute; top: 12px; left: 12px; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .flashcard { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 28px 24px; min-height: 240px; cursor: pointer; transition: border-color .15s; color: inherit; font: inherit; width: 100%; text-align: left; display: block; }
+  .flashcard:hover { border-color: var(--accent); }
+  .flashcard .front-text { font-size: 20px; font-weight: 600; line-height: 1.4; }
+  .flashcard .back-text { font-size: 15px; line-height: 1.6; white-space: pre-wrap; color: #cbd2e0; }
+  .flashcard .tag-pill { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #11151f; border: 1px solid var(--border); color: var(--muted); margin-bottom: 12px; display: inline-block; text-transform: uppercase; letter-spacing: 0.05em; }
+  .flashcard .flip-hint { font-size: 12px; color: var(--muted); margin-top: 16px; font-style: italic; }
+  .cat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-top: 8px; }
+  .cat-card { background: var(--panel-2); border: 1px solid var(--border); border-radius: 14px; padding: 24px 14px; text-align: center; cursor: pointer; transition: border-color .15s, transform .1s; color: inherit; font: inherit; width: 100%; }
+  .cat-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .cat-card .cat-emoji { font-size: 64px; line-height: 1; margin-bottom: 10px; }
+  .cat-card .cat-label { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+  .cat-card .cat-count { font-size: 12px; color: var(--muted); }
+  .cat-overview { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 18px; }
+  .cat-overview .cat-hero { display: flex; gap: 16px; align-items: center; margin-bottom: 10px; }
+  .cat-overview .cat-hero-emoji { font-size: 56px; line-height: 1; }
+  .cat-overview h2 { margin: 0; font-size: 22px; }
+  .cat-overview .cat-summary { color: #cbd2e0; line-height: 1.55; margin: 0; }
+  .cat-overview .stat-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .cat-overview .stat-pill { background: #11151f; border: 1px solid var(--border); padding: 6px 12px; border-radius: 999px; font-size: 13px; color: var(--accent); }
+  .dis-item { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; }
+  .dis-item .dis-head { display: flex; gap: 16px; align-items: center; margin-bottom: 12px; }
+  .dis-item .dis-emoji { font-size: 52px; line-height: 1; flex-shrink: 0; }
+  .dis-item .dis-name { font-weight: 700; font-size: 18px; margin: 0; }
+  .dis-item .dis-prev { font-size: 13px; color: var(--accent); margin-top: 4px; }
+  .dis-item .dis-desc { font-size: 15px; line-height: 1.6; color: #cbd2e0; margin: 8px 0 12px; }
+  .dis-item .section-h { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin: 14px 0 6px; font-weight: 600; }
+  .dis-item .dis-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 600px) { .dis-item .dis-cols { grid-template-columns: 1fr; } }
+  .dis-item ul { margin: 0; padding-left: 18px; }
+  .dis-item li { margin: 4px 0; line-height: 1.5; font-size: 14px; color: #cbd2e0; }
+  .dis-anchor-bar { position: sticky; top: 0; background: var(--bg); padding: 8px 0; margin-bottom: 12px; border-bottom: 1px solid var(--border); z-index: 10; }
+  .dis-anchor-bar .anchor-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .dis-anchor-bar .anchor { background: var(--panel-2); border: 1px solid var(--border); padding: 6px 12px; border-radius: 999px; font-size: 12px; color: var(--text); text-decoration: none; cursor: pointer; min-height: 24px; line-height: 1.2; font-family: inherit; }
+  .dis-anchor-bar .anchor:hover { border-color: var(--accent); }
+  .dis-item { scroll-margin-top: 60px; } /* keep heading clear of sticky anchor bar */
+  .home-btn:hover { border-color: var(--accent); }
+</style>
+</head>
+<body>
+<a href="#app" class="skip-link">Skip to main content</a>
+<button class="home-btn" id="home-btn" aria-label="Go to home page">⌂ Home</button>
+<main class="wrap" id="app" tabindex="-1"></main>
+
+<script src="questions.js"></script>
+<script src="bear-questions.js"></script>
+<script src="bear-flashcards.js"></script>
+<script src="disabilities.js"></script>
+<script src="legal.js"></script>
+<script>
+(function () {
+  const TEST_SIZE = 20;
+  // Match BoK weighting: D1=40%, D2=40%, D3=20%  -> 8/8/4 of 20
+  const DOMAIN_QUOTA = { 1: 8, 2: 8, 3: 4 };
+  const MISSED_KEY = 'cpacc:missed';
+
+  const app = document.getElementById('app');
+  const state = {
+    mode: 'weighted',  // "weighted" | "missed" | "bear"
+    questions: [],     // sampled questions for this test
+    answers: {},       // id -> "A" | "B" | "C" | "D"
+    revealed: {},      // id -> true once the user has seen the answer
+    index: 0,
+    submitted: false,
+    chats: {},         // id -> { open: bool, history: [{role,content}] }
+    homeChat: { history: [] }, // general tutor chat on the home page
+    chatEnabled: false, // toggled true after /chat-status reports enabled
+    flashcards: null,  // { cards: [], index: 0, flipped: false } when active
+    disabilities: null, // { view: 'categories'|'list', category: id|null }
+    legal: null,        // { view: 'categories'|'list', category: id|null }
+  };
+
+  // Probe whether the chat tutor is available. Fails silently if the app is
+  // served via file:// or the server has no ANTHROPIC_API_KEY — chat is opt-in.
+  fetch('/chat-status').then(r => r.ok ? r.json() : null).then(d => {
+    state.chatEnabled = !!(d && d.enabled);
+    render();
+  }).catch(() => { state.chatEnabled = false; });
+
+  // Load missed list from server (or local cache as fallback) before first render.
+  fetchMissedFromServer().then(render);
+
+  // In-memory mirror of the missed set. Source of truth is the server's
+  // data.json (shared across devices on the same Wi-Fi). localStorage is a
+  // fallback when the app is opened via file:// or the server is unreachable.
+  let _missed = new Set();
+  let _missedReady = false;
+
+  function loadMissedLocal() {
+    try { return new Set(JSON.parse(localStorage.getItem(MISSED_KEY) || '[]')); }
+    catch (e) { return new Set(); }
+  }
+  function saveMissedLocal(set) {
+    localStorage.setItem(MISSED_KEY, JSON.stringify([...set]));
+  }
+  async function fetchMissedFromServer() {
+    try {
+      const r = await fetch('/missed');
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const d = await r.json();
+      _missed = new Set(d.ids || []);
+      saveMissedLocal(_missed);  // keep local copy in sync as a cache
+    } catch (e) {
+      _missed = loadMissedLocal();
+    }
+    _missedReady = true;
+  }
+  async function persistMissed() {
+    saveMissedLocal(_missed);   // always write local cache
+    try {
+      await fetch('/missed', {
+        method: 'PUT',
+        headers: {'content-type': 'application/json'},
+        body: JSON.stringify({ ids: [..._missed] })
+      });
+    } catch (e) { /* offline / file:// — local cache only */ }
+  }
+  async function clearMissed() {
+    _missed = new Set();
+    saveMissedLocal(_missed);
+    try { await fetch('/missed', { method: 'DELETE' }); } catch (e) {}
+  }
+  function loadMissed() { return _missed; }            // synchronous read of cached set
+  async function updateMissedAfterTest() {
+    for (const q of state.questions) {
+      const a = state.answers[q.id];
+      if (a === q.answer) _missed.delete(q.id);
+      else _missed.add(q.id);
+    }
+    await persistMissed();
+  }
+
+  function shuffle(arr) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+
+  function sampleQuestions(bankOverride) {
+    const bank = bankOverride || window.CPACC_BANK || [];
+    const byDomain = { 1: [], 2: [], 3: [] };
+    for (const q of bank) byDomain[q.domain]?.push(q);
+
+    let picked = [];
+    for (const d of [1, 2, 3]) {
+      const want = DOMAIN_QUOTA[d];
+      const pool = shuffle(byDomain[d]);
+      picked = picked.concat(pool.slice(0, want));
+    }
+    // If a domain was short, top up from the remaining bank.
+    if (picked.length < TEST_SIZE) {
+      const pickedIds = new Set(picked.map(q => q.id));
+      const rest = shuffle(bank.filter(q => !pickedIds.has(q.id)));
+      picked = picked.concat(rest.slice(0, TEST_SIZE - picked.length));
+    }
+    return shuffle(picked).slice(0, TEST_SIZE);
+  }
+
+  function sampleMissedQuestions() {
+    const bank = [...(window.CPACC_BANK || []), ...(window.BEAR_BANK || [])];
+    const missed = loadMissed();
+    const pool = bank.filter(q => missed.has(q.id));
+    return shuffle(pool).slice(0, TEST_SIZE);
+  }
+
+  function renderLegal() {
+    const data = window.LEGAL;
+    const view = state.legal.view;
+
+    const visible = data.items.filter(i => i.cpacc !== false);
+    if (view === 'categories') {
+      const cards = data.jurisdictions.filter(c => visible.some(i => i.jurisdiction === c.id)).map(c => {
+        const count = visible.filter(i => i.jurisdiction === c.id).length;
+        return `
+          <button type="button" class="cat-card" data-jur="${c.id}" style="border-top: 3px solid ${c.color}">
+            <span class="cat-emoji" aria-hidden="true">${c.emoji}</span>
+            <span class="cat-label">${escapeHtml(c.label)}</span>
+            <span class="cat-count">${count} ${count === 1 ? 'item' : 'items'}</span>
+          </button>`;
+      }).join('');
+      app.innerHTML = `
+        <h1>History, laws & standards</h1>
+        <div class="sub">${visible.length} CPACC-relevant items across ${data.jurisdictions.filter(c => visible.some(i => i.jurisdiction === c.id)).length} groups. Tap a group to browse.</div>
+        <div class="cat-grid">${cards}</div>
+      `;
+      document.querySelectorAll('[data-jur]').forEach(el => {
+        el.onclick = () => { state.legal = { view: 'list', category: el.dataset.jur }; render(); };
+      });
+      return;
+    }
+
+    if (view === 'list') {
+      const cat = data.jurisdictions.find(c => c.id === state.legal.category);
+      let items = visible.filter(i => i.jurisdiction === cat.id);
+      if (cat.id === 'timeline') {
+        items = items.slice().sort((a, b) => parseInt(a.year, 10) - parseInt(b.year, 10));
+      }
+      const anchors = items.map(i => `<button type="button" class="anchor" data-anchor="${i.id}">${escapeHtml(i.year)} · ${escapeHtml(i.name.split(/[—(]/)[0].trim().slice(0, 32))}</button>`).join('');
+      const inline = items.map(item => {
+        const facts = (item.keyFacts || []).map(f => `<li>${escapeHtml(f)}</li>`).join('');
+        return `
+          <div class="dis-item" id="dis-${item.id}">
+            <div class="dis-head">
+              <div class="dis-emoji">${item.type && item.type.includes('Convention') ? '📜' : item.type && item.type.includes('Standard') ? '📐' : item.type && item.type.includes('Directive') ? '🇪🇺' : item.type && item.type.includes('Statute') ? '⚖️' : item.type && item.type.includes('Charter') ? '📜' : item.type && item.type.includes('Treaty') ? '🌐' : item.type && item.type.includes('Framework') ? '🧩' : item.type && item.type.includes('Declaration') ? '📜' : item.type && item.type.includes('Classification') ? '🩺' : item.type && item.type.includes('Milestone') ? '📅' : '📖'}</div>
+              <div>
+                <h3 class="dis-name">${escapeHtml(item.name)}</h3>
+                <div class="dis-prev">${escapeHtml(item.year || '')}${item.type ? ' · ' + escapeHtml(item.type) : ''}</div>
+              </div>
+            </div>
+            <p class="dis-desc">${escapeHtml(item.summary || '')}</p>
+            ${facts ? `<div class="section-h">Key facts</div><ul>${facts}</ul>` : ''}
+          </div>`;
+      }).join('');
+      app.innerHTML = `
+        <div class="row" style="margin-bottom:14px">
+          <button class="secondary small" id="back-jurs">← All groups</button>
+        </div>
+        <div class="cat-overview" style="border-top: 4px solid ${cat.color}">
+          <div class="cat-hero">
+            <div class="cat-hero-emoji">${cat.emoji}</div>
+            <div>
+              <h2>${escapeHtml(cat.label)}</h2>
+              <div class="sub" style="margin:4px 0 0">${items.length} item${items.length === 1 ? '' : 's'}${cat.id === 'timeline' ? ' · sorted by year' : ''}</div>
+            </div>
+          </div>
+          <p class="cat-summary">${escapeHtml(cat.summary || '')}</p>
+        </div>
+        <div class="dis-anchor-bar"><div class="anchor-list">${anchors}</div></div>
+        ${inline}
+      `;
+      document.getElementById('back-jurs').onclick = () => { state.legal = { view: 'categories' }; render(); };
+      document.querySelectorAll('[data-anchor]').forEach(el => {
+        el.onclick = () => {
+          const target = document.getElementById('dis-' + el.dataset.anchor);
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+      });
+      return;
+    }
+  }
+
+  function renderDisabilities() {
+    const data = window.DISABILITIES;
+    const view = state.disabilities.view;
+
+    if (view === 'categories') {
+      const cards = data.categories.map(c => {
+        const count = data.items.filter(i => i.category === c.id).length;
+        return `
+          <button type="button" class="cat-card" data-cat="${c.id}" style="border-top: 3px solid ${c.color}">
+            <span class="cat-emoji" aria-hidden="true">${c.emoji}</span>
+            <span class="cat-label">${escapeHtml(c.label)}</span>
+            <span class="cat-count">${count} ${count === 1 ? 'condition' : 'conditions'}</span>
+          </button>`;
+      }).join('');
+      app.innerHTML = `
+        <h1>Human disabilities</h1>
+        <div class="sub">${data.items.length} conditions across ${data.categories.length} categories. Tap a category to browse.</div>
+        <div class="cat-grid" role="list">${cards}</div>
+      `;
+      document.querySelectorAll('[data-cat]').forEach(el => {
+        el.onclick = () => { state.disabilities = { view: 'list', category: el.dataset.cat }; render(); };
+      });
+      return;
+    }
+
+    if (view === 'list') {
+      const cat = data.categories.find(c => c.id === state.disabilities.category);
+      const items = data.items.filter(i => i.category === cat.id);
+      const catStats = {
+        visual: ["2.2B globally with vision impairment/blindness (WHO)", "33M+ blind", "~1B preventable or correctable"],
+        auditory: ["466M / ~6.1% globally with disabling hearing loss (WHO)", "Most >65 years old"],
+        speech: ["Often co-occurs with neurological or developmental conditions"],
+        motor: ["Low back pain is the #1 cause of disability globally (YLD)", "~619M affected"],
+        neurological: ["Migraine: ~14–15% globally (#2 disability after back pain)", "Epilepsy: ~50M globally", "Photosensitive epilepsy: ~3% of those with epilepsy"],
+        cognitive: ["Intellectual disability: 1–3% of pop (~200M)", "Dyslexia: 5–10% (up to 17%)", "ADHD: 2–7% children, ~4% adults"],
+        psychological: ["Anxiety is the MOST prevalent psychological disability", "Anxiety: 2.5–7% by country", "PWD have 2× risk of depression"],
+        multiple: ["Deafblindness uses touch as the primary communication channel"],
+        other: ["1.3B people / 16% of world experience significant disability (WHO)"]
+      };
+      const stats = (catStats[cat.id] || []).map(s => `<span class="stat-pill">${escapeHtml(s)}</span>`).join('');
+      const anchors = items.map(i => `<button type="button" class="anchor" data-anchor="${i.id}"><span aria-hidden="true">${i.emoji}</span> ${escapeHtml(i.name)}</button>`).join('');
+      const inline = items.map(item => {
+        const facts = (item.keyFacts || []).map(f => `<li>${escapeHtml(f)}</li>`).join('');
+        const solutions = (item.a11ySolutions || []).map(s => `<li>${escapeHtml(s)}</li>`).join('');
+        return `
+          <div class="dis-item" id="dis-${item.id}">
+            <div class="dis-head">
+              <div class="dis-emoji">${item.emoji}</div>
+              <div>
+                <h3 class="dis-name">${escapeHtml(item.name)}</h3>
+                <div class="dis-prev">${escapeHtml(item.prevalence || '')}</div>
+              </div>
+            </div>
+            <p class="dis-desc">${escapeHtml(item.description || '')}</p>
+            <div class="dis-cols">
+              <div>
+                ${facts ? `<div class="section-h">Key facts</div><ul>${facts}</ul>` : ''}
+              </div>
+              <div>
+                ${solutions ? `<div class="section-h">Accessibility solutions</div><ul>${solutions}</ul>` : ''}
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+      app.innerHTML = `
+        <div class="row" style="margin-bottom:14px">
+          <button class="secondary small" id="back-cats">← All categories</button>
+        </div>
+        <div class="cat-overview" style="border-top: 4px solid ${cat.color}">
+          <div class="cat-hero">
+            <div class="cat-hero-emoji">${cat.emoji}</div>
+            <div>
+              <h2>${escapeHtml(cat.label)}</h2>
+              <div class="sub" style="margin:4px 0 0">${items.length} condition${items.length === 1 ? '' : 's'}</div>
+            </div>
+          </div>
+          <p class="cat-summary">${escapeHtml(cat.summary || '')}</p>
+          ${stats ? `<div class="stat-row">${stats}</div>` : ''}
+        </div>
+        <div class="dis-anchor-bar"><div class="anchor-list">${anchors}</div></div>
+        ${inline}
+      `;
+      document.getElementById('back-cats').onclick = () => { state.disabilities = { view: 'categories' }; render(); };
+      document.querySelectorAll('[data-anchor]').forEach(el => {
+        el.onclick = () => {
+          const target = document.getElementById('dis-' + el.dataset.anchor);
+          if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+      });
+      return;
+    }
+  }
+
+  function startFlashcards() {
+    const cards = shuffle(window.BEAR_FLASHCARDS || []);
+    state.flashcards = { cards, index: 0, flipped: false };
+    render();
+  }
+
+  function renderFlashcards() {
+    const fc = state.flashcards;
+    const card = fc.cards[fc.index];
+    app.innerHTML = `
+      <h1>Bear notes flashcards</h1>
+      <div class="sub">Card ${fc.index + 1} of ${fc.cards.length}</div>
+      <div class="panel">
+        <button type="button" class="flashcard" id="card" aria-label="${fc.flipped ? 'Showing back. Click to flip to front.' : 'Showing front. Click to flip to back.'}" aria-pressed="${fc.flipped}">
+          <span class="tag-pill">${escapeHtml(card.tag || 'card')}</span>
+          ${fc.flipped
+            ? `<div class="back-text">${escapeHtml(card.back)}</div>`
+            : `<div class="front-text">${escapeHtml(card.front)}</div>
+               <div class="flip-hint" aria-hidden="true">Click to flip</div>`}
+        </button>
+        <div class="nav">
+          <div>
+            <button class="secondary" id="prev-card" ${fc.index === 0 ? 'disabled' : ''}>← Prev</button>
+            <button class="secondary" id="next-card" ${fc.index === fc.cards.length - 1 ? 'disabled' : ''}>Next →</button>
+          </div>
+          <div>
+            <button id="flip-card">${fc.flipped ? 'Show front' : 'Show back'}</button>
+            <button class="secondary" id="shuffle-cards">Shuffle</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('card').onclick = () => { fc.flipped = !fc.flipped; render(); };
+    document.getElementById('flip-card').onclick = (e) => { e.stopPropagation(); fc.flipped = !fc.flipped; render(); };
+    document.getElementById('prev-card').onclick = () => { if (fc.index > 0) { fc.index--; fc.flipped = false; render(); } };
+    document.getElementById('next-card').onclick = () => { if (fc.index < fc.cards.length - 1) { fc.index++; fc.flipped = false; render(); } };
+    document.getElementById('shuffle-cards').onclick = () => { fc.cards = shuffle(fc.cards); fc.index = 0; fc.flipped = false; render(); };
+  }
+
+  function startTest(mode) {
+    state.mode = mode || 'weighted';
+    state.questions =
+      state.mode === 'missed' ? sampleMissedQuestions()
+      : state.mode === 'bear' ? sampleQuestions(window.BEAR_BANK || [])
+      : sampleQuestions();
+    state.answers = {};
+    state.revealed = {};
+    state.index = 0;
+    state.submitted = false;
+    state.chats = {};
+    render();
+  }
+
+  function domainLabel(d) {
+    return d === 1 ? "Domain 1 · Disabilities & AT"
+         : d === 2 ? "Domain 2 · Accessibility & UD"
+         : "Domain 3 · Standards, Laws & Mgmt";
+  }
+
+  function renderStart() {
+    const bank = window.CPACC_BANK || [];
+    const counts = { 1: 0, 2: 0, 3: 0 };
+    for (const q of bank) counts[q.domain]++;
+    const bearBank = window.BEAR_BANK || [];
+    const bearCounts = { 1: 0, 2: 0, 3: 0 };
+    for (const q of bearBank) bearCounts[q.domain]++;
+    const missed = loadMissed();
+    const missedCount = missed.size;
+    app.innerHTML = `
+      <h1>CPACC Practice Test</h1>
+      <div class="sub">Bank: ${bank.length} items (D1:${counts[1]} · D2:${counts[2]} · D3:${counts[3]}). Items reference the IAAP CPACC Body of Knowledge (Oct 2023, v4.0).</div>
+      <div class="panel">
+        <h2 class="qmeta"><span class="qmeta-emoji" aria-hidden="true">🎯</span> Weighted practice test</h2>
+        <div class="qtext">${TEST_SIZE} questions drawn at random, weighted to the BoK mix (40% / 40% / 20%).</div>
+        <div class="row">
+          <button id="start">Start ${TEST_SIZE}-question test</button>
+          <span class="pill">D1: 8 · D2: 8 · D3: 4</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h2 class="qmeta"><span class="qmeta-emoji" aria-hidden="true">📓</span> Bear notes practice</h2>
+        <div class="qtext">${TEST_SIZE} questions drawn from your Bear notes (#cpacc/practice + #a11y/* study notes), weighted to the BoK mix.</div>
+        <div class="row">
+          <button id="start-bear" ${bearBank.length === 0 ? 'disabled' : ''}>Start ${Math.min(TEST_SIZE, bearBank.length)}-question Bear test</button>
+          <span class="pill">Bank: ${bearBank.length} (D1:${bearCounts[1]} · D2:${bearCounts[2]} · D3:${bearCounts[3]})</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h2 class="qmeta"><span class="qmeta-emoji" aria-hidden="true">🔁</span> Missed-question practice</h2>
+        <div class="qtext">${missedCount === 0
+          ? 'No missed questions yet. Take a test — items you get wrong will be saved here for focused practice.'
+          : `You have <b>${missedCount}</b> missed question${missedCount===1?'':'s'} saved. Each one you get right in a missed-practice session drops off the list; each one you miss again stays.`}</div>
+        <div class="row">
+          <button id="practice-missed" ${missedCount === 0 ? 'disabled' : ''}>Practice ${Math.min(TEST_SIZE, missedCount)} missed</button>
+          <button class="secondary" id="clear-missed" ${missedCount === 0 ? 'disabled' : ''}>Clear missed list</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h2 class="qmeta"><span class="qmeta-emoji" aria-hidden="true">🃏</span> Bear notes flashcards</h2>
+        <div class="qtext">${(window.BEAR_FLASHCARDS || []).length} study cards distilled from your notes — dense reference info with stats, lists, and key facts.</div>
+        <div class="row">
+          <button id="start-flashcards" ${(window.BEAR_FLASHCARDS || []).length === 0 ? 'disabled' : ''}>Study flashcards</button>
+          <span class="pill">${(window.BEAR_FLASHCARDS || []).length} cards</span>
+        </div>
+      </div>
+      <div class="panel">
+        <h2 class="qmeta"><span class="qmeta-emoji" aria-hidden="true">♿</span> Human disabilities reference</h2>
+        <div class="qtext">Browse ${(window.DISABILITIES?.items || []).length} disabilities organized into ${(window.DISABILITIES?.categories || []).length} categories — with images, prevalence, key facts, and accessibility solutions.</div>
+        <div class="row">
+          <button id="start-disabilities" ${!window.DISABILITIES ? 'disabled' : ''}>Open disabilities reference</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h2 class="qmeta"><span class="qmeta-emoji" aria-hidden="true">⚖️</span> History, laws & standards</h2>
+        <div class="qtext">Browse ${(window.LEGAL?.items || []).filter(i => i.cpacc !== false).length} CPACC-relevant laws, conventions, standards, and milestones organized by jurisdiction.</div>
+        <div class="row">
+          <button id="start-legal" ${!window.LEGAL ? 'disabled' : ''}>Open legal reference</button>
+        </div>
+      </div>
+      <div class="cite">Real CPACC exam: 100 multiple-choice questions in 2 hours, ~70% pass. (Per IAAP exam info — not from the BoK itself.)</div>
+      <div class="cite">Chat tutor: ${state.chatEnabled ? 'enabled' : 'disabled (optional — set ANTHROPIC_API_KEY and run via <code>node server.js</code> to enable per-question chat)'}.</div>
+      ${state.chatEnabled ? `
+      <div class="panel">
+        <h2 class="qmeta"><span class="qmeta-emoji" aria-hidden="true">💬</span> Ask the CPACC tutor</h2>
+        <div class="qtext" style="font-size:14px;color:var(--muted);margin-bottom:10px">Free-form chat — ask about disabilities, laws, WCAG, UD principles, anything CPACC-related.</div>
+        <div class="chat">
+          <div class="log" id="home-log" role="log" aria-live="polite" aria-label="Chat conversation">${state.homeChat.history.map(m => `<div class="msg ${m.role}">${escapeHtml(m.content)}</div>`).join('') || `<div class="msg assistant">Hi — ask me anything CPACC-related.</div>`}</div>
+          <div class="chat-input">
+            <label for="home-input" class="sr-only">Ask the tutor a question</label>
+            <input type="text" id="home-input" placeholder="Type a question and press Enter..." aria-label="Ask the tutor a question" />
+            <button class="small" id="home-send">Send</button>
+            ${state.homeChat.history.length ? `<button class="small secondary" id="home-clear">Clear</button>` : ''}
+          </div>
+        </div>
+      </div>` : ''}
+    `;
+    document.getElementById('start').onclick = () => startTest('weighted');
+    const flashBtn = document.getElementById('start-flashcards');
+    if (flashBtn) flashBtn.onclick = startFlashcards;
+    const disBtn = document.getElementById('start-disabilities');
+    if (disBtn) disBtn.onclick = () => { state.disabilities = { view: 'categories' }; render(); };
+    const legalBtn = document.getElementById('start-legal');
+    if (legalBtn) legalBtn.onclick = () => { state.legal = { view: 'categories' }; render(); };
+    const bearBtn = document.getElementById('start-bear');
+    if (bearBtn) bearBtn.onclick = () => startTest('bear');
+    document.getElementById('practice-missed').onclick = () => startTest('missed');
+    const homeSend = document.getElementById('home-send');
+    if (homeSend) homeSend.onclick = sendHomeChat;
+    const homeInput = document.getElementById('home-input');
+    if (homeInput) homeInput.onkeydown = (e) => { if (e.key === 'Enter') sendHomeChat(); };
+    const homeClear = document.getElementById('home-clear');
+    if (homeClear) homeClear.onclick = () => { state.homeChat = { history: [] }; render(); };
+    document.getElementById('clear-missed').onclick = async () => {
+      if (confirm(`Clear all ${missedCount} missed questions?`)) {
+        await clearMissed();
+        render();
+      }
+    };
+  }
+
+  function renderQuestion() {
+    const q = state.questions[state.index];
+    const picked = state.answers[q.id];
+    const revealed = !!state.revealed[q.id];
+    const choicesHtml = ["A","B","C","D"].map(letter => {
+      const isSel = picked === letter;
+      let cls = isSel ? 'selected' : '';
+      if (revealed) {
+        if (letter === q.answer) cls = 'correct';
+        else if (letter === picked) cls = 'incorrect';
+        else cls = '';
+      }
+      return `
+        <label class="choice ${cls}">
+          <input type="radio" name="choice" value="${letter}" ${isSel ? 'checked' : ''} ${revealed ? 'disabled' : ''} />
+          <b>${letter}.</b> ${escapeHtml(q.choices[letter])}
+          ${revealed && (letter === q.answer || letter === picked) ? `<div class="why"><b>${letter === q.answer ? 'Correct' : 'Why not'}:</b> ${escapeHtml(q.why[letter])}</div>` : ''}
+        </label>`;
+    }).join('');
+
+    const answered = Object.keys(state.answers).length;
+    const verdictHtml = revealed
+      ? (picked === q.answer
+          ? `<div class="why" style="border-left-color:var(--right)"><b style="color:var(--right)">✓ Correct.</b></div>`
+          : `<div class="why" style="border-left-color:var(--wrong)"><b style="color:var(--wrong)">✗ Incorrect.</b> Correct answer: <b>${q.answer}</b>.</div>`)
+      : '';
+    app.innerHTML = `
+      <h1>CPACC Practice Test</h1>
+      <div class="sub">Question ${state.index + 1} of ${state.questions.length} · answered ${answered}/${state.questions.length}</div>
+      <div class="panel">
+        <div class="qmeta">${domainLabel(q.domain)} · ${q.type}</div>
+        <p class="qtext">${escapeHtml(q.q)}</p>
+        <div id="choices" role="radiogroup" aria-label="Answer choices">${choicesHtml}</div>
+        <div aria-live="polite" aria-atomic="true">${verdictHtml}</div>
+        ${revealed && q.cite ? `<div class="cite">Source: ${escapeHtml(q.cite)}</div>` : ''}
+        <div class="nav">
+          <div>
+            <button class="secondary" id="prev" ${state.index === 0 ? 'disabled' : ''}>← Prev</button>
+            <button class="secondary" id="next" ${state.index === state.questions.length - 1 ? 'disabled' : ''}>Next →</button>
+          </div>
+          <div class="progress">
+            <button id="submit">Submit test</button>
+          </div>
+        </div>
+      </div>
+      ${renderJumpGrid()}
+    `;
+
+    document.querySelectorAll('input[name="choice"]').forEach(el => {
+      el.onchange = (e) => {
+        if (state.revealed[q.id]) return;
+        state.answers[q.id] = e.target.value;
+        state.revealed[q.id] = true;
+        if (e.target.value !== q.answer) _missed.add(q.id);
+        else _missed.delete(q.id);
+        persistMissed();
+        render();
+      };
+    });
+    document.getElementById('prev').onclick = () => { if (state.index > 0) { state.index--; render(); } };
+    document.getElementById('next').onclick = () => { if (state.index < state.questions.length - 1) { state.index++; render(); } };
+    document.getElementById('submit').onclick = async () => {
+      const missing = state.questions.length - Object.keys(state.answers).length;
+      if (missing > 0 && !confirm(`${missing} unanswered. Submit anyway?`)) return;
+      state.submitted = true;
+      await updateMissedAfterTest();
+      render();
+    };
+  }
+
+  function renderJumpGrid() {
+    const cells = state.questions.map((q, i) => {
+      const cls = state.answers[q.id] ? 'answered' : '';
+      const lbl = state.answers[q.id] ? `Question ${i+1}, answered` : `Question ${i+1}, unanswered`;
+      return `<button type="button" class="cell ${cls}" data-i="${i}" aria-label="${lbl}"${state.index === i ? ' aria-current="true"' : ''}>${i+1}</button>`;
+    }).join('');
+    return `<div class="panel"><h2 class="qmeta">Jump to question</h2><div class="grid" id="jump" role="group" aria-label="Question navigation">${cells}</div></div>`;
+  }
+
+  function renderResults() {
+    let correct = 0;
+    const domainStats = { 1: {c:0,t:0}, 2: {c:0,t:0}, 3: {c:0,t:0} };
+    state.questions.forEach(q => {
+      const a = state.answers[q.id];
+      domainStats[q.domain].t++;
+      if (a === q.answer) { correct++; domainStats[q.domain].c++; }
+    });
+    const pct = Math.round(100 * correct / state.questions.length);
+
+    const cells = state.questions.map((q, i) => {
+      const a = state.answers[q.id];
+      const cls = a === q.answer ? 'right' : (a ? 'wrong' : '');
+      const mark = a === q.answer ? '✓' : (a ? '✗' : '·');
+      const lbl = a === q.answer ? `Question ${i+1}, correct` : (a ? `Question ${i+1}, incorrect` : `Question ${i+1}, unanswered`);
+      return `<button type="button" class="cell ${cls}" data-jump="${i}" aria-label="${lbl}"><span aria-hidden="true">${i+1} ${mark}</span></button>`;
+    }).join('');
+
+    const details = state.questions.map((q, i) => {
+      const picked = state.answers[q.id];
+      const choices = ["A","B","C","D"].map(letter => {
+        let cls = '';
+        if (letter === q.answer) cls = 'correct';
+        else if (letter === picked) cls = 'incorrect';
+        return `
+          <div class="choice ${cls}">
+            <b>${letter}.</b> ${escapeHtml(q.choices[letter])}
+            <div class="why"><b>${letter === q.answer ? 'Correct' : 'Why not'}:</b> ${escapeHtml(q.why[letter])}</div>
+          </div>`;
+      }).join('');
+      const chatOpen = state.chats[q.id]?.open;
+      return `
+        <div class="panel" data-qid="${q.id}" id="result-q-${i}">
+          <div class="qmeta">Q${i+1} · ${domainLabel(q.domain)} · ${q.type} · your answer: ${picked || '—'} · correct: ${q.answer}</div>
+          <p class="qtext">${escapeHtml(q.q)}</p>
+          ${choices}
+          ${q.cite ? `<div class="cite">Source: ${escapeHtml(q.cite)}</div>` : ''}
+          ${q.flag ? `<div class="flag"><b>⚑ Confidence note:</b> ${escapeHtml(q.flag)}</div>` : ''}
+          ${state.chatEnabled ? `
+          <div class="row" style="margin-top:10px">
+            <button type="button" class="toggle linkish" data-toggle="${q.id}" aria-expanded="${!!chatOpen}"><span aria-hidden="true">${chatOpen ? '▾' : '▸'}</span> ${chatOpen ? 'Hide chat' : 'Discuss this question with Claude'}</button>
+          </div>
+          ${chatOpen ? renderChat(q) : ''}` : ''}
+        </div>`;
+    }).join('');
+
+    const missedNow = loadMissed().size;
+    const modeLabel =
+      state.mode === 'missed' ? 'Missed-question practice'
+      : state.mode === 'bear' ? 'Bear notes practice'
+      : 'Weighted practice test';
+    app.innerHTML = `
+      <h1>Results</h1>
+      <div class="sub">${modeLabel} · ${state.questions.length} questions · missed list now: ${missedNow}</div>
+      <div class="panel">
+        <div class="score">${correct} / ${state.questions.length} <small>(${pct}%)</small></div>
+        <div class="row" style="margin-top:8px">
+          ${Object.entries(domainStats).filter(([,s]) => s.t > 0).map(([d, s]) =>
+            `<span class="pill">${domainLabel(Number(d))}: ${s.c}/${s.t}</span>`
+          ).join('')}
+        </div>
+        <div class="grid" style="margin-top:14px">${cells}</div>
+        <div class="nav">
+          <button id="retake">${state.mode === 'missed' ? `Practice ${Math.min(TEST_SIZE, missedNow)} missed again` : `Take another ${TEST_SIZE} (new random set)`}</button>
+          <button class="secondary" id="back">Back to start</button>
+        </div>
+      </div>
+      ${details}
+    `;
+    document.getElementById('retake').onclick = () => startTest(state.mode);
+    document.getElementById('back').onclick = () => { state.questions = []; render(); };
+
+    document.querySelectorAll('[data-jump]').forEach(cell => {
+      cell.onclick = () => {
+        const el = document.getElementById('result-q-' + cell.dataset.jump);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      };
+    });
+
+    document.querySelectorAll('[data-toggle]').forEach(el => {
+      el.onclick = () => {
+        const id = Number(el.dataset.toggle);
+        state.chats[id] = state.chats[id] || { open: false, history: [] };
+        state.chats[id].open = !state.chats[id].open;
+        render();
+      };
+    });
+    document.querySelectorAll('[data-send]').forEach(el => {
+      el.onclick = () => sendChat(Number(el.dataset.send));
+    });
+    document.querySelectorAll('[data-input]').forEach(el => {
+      el.onkeydown = (e) => { if (e.key === 'Enter') sendChat(Number(el.dataset.input)); };
+    });
+  }
+
+  function renderChat(q) {
+    const chat = state.chats[q.id];
+    const logHtml = chat.history.map(m => `<div class="msg ${m.role}">${escapeHtml(m.content)}</div>`).join('')
+      || `<div class="msg assistant">Ask me anything about this question — why an option is wrong, what the BoK says, edge cases, related concepts.</div>`;
+    return `
+      <div class="chat">
+        <div class="log" id="log-${q.id}" role="log" aria-live="polite" aria-label="Discussion of this question">${logHtml}</div>
+        <div class="chat-input">
+          <input type="text" data-input="${q.id}" placeholder="Type a question and press Enter..." aria-label="Ask about this question" />
+          <button class="small" data-send="${q.id}">Send</button>
+        </div>
+      </div>`;
+  }
+
+  async function sendHomeChat() {
+    const input = document.getElementById('home-input');
+    const text = (input.value || '').trim();
+    if (!text) return;
+    state.homeChat.history.push({ role: 'user', content: text });
+    input.value = '';
+    render();
+    try {
+      const r = await fetch('/chat-general', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ history: state.homeChat.history.slice(0, -1), userMessage: text })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
+      const reply = (data.content && data.content[0] && data.content[0].text) || '(no reply)';
+      state.homeChat.history.push({ role: 'assistant', content: reply });
+    } catch (e) {
+      state.homeChat.history.push({ role: 'error', content: 'Chat failed: ' + e.message });
+    }
+    render();
+  }
+
+  async function sendChat(qid) {
+    const q = state.questions.find(x => x.id === qid);
+    const input = document.querySelector(`[data-input="${qid}"]`);
+    const text = (input.value || '').trim();
+    if (!text) return;
+    const chat = state.chats[qid] = state.chats[qid] || { open: true, history: [] };
+    chat.history.push({ role: 'user', content: text });
+    input.value = '';
+    render();
+
+    try {
+      const r = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          question: q.q,
+          correctLetter: q.answer,
+          userLetter: state.answers[q.id] || null,
+          choices: q.choices,
+          why: q.why,
+          cite: q.cite || null,
+          history: chat.history.slice(0, -1),
+          userMessage: text
+        })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || ('HTTP ' + r.status));
+      const reply = (data.content && data.content[0] && data.content[0].text) || '(no reply)';
+      chat.history.push({ role: 'assistant', content: reply });
+    } catch (e) {
+      chat.history.push({ role: 'error', content: 'Chat failed: ' + e.message + '\nIs the server running with ANTHROPIC_API_KEY set?' });
+    }
+    render();
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function render() {
+    const homeBtn = document.getElementById('home-btn');
+    if (homeBtn) {
+      homeBtn.onclick = () => {
+        const mid = state.questions.length > 0 && !state.submitted;
+        if (mid && !confirm('Leave this test and return home? Your progress will be lost.')) return;
+        state.questions = [];
+        state.answers = {};
+        state.revealed = {};
+        state.index = 0;
+        state.submitted = false;
+        state.chats = {};
+        state.flashcards = null;
+        state.disabilities = null;
+        state.legal = null;
+        render();
+      };
+    }
+    if (state.legal) return renderLegal();
+    if (state.disabilities) return renderDisabilities();
+    if (state.flashcards) return renderFlashcards();
+    if (state.submitted) return renderResults();
+    if (state.questions.length === 0) return renderStart();
+    renderQuestion();
+
+    const jump = document.getElementById('jump');
+    if (jump) {
+      jump.querySelectorAll('.cell').forEach(cell => {
+        cell.onclick = () => { state.index = Number(cell.dataset.i); render(); };
+      });
+    }
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>

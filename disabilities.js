@@ -1,0 +1,1461 @@
+window.DISABILITIES = {
+  categories: [
+    { id: "visual", label: "Visual / Vision", emoji: "👁️", color: "#7aa2ff",
+      summary: "Conditions affecting sight — from low vision to blindness, color vision deficiency, and field-of-vision loss." },
+    { id: "auditory", label: "Auditory / Hearing", emoji: "👂", color: "#5bd3a8",
+      summary: "Conditions affecting hearing — from mild hard-of-hearing to total deafness, plus processing disorders." },
+    { id: "speech", label: "Speech", emoji: "🗣️", color: "#f6c177",
+      summary: "Conditions affecting the production, fluency, or articulation of speech — independent of language ability." },
+    { id: "motor", label: "Motor / Mobility", emoji: "♿", color: "#eb6f92",
+      summary: "Conditions affecting movement, dexterity, coordination, ambulation, or body size/shape." },
+    { id: "neurological", label: "Neurological", emoji: "🧠", color: "#c4a7e7",
+      summary: "Impairments of the brain, spine, and nerves — including migraine, epilepsy, stroke, and developmental conditions." },
+    { id: "cognitive", label: "Cognitive / Learning", emoji: "📚", color: "#9ccfd8",
+      summary: "Conditions affecting reasoning, learning, memory, attention, and processing of information." },
+    { id: "psychological", label: "Psychological / Mental health", emoji: "🫥", color: "#f6a6c0",
+      summary: "Conditions affecting perceptions, thoughts, feelings, mood, and behavior." },
+    { id: "multiple", label: "Multiple / Co-occurring", emoji: "🤝", color: "#a3be8c",
+      summary: "Simultaneous disabilities severe enough that they cannot be accommodated by a single-disability program." },
+    { id: "other", label: "Other body structure / function", emoji: "🦴", color: "#d9a26b",
+      summary: "Chronic conditions affecting pain, energy, and overall body function — often invisible but disabling." }
+  ],
+  items: [
+    // ───── VISUAL ─────
+    {
+      id: "cataracts",
+      category: "visual",
+      name: "Cataracts",
+      emoji: "👁️‍🗨️",
+      prevalence: "#1 cause of blindness globally",
+      description: "Clouding of the lens of the eye, causing vision to become blurry, frosted, or hazy. Colors may appear faded; sensitivity to glare increases.",
+      keyFacts: [
+        "Most common cause of blindness worldwide",
+        "Treatable with surgery (lens replacement)",
+        "Primary issue: clarity / distinguishing things from haze",
+        "Most blind people are over 50 years old"
+      ],
+      a11ySolutions: [
+        "High contrast text and graphics",
+        "Larger text size",
+        "Zoom and reflow support",
+        "Reduce glare in physical and digital design"
+      ]
+    },
+    {
+      id: "glaucoma",
+      category: "visual",
+      name: "Glaucoma",
+      emoji: "🎯",
+      prevalence: "#2 cause of blindness globally",
+      description: "Damage to the optic nerve, usually from pressure in the eye. Peripheral vision is lost first and the field narrows toward the center — tunnel vision.",
+      keyFacts: [
+        "Called the 'silent thief of the night' — damage is irreversible",
+        "Progression can be slowed with treatment",
+        "Field-of-vision problem (not clarity)",
+        "Users can't see the outer portions of screens"
+      ],
+      a11ySolutions: [
+        "Place key content centrally",
+        "Strong focus management",
+        "Avoid relying on peripheral cues",
+        "Zoom/reflow and high contrast"
+      ]
+    },
+    {
+      id: "amd",
+      category: "visual",
+      name: "Age-related Macular Degeneration (AMD)",
+      emoji: "🕳️",
+      prevalence: "~200M globally (WHO estimates)",
+      description: "Damage to the macula causes loss of central vision while peripheral vision is preserved. Reading, recognizing faces, and detail tasks become hard.",
+      keyFacts: [
+        "Central vision loss — opposite of glaucoma",
+        "Leading cause of vision loss in adults over 50 in developed countries",
+        "Dry (gradual) and wet (sudden) forms",
+        "Peripheral vision usually intact"
+      ],
+      a11ySolutions: [
+        "High contrast and large text",
+        "Screen magnification",
+        "Screen reader support",
+        "Avoid relying on fine central detail"
+      ]
+    },
+    {
+      id: "diabetic-retinopathy",
+      category: "visual",
+      name: "Diabetic Retinopathy",
+      emoji: "🩸",
+      prevalence: "~1 in 3 adults with diabetes (CDC)",
+      description: "Damage to blood vessels in the retina caused by diabetes. Causes blurred vision, dark spots/floaters, and can progress to blindness.",
+      keyFacts: [
+        "Leading cause of blindness in working-age adults",
+        "Progresses silently in early stages",
+        "Risk grows with duration of diabetes",
+        "Manageable with blood sugar control and treatment"
+      ],
+      a11ySolutions: [
+        "High contrast text and graphics",
+        "Screen magnification and zoom",
+        "Screen reader compatibility",
+        "Avoid critical info in small/low-contrast detail"
+      ]
+    },
+    {
+      id: "retinitis-pigmentosa",
+      category: "visual",
+      name: "Retinitis Pigmentosa",
+      emoji: "🌒",
+      prevalence: "~1 in 4,000 people",
+      description: "A group of inherited disorders that cause progressive degeneration of the retina. Night blindness comes first, then peripheral vision loss leading to tunnel vision.",
+      keyFacts: [
+        "Genetic / inherited",
+        "Progressive over many years",
+        "Night blindness is often the first symptom",
+        "No cure; some treatments slow progression"
+      ],
+      a11ySolutions: [
+        "Centrally located content",
+        "Avoid low-light-only cues",
+        "Strong focus management",
+        "Screen reader and magnification support"
+      ]
+    },
+    {
+      id: "low-vision",
+      category: "visual",
+      name: "Low Vision",
+      emoji: "🔍",
+      prevalence: "~246M (3.5% of world)",
+      description: "Permanently reduced vision that cannot be corrected with glasses, contacts, medicine, or surgery. People may need magnification to read or distinguish detail.",
+      keyFacts: [
+        "Not correctable with standard lenses",
+        "Some people also experience low contrast sensitivity",
+        "May co-occur with color vision deficiency",
+        "~90% of people with vision impairments live in low-income settings"
+      ],
+      a11ySolutions: [
+        "High contrast text and graphics",
+        "Magnification / zoom",
+        "Resizable text and reflow",
+        "Meaningful alt text on images"
+      ]
+    },
+    {
+      id: "blindness",
+      category: "visual",
+      name: "Blindness",
+      emoji: "🦯",
+      prevalence: "33M+ globally are blind",
+      description: "Total or near-total loss of vision. Users rely on screen readers, braille, and audio for digital and printed content.",
+      keyFacts: [
+        "Most blind people are over 50",
+        "Cataracts is #1 cause; glaucoma #2",
+        "2.2B globally have vision impairment or blindness",
+        "At least 1B have a preventable or correctable condition"
+      ],
+      a11ySolutions: [
+        "Screen reader support and proper semantics",
+        "Meaningful alt text for images",
+        "Audio descriptions for video",
+        "Full keyboard operability"
+      ]
+    },
+    {
+      id: "cvd-red-green",
+      category: "visual",
+      name: "Red-Green Color Vision Deficiency",
+      emoji: "🟢",
+      prevalence: "8% of males, 0.5% of females",
+      description: "Impaired ability to distinguish reds from greens. The most common type of color vision deficiency.",
+      keyFacts: [
+        "Most common type of CVD",
+        "Largely genetic; X-linked recessive",
+        "Reds and greens may appear similar / muted",
+        "Often called 'colorblind' but full blindness to color is rare"
+      ],
+      a11ySolutions: [
+        "Don't use color as the sole means to convey info",
+        "Add icons, patterns, or text labels",
+        "Use color contrast ratios meeting WCAG",
+        "Avoid red/green status pairings"
+      ]
+    },
+    {
+      id: "cvd-blue-yellow",
+      category: "visual",
+      name: "Blue-Yellow Color Vision Deficiency",
+      emoji: "🔵",
+      prevalence: "Fewer than 1 in 10,000",
+      description: "Impaired ability to distinguish blues from yellows. Rare relative to red-green CVD.",
+      keyFacts: [
+        "Affects both sexes equally",
+        "Can be inherited or acquired (aging, disease)",
+        "Blues and yellows may appear similar",
+        "Rarer than red-green CVD"
+      ],
+      a11ySolutions: [
+        "Don't rely on color alone",
+        "Provide redundant cues (icons, text)",
+        "Ensure sufficient contrast ratios",
+        "Avoid blue/yellow pairings for critical info"
+      ]
+    },
+    {
+      id: "monochromacy",
+      category: "visual",
+      name: "Monochromacy (Total Color Blindness)",
+      emoji: "⚫",
+      prevalence: "~1 in 30,000",
+      description: "Total color blindness — the world appears in shades of gray. Often co-occurs with low vision and light sensitivity.",
+      keyFacts: [
+        "Extremely rare",
+        "Frequently accompanied by photophobia",
+        "May have reduced visual acuity",
+        "Brightness/contrast cues are critical"
+      ],
+      a11ySolutions: [
+        "Strong luminance contrast",
+        "Never use color alone to convey info",
+        "Patterns, shapes, and labels",
+        "Light-sensitivity-friendly themes"
+      ]
+    },
+    {
+      id: "nystagmus",
+      category: "visual",
+      name: "Nystagmus",
+      emoji: "👀",
+      prevalence: "~1 in 1,000",
+      description: "Involuntary, repetitive eye movements that reduce visual acuity and make it hard to fixate on objects or text.",
+      keyFacts: [
+        "Can be congenital or acquired",
+        "Causes difficulty focusing on details",
+        "Often associated with low vision",
+        "Reading can be slow and tiring"
+      ],
+      a11ySolutions: [
+        "Larger text and generous line spacing",
+        "Avoid moving / animated content",
+        "Allow pausing or stopping motion",
+        "High contrast text"
+      ]
+    },
+    {
+      id: "strabismus",
+      category: "visual",
+      name: "Strabismus",
+      emoji: "🫣",
+      prevalence: "~4% of children",
+      description: "Misalignment of the eyes (crossed eyes or eyes that turn outward). Can cause double vision and reduced depth perception.",
+      keyFacts: [
+        "Often begins in childhood",
+        "Can lead to amblyopia ('lazy eye')",
+        "May cause double vision",
+        "Treated with patches, glasses, or surgery"
+      ],
+      a11ySolutions: [
+        "Avoid requiring depth perception for tasks",
+        "Larger touch targets",
+        "Avoid critical information requiring fine alignment",
+        "Allow text resizing"
+      ]
+    },
+
+    // ───── AUDITORY ─────
+    {
+      id: "deafness",
+      category: "auditory",
+      name: "Deafness",
+      emoji: "🔇",
+      prevalence: "Part of the 466M deaf/HoH globally",
+      description: "Total or near-total loss of hearing. Deaf (capital D) signals cultural identity within the Deaf community.",
+      keyFacts: [
+        "~466M people (6.1% of world) are deaf or hard of hearing",
+        "Deaf community is the canonical social identity / cultural affiliation model",
+        "Sign languages are full natural languages (e.g., ASL, BSL)",
+        "Many use cochlear implants or hearing aids"
+      ],
+      a11ySolutions: [
+        "Captions for all video content",
+        "Transcripts for audio",
+        "Sign language interpretation when possible",
+        "Visual alerts (flashing) for alarms/notifications"
+      ]
+    },
+    {
+      id: "hard-of-hearing",
+      category: "auditory",
+      name: "Hard of Hearing",
+      emoji: "🦻",
+      prevalence: "Part of the 466M deaf/HoH globally",
+      description: "Partial hearing loss ranging from mild to severe. Often managed with hearing aids and listening environments designed for clarity.",
+      keyFacts: [
+        "May use hearing aids, cochlear implants, or FM systems",
+        "Background noise is especially disruptive",
+        "Lip reading is a common compensation strategy",
+        "Mild loss often goes undiagnosed"
+      ],
+      a11ySolutions: [
+        "Captions and transcripts",
+        "Good acoustics; reduced ambient noise",
+        "Microphones in large spaces",
+        "Good lighting to support lip reading"
+      ]
+    },
+    {
+      id: "apd",
+      category: "auditory",
+      name: "Central Auditory Processing Disorder (APD)",
+      emoji: "🎧",
+      prevalence: "~3-5% of school-age children",
+      description: "Greater-than-expected difficulty hearing and understanding speech despite normal hearing sensitivity. The issue is interpreting, organizing, and analyzing — not detecting — sound.",
+      keyFacts: [
+        "Hearing thresholds are normal",
+        "Problem is in the brain, not the ear",
+        "Background noise is especially challenging",
+        "Often co-occurs with ADHD and learning disabilities"
+      ],
+      a11ySolutions: [
+        "Captions and transcripts",
+        "Quiet environments",
+        "Visual supports for spoken info",
+        "Allow extra time for processing"
+      ]
+    },
+    {
+      id: "tinnitus",
+      category: "auditory",
+      name: "Tinnitus",
+      emoji: "🔔",
+      prevalence: "10-15% of adults",
+      description: "Perception of ringing, buzzing, or other sounds that aren't externally present. Can be constant or intermittent and may interfere with concentration and sleep.",
+      keyFacts: [
+        "Often co-occurs with hearing loss",
+        "Can be triggered by noise exposure, stress, or medication",
+        "Can affect concentration and mental health",
+        "No universal cure; managed with masking, therapy"
+      ],
+      a11ySolutions: [
+        "Provide quiet alternatives",
+        "Don't require precise audio listening",
+        "Captions and transcripts",
+        "Allow volume control on all media"
+      ]
+    },
+    {
+      id: "presbycusis",
+      category: "auditory",
+      name: "Presbycusis (Age-related Hearing Loss)",
+      emoji: "👵",
+      prevalence: "~1 in 3 adults aged 65-74",
+      description: "Gradual hearing loss that occurs as people age. High-frequency sounds (consonants, women's/children's voices) are typically affected first.",
+      keyFacts: [
+        "Most common cause of hearing loss in older adults",
+        "High frequencies are lost first",
+        "Often gradual and unnoticed",
+        "Frequently undiagnosed and untreated"
+      ],
+      a11ySolutions: [
+        "Captions on video",
+        "Clear speech, normal pace",
+        "Reduce background noise",
+        "Avoid high-frequency-only audio cues"
+      ]
+    },
+    {
+      id: "menieres",
+      category: "auditory",
+      name: "Meniere's Disease",
+      emoji: "🌀",
+      prevalence: "~12 per 1,000 people",
+      description: "Inner ear disorder causing episodes of vertigo, tinnitus, fluctuating hearing loss, and a feeling of fullness in the ear.",
+      keyFacts: [
+        "Affects one ear in most cases",
+        "Vertigo episodes can last minutes to hours",
+        "Can progress to permanent hearing loss",
+        "Triggers include salt, caffeine, stress"
+      ],
+      a11ySolutions: [
+        "Avoid flashing or moving visuals",
+        "Captions and transcripts",
+        "Stable, non-vestibular-triggering UI",
+        "Allow pausing of motion"
+      ]
+    },
+
+    // ───── SPEECH ─────
+    {
+      id: "dysarthria",
+      category: "speech",
+      name: "Dysarthria",
+      emoji: "💬",
+      prevalence: "Common after stroke / in MS, CP, Parkinson's",
+      description: "Motor speech disability — weak muscles used for speech due to nervous-system damage. Speech may be slurred, slow, or hard to understand.",
+      keyFacts: [
+        "Caused by nervous-system damage",
+        "Language ability is intact",
+        "Can result from stroke, CP, MS, ALS, Parkinson's",
+        "Severity varies from mild to total loss of intelligibility"
+      ],
+      a11ySolutions: [
+        "Don't require voice input",
+        "Provide text alternatives to speech",
+        "Allow extra time to communicate",
+        "Be patient; don't finish sentences"
+      ]
+    },
+    {
+      id: "apraxia",
+      category: "speech",
+      name: "Apraxia of Speech",
+      emoji: "🗯️",
+      prevalence: "Rare; ~1-2 per 1,000 children",
+      description: "A motor planning disorder — the brain has trouble coordinating the movements needed to produce speech. Not a muscle weakness problem.",
+      keyFacts: [
+        "Coordination problem, not muscle weakness",
+        "Inconsistent speech errors",
+        "Can be congenital or acquired",
+        "Language understanding is intact"
+      ],
+      a11ySolutions: [
+        "Text-based alternatives to speech",
+        "AAC devices and communication boards",
+        "Be patient; allow time",
+        "Don't require voice for interaction"
+      ]
+    },
+    {
+      id: "stuttering",
+      category: "speech",
+      name: "Stuttering",
+      emoji: "🔁",
+      prevalence: "~1% of adults",
+      description: "Disruption in the flow of speech — repetitions, prolongations, or blocks. Onset is usually in childhood.",
+      keyFacts: [
+        "~5% of children stutter at some point",
+        "Most outgrow it; ~1% of adults continue",
+        "Can be exacerbated by stress",
+        "Language ability is fully intact"
+      ],
+      a11ySolutions: [
+        "Don't interrupt or finish sentences",
+        "Allow extra time",
+        "Provide text-based alternatives",
+        "Avoid timed voice tasks"
+      ]
+    },
+    {
+      id: "cluttering",
+      category: "speech",
+      name: "Cluttering",
+      emoji: "💨",
+      prevalence: "Less common than stuttering",
+      description: "Rapid or disorganized speech with irregular rate, deleted syllables, and frequent revisions. Can sound unclear and chaotic.",
+      keyFacts: [
+        "Sometimes confused with stuttering",
+        "Speech rate is often abnormally fast",
+        "Awareness of the issue is often low",
+        "Can be treated with speech therapy"
+      ],
+      a11ySolutions: [
+        "Ask for repetition without judgment",
+        "Allow text-based communication",
+        "Be patient",
+        "Avoid time-pressured voice tasks"
+      ]
+    },
+    {
+      id: "aphasia",
+      category: "speech",
+      name: "Aphasia (Broca's, Wernicke's, Global)",
+      emoji: "🧩",
+      prevalence: "~2M people in the US",
+      description: "A language disorder caused by brain damage (often stroke). Broca's affects speech production; Wernicke's affects comprehension; global affects both.",
+      keyFacts: [
+        "Most common cause is stroke",
+        "Distinct from speech disabilities — affects language itself",
+        "Broca's: knows what to say but can't produce it",
+        "Wernicke's: speech is fluent but doesn't make sense"
+      ],
+      a11ySolutions: [
+        "Plain language and short sentences",
+        "Pictures and icons alongside text",
+        "Allow extra time",
+        "Don't assume understanding — check in"
+      ]
+    },
+    {
+      id: "mutism",
+      category: "speech",
+      name: "Muteness / Selective Mutism",
+      emoji: "🤐",
+      prevalence: "~1 in 140 children (selective)",
+      description: "Inability or refusal to speak. Selective mutism is anxiety-based — the person can speak in some contexts but not others.",
+      keyFacts: [
+        "Selective mutism is anxiety-related, not defiance",
+        "Can be caused by physical damage (laryngectomy)",
+        "Language ability often intact",
+        "Often onset in early childhood"
+      ],
+      a11ySolutions: [
+        "Provide text-based alternatives",
+        "Don't pressure for verbal response",
+        "AAC and communication boards",
+        "Allow written or typed responses"
+      ]
+    },
+    {
+      id: "laryngectomy",
+      category: "speech",
+      name: "Laryngectomy",
+      emoji: "🫁",
+      prevalence: "Rare; following cancer surgery",
+      description: "Surgical removal of the larynx (voice box), usually due to cancer. Speech is produced via esophageal speech, electrolarynx, or tracheoesophageal puncture.",
+      keyFacts: [
+        "Most often due to laryngeal cancer",
+        "Person breathes through a stoma in the neck",
+        "Speech requires assistive techniques or devices",
+        "Voice sounds different from typical speech"
+      ],
+      a11ySolutions: [
+        "Allow text-based communication",
+        "Don't require voice authentication",
+        "Be patient with assisted speech",
+        "Captions in video calls"
+      ]
+    },
+
+    // ───── MOTOR ─────
+    {
+      id: "paraplegia",
+      category: "motor",
+      name: "Paraplegia",
+      emoji: "🦽",
+      prevalence: "Subset of ~5.4M with paralysis (US)",
+      description: "Paralysis of both legs, usually from spinal cord injury below the neck. Upper body function is typically preserved.",
+      keyFacts: [
+        "Caused by spinal cord injury, stroke, or disease",
+        "Upper body usually unaffected",
+        "Wheelchair use is common",
+        "Bladder/bowel function often affected"
+      ],
+      a11ySolutions: [
+        "Step-free access; ramps and elevators",
+        "Reachable controls and surfaces",
+        "Knee/toe clearance under tables",
+        "Wide paths and turning space"
+      ]
+    },
+    {
+      id: "quadriplegia",
+      category: "motor",
+      name: "Quadriplegia / Tetraplegia",
+      emoji: "🦼",
+      prevalence: "Subset of paralysis cases",
+      description: "Paralysis of all four limbs, usually from high spinal cord injury. May require significant assistance with daily activities.",
+      keyFacts: [
+        "Caused by high spinal cord injury (cervical region)",
+        "May affect breathing depending on injury level",
+        "Often requires power wheelchair",
+        "Hand function may be partial or absent"
+      ],
+      a11ySolutions: [
+        "Switch devices, sip-and-puff, eye tracking",
+        "Voice input",
+        "Sticky keys, dwell click",
+        "Universally designed environments"
+      ]
+    },
+    {
+      id: "hemiplegia",
+      category: "motor",
+      name: "Hemiplegia",
+      emoji: "🫱",
+      prevalence: "Common after stroke",
+      description: "Paralysis of one side of the body, often from stroke or brain injury. Function on the affected side ranges from weakness to complete paralysis.",
+      keyFacts: [
+        "Most often caused by stroke",
+        "Affects either left or right side",
+        "Can be temporary or permanent",
+        "Often accompanied by aphasia or cognitive effects"
+      ],
+      a11ySolutions: [
+        "One-handed keyboard layouts",
+        "Sticky keys and modifier locks",
+        "Voice input as alternative",
+        "Adaptive devices and grips"
+      ]
+    },
+    {
+      id: "spinal-cord-injury",
+      category: "motor",
+      name: "Spinal Cord Injury",
+      emoji: "🧬",
+      prevalence: "~250-500K new cases globally per year (WHO)",
+      description: "Damage to the spinal cord that disrupts signals between brain and body. Effects depend on level and completeness of injury.",
+      keyFacts: [
+        "Common causes: traffic accidents, falls, violence",
+        "Higher injury = more body affected",
+        "Complete vs. incomplete injuries",
+        "Often co-occurring autonomic effects"
+      ],
+      a11ySolutions: [
+        "Accessible environments and AT",
+        "Switch devices, voice input",
+        "Step-free paths and reachable controls",
+        "Universal design"
+      ]
+    },
+    {
+      id: "amputation",
+      category: "motor",
+      name: "Amputation / Limb Difference",
+      emoji: "🦾",
+      prevalence: "~57.7M people globally living with limb amputation",
+      description: "Loss or congenital absence of one or more limbs. People may use prosthetics, adaptive devices, or rely on remaining limbs.",
+      keyFacts: [
+        "Causes: trauma, diabetes/vascular disease, cancer, congenital",
+        "Prosthetics range from basic to robotic",
+        "May affect fine motor or gross motor depending on level",
+        "Often requires environmental adaptation"
+      ],
+      a11ySolutions: [
+        "One-handed/adaptive input devices",
+        "Voice control and switch devices",
+        "Reachable controls",
+        "Customizable keyboards"
+      ]
+    },
+    {
+      id: "cerebral-palsy",
+      category: "motor",
+      name: "Cerebral Palsy",
+      emoji: "🧒",
+      prevalence: "~17 million globally",
+      description: "A group of disorders caused by injury to the developing brain. Affects movement, learning, hearing, seeing, and thinking.",
+      keyFacts: [
+        "Caused by brain injury during development",
+        "Non-progressive but lifelong",
+        "Severity ranges widely",
+        "May include cognitive, sensory, communication effects"
+      ],
+      a11ySolutions: [
+        "Adaptive input devices",
+        "AAC devices for speech challenges",
+        "Allow extra time",
+        "Switch and eye-tracking control"
+      ]
+    },
+    {
+      id: "muscular-dystrophy",
+      category: "motor",
+      name: "Muscular Dystrophy",
+      emoji: "💪",
+      prevalence: "~1 in 5,000 (Duchenne, most common form)",
+      description: "A group of genetic diseases causing progressive muscle weakness and loss of muscle mass. Several types vary in age of onset and severity.",
+      keyFacts: [
+        "Genetic / inherited",
+        "Progressive over time",
+        "Multiple types (Duchenne, Becker, myotonic, etc.)",
+        "Often eventually requires wheelchair use"
+      ],
+      a11ySolutions: [
+        "Switch devices, voice input, eye tracking",
+        "Lightweight input methods",
+        "Reachable, low-effort controls",
+        "Energy-conserving design"
+      ]
+    },
+    {
+      id: "multiple-sclerosis",
+      category: "neurological",
+      name: "Multiple Sclerosis (MS)",
+      emoji: "🌐",
+      prevalence: "~2.8M globally",
+      description: "Central nervous system disease in which the immune system attacks the coating of nerves, causing communication problems between brain and body.",
+      keyFacts: [
+        "Autoimmune; can cause permanent nerve damage",
+        "Symptoms: blurry vision, weakness, tingling, unsteady gait, cognitive issues, trouble speaking",
+        "Relapsing-remitting or progressive courses",
+        "Symptoms vary widely between people"
+      ],
+      a11ySolutions: [
+        "Captions, transcripts, screen readers",
+        "Adaptive input methods",
+        "Allow extra time and rest",
+        "Reduce cognitive load"
+      ]
+    },
+    {
+      id: "parkinsons",
+      category: "neurological",
+      name: "Parkinson's Disease",
+      emoji: "🌫️",
+      prevalence: "~10M globally",
+      description: "A progressive nervous system disorder affecting movement, often with tremors, rigidity, slowed movement, and balance problems.",
+      keyFacts: [
+        "Caused by loss of dopamine-producing neurons",
+        "Tremor, rigidity, bradykinesia, postural instability",
+        "Can include speech and cognitive effects",
+        "Typically onset after age 60"
+      ],
+      a11ySolutions: [
+        "Large click targets",
+        "Voice input as alternative",
+        "Avoid time-pressured tasks",
+        "Sticky keys and dwell click"
+      ]
+    },
+    {
+      id: "arthritis",
+      category: "motor",
+      name: "Arthritis (RA, OA)",
+      emoji: "🦴",
+      prevalence: "~350M globally",
+      description: "Inflammation of the joints causing pain, stiffness, and reduced mobility. Rheumatoid arthritis is autoimmune; osteoarthritis is wear-and-tear.",
+      keyFacts: [
+        "RA is autoimmune; OA is age/wear-related",
+        "Affects fine motor and grip strength",
+        "Pain can fluctuate day to day",
+        "Common cause of disability in older adults"
+      ],
+      a11ySolutions: [
+        "Large click targets and easy-grip controls",
+        "Voice input",
+        "Ergonomic keyboards and mice",
+        "Avoid drag/precise gestures"
+      ]
+    },
+    {
+      id: "rsi",
+      category: "motor",
+      name: "Repetitive Strain Injury (RSI)",
+      emoji: "✋",
+      prevalence: "Common among computer users",
+      description: "Pain and dysfunction from repetitive motion, often in hands and wrists. Limits how long the person can do dexterity tasks like typing or mousing.",
+      keyFacts: [
+        "Common in software engineers, writers, musicians",
+        "Includes carpal tunnel and tendonitis",
+        "Can be temporary or chronic",
+        "Eli Chadwick, an a11y champion, uses eye tracking and voice control to work around it"
+      ],
+      a11ySolutions: [
+        "Eye tracking and voice control",
+        "Ergonomic keyboards and mice",
+        "Customizable shortcuts",
+        "Avoid drag/precise gestures"
+      ]
+    },
+    {
+      id: "dwarfism",
+      category: "motor",
+      name: "Dwarfism / Body Size Differences",
+      emoji: "📏",
+      prevalence: "~1 in 25,000 (achondroplasia)",
+      description: "Conditions affecting body stature, proportions, or shape. Includes acromegaly, dwarfism, and other size differences.",
+      keyFacts: [
+        "Most common type is achondroplasia",
+        "Average adult height < 4'10\" (147 cm)",
+        "May co-occur with joint issues",
+        "Environments often built for average heights"
+      ],
+      a11ySolutions: [
+        "Adjustable-height counters and controls",
+        "Reachable buttons and switches",
+        "Step stools available",
+        "Range of seating sizes"
+      ]
+    },
+    {
+      id: "als",
+      category: "motor",
+      name: "ALS / Motor Neuron Disease",
+      emoji: "🌀",
+      prevalence: "~2 per 100,000 annually",
+      description: "Progressive degeneration of motor neurons causing loss of voluntary muscle control. Eventually affects speaking, swallowing, and breathing.",
+      keyFacts: [
+        "Also called Lou Gehrig's disease",
+        "Progressive and currently incurable",
+        "Cognition usually preserved",
+        "Average life expectancy 2-5 years after diagnosis"
+      ],
+      a11ySolutions: [
+        "Eye tracking and switch devices",
+        "AAC devices and speech generation",
+        "Voice banking before voice loss",
+        "Customizable, low-effort inputs"
+      ]
+    },
+
+    // ───── NEUROLOGICAL ─────
+    {
+      id: "migraine",
+      category: "neurological",
+      name: "Migraine",
+      emoji: "⚡",
+      prevalence: "14-15% globally; #2 disability after back pain",
+      description: "A complex neurological disease characterized by recurrent attacks of head pain, sensory sensitivities, and other symptoms. Caused by primary neuronal dysfunction.",
+      keyFacts: [
+        "World's #2 most common disability (after back pain)",
+        "CGRPs play a key role; CGRP drugs treat/prevent",
+        "Triggers: hormones, alcohol, light, sleep, weather, foods",
+        "4 phases: prodrome, aura, attack, postdrome"
+      ],
+      a11ySolutions: [
+        "Avoid flashing, flickering, and high-contrast motion",
+        "Allow dimmed/low-light themes",
+        "Quiet, calm environments",
+        "Allow pausing animations"
+      ]
+    },
+    {
+      id: "epilepsy",
+      category: "neurological",
+      name: "Epilepsy",
+      emoji: "⚡",
+      prevalence: "~65M globally (1 in 26)",
+      description: "A condition of recurrent seizures — sudden uncontrolled electrical disturbances in the brain. Causes changes in behavior, movement, feelings, and consciousness.",
+      keyFacts: [
+        "Two+ seizures or tendency to recurrent seizures",
+        "WHO commonly cites 50M with epilepsy",
+        "Most begin in early childhood or late adulthood",
+        "If a seizure lasts >5 minutes, call an ambulance"
+      ],
+      a11ySolutions: [
+        "Avoid flashing/flickering content",
+        "Seizure detection devices",
+        "Service animals",
+        "Safe, quiet recovery spaces"
+      ]
+    },
+    {
+      id: "photosensitive-epilepsy",
+      category: "neurological",
+      name: "Photosensitive Epilepsy",
+      emoji: "💥",
+      prevalence: "3% of people with epilepsy",
+      description: "A form of epilepsy in which flashing or flickering lights or patterns trigger seizures. VR, video games, and immersive rides are especially risky.",
+      keyFacts: [
+        "Only 3% of people with epilepsy are photosensitive",
+        "Most dangerous flash range: 16-25 Hz",
+        "Sensitivity range: 3-60 Hz",
+        "High-contrast or moving patterns more likely to trigger"
+      ],
+      a11ySolutions: [
+        "Avoid flashes >3 per second (WCAG 2.3.1)",
+        "Avoid high-contrast moving patterns",
+        "Allow disabling animations",
+        "Warn before flash-heavy content"
+      ]
+    },
+    {
+      id: "stroke",
+      category: "neurological",
+      name: "Stroke",
+      emoji: "🧠",
+      prevalence: "~15M people globally per year",
+      description: "Injury to the brain from a blocked or burst blood vessel. Requires emergency care and can leave lasting brain damage and disability.",
+      keyFacts: [
+        "Common symptoms: aphasia, sudden confusion, severe headache, vision difficulty, one-sided numbness/weakness, loss of coordination",
+        "Emergency care critical",
+        "Recovery is possible but often partial",
+        "Risk grows with age and cardiovascular issues"
+      ],
+      a11ySolutions: [
+        "Plain language and short sentences",
+        "Adaptive input for one-handed use",
+        "Captions and transcripts",
+        "Allow extra time"
+      ]
+    },
+    {
+      id: "tbi",
+      category: "neurological",
+      name: "Traumatic Brain Injury (TBI)",
+      emoji: "🪖",
+      prevalence: "~69M globally per year",
+      description: "Damage to the brain from an external force — falls, accidents, sports, violence. Symptoms range from mild concussion to severe disability.",
+      keyFacts: [
+        "Leading cause of death and disability in young adults",
+        "Can cause cognitive, physical, emotional, behavioral effects",
+        "Often invisible disability",
+        "Repeated mild TBIs (concussions) compound over time"
+      ],
+      a11ySolutions: [
+        "Reduce cognitive load",
+        "Allow extra time",
+        "Plain language",
+        "Customizable interfaces (light, motion, audio)"
+      ]
+    },
+    {
+      id: "alzheimers",
+      category: "neurological",
+      name: "Alzheimer's / Dementia",
+      emoji: "🧓",
+      prevalence: "~55M with dementia globally (WHO)",
+      description: "Progressive degeneration of brain function, especially memory, language, and reasoning. Alzheimer's is the most common form.",
+      keyFacts: [
+        "Most common in older adults",
+        "Alzheimer's accounts for 60-70% of dementia cases",
+        "Progressive and currently incurable",
+        "Affects memory, language, executive function"
+      ],
+      a11ySolutions: [
+        "Plain language and simple navigation",
+        "Consistent layouts and predictable patterns",
+        "Reminders and time supports",
+        "Avoid time-pressured tasks"
+      ]
+    },
+    {
+      id: "adhd",
+      category: "neurological",
+      name: "ADHD",
+      emoji: "🌀",
+      prevalence: "2-7% of children, ~4% of adults",
+      description: "A developmental condition characterized by inattention, hyperactivity, and impulsivity. Symptoms typically appear by age 7 and persist into adulthood.",
+      keyFacts: [
+        "Symptoms appear by age 7",
+        "Not outgrown — adults can learn to adapt",
+        "Common signs: distractibility, difficulty starting/finishing tasks, restlessness, interrupting",
+        "Often co-occurs with anxiety, depression, learning disabilities"
+      ],
+      a11ySolutions: [
+        "Minimize distractions and clutter",
+        "Highlight most important info",
+        "Allow adequate time",
+        "Provide structure and clear instructions"
+      ]
+    },
+    {
+      id: "tourette",
+      category: "neurological",
+      name: "Tourette Syndrome",
+      emoji: "🎭",
+      prevalence: "~1 in 160 children",
+      description: "A neurological condition with involuntary motor and vocal tics. Severity varies widely; most people have mild tics.",
+      keyFacts: [
+        "Onset typically in childhood",
+        "Tics often lessen in adulthood",
+        "Often co-occurs with ADHD, OCD, anxiety",
+        "Coprolalia (involuntary swearing) is uncommon"
+      ],
+      a11ySolutions: [
+        "Don't draw attention to tics",
+        "Allow breaks and accommodate movement",
+        "Text-based alternatives for voice tasks",
+        "Avoid time-pressured speech"
+      ]
+    },
+    {
+      id: "autism",
+      category: "neurological",
+      name: "Autism Spectrum Disorder (ASD)",
+      emoji: "🌈",
+      prevalence: "~1 in 100 globally (WHO)",
+      description: "A range of brain developmental conditions characterized by impaired social behavior, communication, and language, narrow interests, and repetitive behaviors.",
+      keyFacts: [
+        "Apparent in first 5 years of life",
+        "Co-occurring: epilepsy, depression, anxiety, ADHD",
+        "Intellectual functioning highly variable",
+        "Prevalence is rising (likely due to better diagnosis)"
+      ],
+      a11ySolutions: [
+        "Predictable, structured interfaces",
+        "Avoid sensory overload (bright, loud, busy)",
+        "Plain language; avoid idioms",
+        "Allow text alternatives to speech"
+      ]
+    },
+    {
+      id: "narcolepsy",
+      category: "neurological",
+      name: "Narcolepsy",
+      emoji: "😴",
+      prevalence: "~1 in 2,000",
+      description: "A chronic sleep disorder causing overwhelming daytime drowsiness and sudden sleep attacks. May include cataplexy (sudden muscle weakness triggered by emotion).",
+      keyFacts: [
+        "Often misdiagnosed for years",
+        "Cataplexy distinguishes type 1 from type 2",
+        "Includes sleep paralysis and hallucinations",
+        "Caused by loss of hypocretin-producing neurons"
+      ],
+      a11ySolutions: [
+        "Allow flexible schedules",
+        "Avoid time-pressured tasks",
+        "Pause/resume support",
+        "Save progress automatically"
+      ]
+    },
+    {
+      id: "vestibular",
+      category: "neurological",
+      name: "Vestibular Disorders",
+      emoji: "🌀",
+      prevalence: "15-20% of adults affected annually",
+      description: "Problems with the vestibular system in the inner ear or central nervous system. Typical symptoms are dizziness and vertigo.",
+      keyFacts: [
+        "Risk rises with age",
+        "Common causes: aging, injury, inflammation, neurological conditions",
+        "Can be triggered by motion content (like photosensitive epilepsy)",
+        "Includes BPPV, vestibular neuritis, Meniere's"
+      ],
+      a11ySolutions: [
+        "Avoid parallax and motion effects",
+        "Provide reduce-motion options",
+        "Stable scrolling and transitions",
+        "Avoid moving patterns"
+      ]
+    },
+
+    // ───── COGNITIVE / LEARNING ─────
+    {
+      id: "intellectual-disability",
+      category: "cognitive",
+      name: "Intellectual Disability",
+      emoji: "📘",
+      prevalence: "1-3% of global population (~200M)",
+      description: "Significant limitations in intellectual functioning (reasoning, learning, problem-solving) and adaptive behavior, manifesting in childhood.",
+      keyFacts: [
+        "AAIDD criteria (all three required): IQ below 70-75; impairments in adaptive behavior; manifests in childhood",
+        "Includes Down syndrome and many other causes",
+        "Severity ranges from mild to profound",
+        "Lifelong condition"
+      ],
+      a11ySolutions: [
+        "Plain language; short sentences",
+        "Simple, organized interfaces",
+        "Images alongside text",
+        "Allow adequate time"
+      ]
+    },
+    {
+      id: "dyslexia",
+      category: "cognitive",
+      name: "Dyslexia",
+      emoji: "📖",
+      prevalence: "5-10% of population (some estimates 17%)",
+      description: "Language-based learning disability — difficulty reading, phonological processing, spelling, or rapid visual-verbal responding.",
+      keyFacts: [
+        "70-80% of people with reading difficulties have dyslexia",
+        "Most common cause of reading/writing/spelling difficulties",
+        "Genetic component identified",
+        "Unrelated to intelligence"
+      ],
+      a11ySolutions: [
+        "Readable fonts and generous spacing",
+        "Allow text-to-speech",
+        "Avoid justified text",
+        "Spell-check and word prediction"
+      ]
+    },
+    {
+      id: "dysgraphia",
+      category: "cognitive",
+      name: "Dysgraphia",
+      emoji: "✍️",
+      prevalence: "Unknown",
+      description: "Difficulty with handwriting and other fine motor skills, including difficulty expressing oneself in written language or drawing.",
+      keyFacts: [
+        "Often co-occurs with dyslexia and ADHD",
+        "Affects fine motor and written expression",
+        "Can be developmental or acquired",
+        "Distinct from dyslexia (which is reading)"
+      ],
+      a11ySolutions: [
+        "Speech-to-text input",
+        "Keyboard alternatives to handwriting",
+        "Word prediction and spell-check",
+        "Allow extra time"
+      ]
+    },
+    {
+      id: "dyscalculia",
+      category: "cognitive",
+      name: "Dyscalculia",
+      emoji: "🔢",
+      prevalence: "3-6% of people",
+      description: "Math and computational disability — impaired ability to understand and communicate mathematics, quantities, money, time, and distance.",
+      keyFacts: [
+        "Can be congenital or acquired",
+        "Trouble grasping quantity, math facts, time, money",
+        "Often co-occurs with dyslexia",
+        "Unrelated to general intelligence"
+      ],
+      a11ySolutions: [
+        "Calculator allowed for math tasks",
+        "Visual representations of numbers",
+        "Allow extra time",
+        "Don't require mental math"
+      ]
+    },
+    {
+      id: "amnesia",
+      category: "cognitive",
+      name: "Memory Loss / Amnesia",
+      emoji: "🌫️",
+      prevalence: "Varies by cause",
+      description: "Partial or complete loss of memory, ranging from short-term forgetfulness to inability to form new memories. Causes include brain injury, dementia, stroke.",
+      keyFacts: [
+        "Anterograde: can't form new memories",
+        "Retrograde: can't recall past memories",
+        "Causes: TBI, stroke, dementia, psychological trauma",
+        "Severity ranges widely"
+      ],
+      a11ySolutions: [
+        "Reminders and notifications",
+        "Save progress automatically",
+        "Consistent layouts",
+        "Show recent actions / history"
+      ]
+    },
+    {
+      id: "executive-function",
+      category: "cognitive",
+      name: "Executive Function Disorder",
+      emoji: "🗂️",
+      prevalence: "Common with ADHD, TBI, ASD",
+      description: "Difficulty with planning, organizing, starting tasks, working memory, and self-monitoring. Often co-occurs with ADHD, autism, and TBI.",
+      keyFacts: [
+        "Affects task initiation, planning, working memory",
+        "Often co-occurs with ADHD",
+        "Can result from TBI or stroke",
+        "Distinct from intellectual disability"
+      ],
+      a11ySolutions: [
+        "Break tasks into clear steps",
+        "Use checklists and progress indicators",
+        "Reminders and notifications",
+        "Save progress automatically"
+      ]
+    },
+    {
+      id: "nvld",
+      category: "cognitive",
+      name: "Non-verbal Learning Disorder",
+      emoji: "🧭",
+      prevalence: "~3-4% of children (estimated)",
+      description: "Difficulty with non-verbal information — spatial reasoning, social cues, motor coordination. Verbal skills are often strong.",
+      keyFacts: [
+        "Strong verbal ability but weak non-verbal reasoning",
+        "Difficulty with maps, charts, faces, social cues",
+        "Not in DSM-5 as a separate diagnosis",
+        "Often confused with autism"
+      ],
+      a11ySolutions: [
+        "Provide text explanations of visuals",
+        "Plain language for social and spatial info",
+        "Avoid relying solely on diagrams",
+        "Explicit instructions, not implicit"
+      ]
+    },
+
+    // ───── PSYCHOLOGICAL ─────
+    {
+      id: "gad",
+      category: "psychological",
+      name: "Generalized Anxiety Disorder (GAD)",
+      emoji: "😰",
+      prevalence: "Anxiety overall: 2.5-7% by country",
+      description: "Persistent anxiety or dread that can interfere with daily life. People experience frequent anxiety for months or years.",
+      keyFacts: [
+        "Symptoms: restlessness, fatigue, concentration issues, sleep problems, aches",
+        "Not the same as occasional worry",
+        "Often co-occurs with depression",
+        "Anxiety is the most prevalent psychological disability"
+      ],
+      a11ySolutions: [
+        "Allow extra time; reduce pressure",
+        "Clear, predictable interfaces",
+        "Avoid surprise modal dialogs",
+        "Provide reassurance and undo options"
+      ]
+    },
+    {
+      id: "panic-disorder",
+      category: "psychological",
+      name: "Panic Disorder",
+      emoji: "💔",
+      prevalence: "~2-3% of adults",
+      description: "Frequent and unexpected panic attacks — sudden periods of intense fear with physical symptoms like racing heart, sweating, chest pain.",
+      keyFacts: [
+        "Panic attacks come without clear trigger",
+        "Symptoms: racing heart, sweating, trembling, chest pain, feelings of doom",
+        "Not everyone with panic attacks has panic disorder",
+        "Can lead to agoraphobia"
+      ],
+      a11ySolutions: [
+        "Avoid urgency-driven design (countdown timers)",
+        "Calm, predictable interactions",
+        "Clear undo and exit options",
+        "Avoid abrupt alerts"
+      ]
+    },
+    {
+      id: "social-anxiety",
+      category: "psychological",
+      name: "Social Anxiety Disorder",
+      emoji: "🫥",
+      prevalence: "~7% of adults (US)",
+      description: "Intense, persistent fear of being watched and judged by others. The fear may interfere with work, school, and everyday activities.",
+      keyFacts: [
+        "Symptoms: self-consciousness, blushing, trembling, rigid posture, soft voice",
+        "Often starts in adolescence",
+        "Different from shyness — interferes with function",
+        "Treatable with therapy and medication"
+      ],
+      a11ySolutions: [
+        "Provide text-based alternatives to calls/video",
+        "Don't require live interaction",
+        "Async communication options",
+        "Avoid public-by-default settings"
+      ]
+    },
+    {
+      id: "depression",
+      category: "psychological",
+      name: "Depression",
+      emoji: "🌧️",
+      prevalence: "Part of ~970M with mood disorders (~1 in 8)",
+      description: "Lowered mood or loss of interest for 2+ weeks that affects daily activities. Common and can affect anyone.",
+      keyFacts: [
+        "Symptoms: sadness, worthlessness, loss of interest, changes in eating/sleep",
+        "Can include self-harm and suicidal thoughts",
+        "Treatable with therapy and medication",
+        "Affects motivation, energy, concentration"
+      ],
+      a11ySolutions: [
+        "Reduce friction; small steps",
+        "Save progress automatically",
+        "Avoid guilt-inducing UX patterns",
+        "Allow flexibility and pause"
+      ]
+    },
+    {
+      id: "bipolar",
+      category: "psychological",
+      name: "Bipolar Disorder",
+      emoji: "🎢",
+      prevalence: "~1-3% globally",
+      description: "Mental health condition characterized by extreme mood swings — episodes of depression alternating with mania (high energy, grand plans, risky decisions).",
+      keyFacts: [
+        "Episodes can last weeks",
+        "May include delusions or hallucinations",
+        "Mania: high energy, risky decisions, distractibility",
+        "Depression episodes match major depression"
+      ],
+      a11ySolutions: [
+        "Confirm high-stakes actions",
+        "Cooling-off periods for purchases / messages",
+        "Easy undo / cancel",
+        "Predictable, calm interfaces"
+      ]
+    },
+    {
+      id: "sad",
+      category: "psychological",
+      name: "Seasonal Affective Disorder (SAD)",
+      emoji: "🍂",
+      prevalence: "~5% of adults in US",
+      description: "Depression that follows a seasonal pattern — usually fall-winter, sometimes spring-summer. Symptoms include those of depression plus seasonal-specific patterns.",
+      keyFacts: [
+        "Winter-pattern: oversleeping, overeating carbs, withdrawal",
+        "Summer-pattern: insomnia, poor appetite, agitation",
+        "Linked to light exposure",
+        "Often treated with light therapy"
+      ],
+      a11ySolutions: [
+        "Light/dark mode options",
+        "Adjust brightness preferences",
+        "Reduce friction; small steps",
+        "Allow flexibility in deadlines"
+      ]
+    },
+    {
+      id: "schizophrenia",
+      category: "psychological",
+      name: "Schizophrenia",
+      emoji: "🌀",
+      prevalence: "~24M globally (~0.3%)",
+      description: "A psychotic disorder involving distorted thoughts, perceptions, emotions, and behavior. Can include hallucinations, delusions, and disorganized thinking.",
+      keyFacts: [
+        "Onset typically in late teens to early 30s",
+        "Includes positive (hallucinations) and negative (apathy) symptoms",
+        "Treatable with medication and support",
+        "Highly stigmatized"
+      ],
+      a11ySolutions: [
+        "Clear, plain language",
+        "Predictable interfaces",
+        "Avoid sensory-overload designs",
+        "Easy way to ask for help"
+      ]
+    },
+    {
+      id: "ocd",
+      category: "psychological",
+      name: "Obsessive-Compulsive Disorder (OCD)",
+      emoji: "🔄",
+      prevalence: "~2-3% of adults",
+      description: "Recurrent unwanted thoughts (obsessions) and repetitive behaviors (compulsions) performed to reduce anxiety.",
+      keyFacts: [
+        "Compulsions are distressing, not enjoyable",
+        "Common themes: contamination, harm, order",
+        "Treatable with CBT (especially ERP) and medication",
+        "Often onset in adolescence"
+      ],
+      a11ySolutions: [
+        "Avoid urgency-driven warnings",
+        "Clear confirmation of completed tasks",
+        "Allow undo / multiple confirmations",
+        "Calm, predictable interactions"
+      ]
+    },
+    {
+      id: "ptsd",
+      category: "psychological",
+      name: "PTSD",
+      emoji: "🌪️",
+      prevalence: "~3.9% globally (lifetime)",
+      description: "Post-traumatic stress disorder — develops after experiencing or witnessing a traumatic event. Includes flashbacks, nightmares, hyperarousal, and avoidance.",
+      keyFacts: [
+        "Common in veterans, survivors of violence, accidents, abuse",
+        "Symptoms: intrusive memories, avoidance, mood changes, hyperarousal",
+        "Triggers can be specific or unpredictable",
+        "Treatable with therapy and medication"
+      ],
+      a11ySolutions: [
+        "Content warnings for triggering material",
+        "Allow opt-out of intense content",
+        "Predictable, calm interactions",
+        "Avoid loud / sudden alerts"
+      ]
+    },
+    {
+      id: "eating-disorders",
+      category: "psychological",
+      name: "Eating Disorders",
+      emoji: "🍽️",
+      prevalence: "~9% of population (lifetime)",
+      description: "Serious mental health conditions involving disordered eating behaviors — anorexia, bulimia, binge eating disorder, and others.",
+      keyFacts: [
+        "Highest mortality of any psychiatric disorder",
+        "Affects all genders, ages, and backgrounds",
+        "Often co-occurs with anxiety and depression",
+        "Treatable with therapy, nutrition support, medical care"
+      ],
+      a11ySolutions: [
+        "Avoid weight/calorie-shaming content",
+        "Content warnings for ED-related material",
+        "Don't gamify weight loss",
+        "Provide support resources"
+      ]
+    },
+
+    // ───── MULTIPLE / CO-OCCURRING ─────
+    {
+      id: "deafblindness",
+      category: "multiple",
+      name: "Deafblindness",
+      emoji: "🤲",
+      prevalence: "0.2-2% of population",
+      description: "Combined hearing and vision loss. Most people are not completely deaf or blind — they retain some hearing and/or vision.",
+      keyFacts: [
+        "Most retain some hearing/vision",
+        "Sensory inputs limited to touch, smell, taste",
+        "Braille is essential (printed and via braille display)",
+        "Transcripts preferred over captions (can read at own pace)"
+      ],
+      a11ySolutions: [
+        "Braille support (printed and digital output)",
+        "Transcripts over captions",
+        "Concise link text/labels (braille displays are 40 or 80 chars wide)",
+        "Tactile sign language interpretation"
+      ]
+    },
+    {
+      id: "complex-disabilities",
+      category: "multiple",
+      name: "Multiple / Complex Disabilities",
+      emoji: "🤝",
+      prevalence: "Global stats unavailable",
+      description: "Simultaneous disabilities severe enough that they cannot be accommodated by a program designed for a single disability.",
+      keyFacts: [
+        "Common characteristics: impaired speech, mobility, daily-living needs",
+        "Requires multi-disciplinary support",
+        "Often lifelong",
+        "Each combination is unique"
+      ],
+      a11ySolutions: [
+        "Multimodal interfaces (text, audio, images)",
+        "AAC devices",
+        "Allow adequate time",
+        "Personalized, customizable settings"
+      ]
+    },
+
+    // ───── OTHER ─────
+    {
+      id: "chronic-pain",
+      category: "other",
+      name: "Chronic Pain (incl. Low Back Pain)",
+      emoji: "🩹",
+      prevalence: "Low back pain is #1 global disability by YLD",
+      description: "Persistent pain lasting more than 3-6 months, often without a clear cause. Low back pain is the world's leading cause of years lived with disability.",
+      keyFacts: [
+        "Low back pain: #1 global cause of YLD (Years Lived with Disability)",
+        "Affects ~20% of adults",
+        "Often invisible disability",
+        "Can be musculoskeletal, neuropathic, or mixed"
+      ],
+      a11ySolutions: [
+        "Allow frequent breaks",
+        "Don't require prolonged sitting/standing",
+        "Ergonomic environments",
+        "Pause/resume support"
+      ]
+    },
+    {
+      id: "fibromyalgia",
+      category: "other",
+      name: "Fibromyalgia",
+      emoji: "🌡️",
+      prevalence: "~2-4% of adults",
+      description: "Chronic condition causing widespread musculoskeletal pain, fatigue, sleep problems, and cognitive difficulties ('fibro fog').",
+      keyFacts: [
+        "More common in women",
+        "No definitive lab test; diagnosis is clinical",
+        "Often co-occurs with depression and anxiety",
+        "Includes cognitive symptoms (fibro fog)"
+      ],
+      a11ySolutions: [
+        "Allow flexible scheduling",
+        "Reduce cognitive load",
+        "Save progress automatically",
+        "Allow breaks"
+      ]
+    },
+    {
+      id: "cfs-me",
+      category: "other",
+      name: "Chronic Fatigue Syndrome / ME",
+      emoji: "🛏️",
+      prevalence: "~0.4-1% globally",
+      description: "Long-term illness with severe, unexplained fatigue that doesn't improve with rest. Includes post-exertional malaise — symptoms worsen after activity.",
+      keyFacts: [
+        "Post-exertional malaise is a hallmark",
+        "Often misdiagnosed or dismissed",
+        "Can be triggered by viral infection",
+        "No cure; managed by pacing and symptom relief"
+      ],
+      a11ySolutions: [
+        "Allow flexible schedules / async work",
+        "Pause/resume support",
+        "Reduce cognitive load",
+        "Don't require sustained effort"
+      ]
+    }
+  ]
+};

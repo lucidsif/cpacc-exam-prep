@@ -2,6 +2,11 @@
 
 Thanks for your interest. This project is small and pragmatic — you can read every file in one sitting. Here's what you need to know.
 
+**Also read:**
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — how the code fits together
+- [`AI_TRANSPARENCY.md`](AI_TRANSPARENCY.md) — how AI is labeled in the UI and why
+- [`DEPLOY.md`](DEPLOY.md) — Cloudflare Pages + local Node deploy guides
+
 ## Code of conduct
 
 Be kind. We're studying accessibility — practice it in interactions, too.

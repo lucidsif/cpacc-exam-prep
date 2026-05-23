@@ -3,50 +3,49 @@
 [![CI](https://github.com/USER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/USER/REPO/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![WCAG 2.2 AA](https://img.shields.io/badge/WCAG-2.2%20AA-blue.svg)](#accessibility)
+[![Zero deps](https://img.shields.io/badge/runtime-zero%20deps-success)](#zero-runtime-dependencies)
+[![AI transparency](https://img.shields.io/badge/AI%20transparency-IBM%20FactSheet%20style-9cf)](AI_TRANSPARENCY.md)
 
-Single-page web app for studying the **IAAP CPACC Body of Knowledge (Oct 2023, v4.0)**. Includes weighted practice tests, study flashcards, a comprehensive human-disabilities reference, a history/laws/standards reference, and an optional Claude-powered tutor chat.
+A study tool for the **IAAP Certified Professional in Accessibility Core Competencies (CPACC)** credential.
 
-## What's in it
+- Weighted practice tests matched to the BoK domain mix (40 / 40 / 20)
+- Bear-notes-derived practice + flashcards (if you, like the author, take notes in Bear)
+- Missed-question focused review
+- 71-condition human disabilities reference with prevalence + accessibility solutions
+- 51-item history / laws / standards reference
+- Optional Claude-powered chat tutor (per-question and free-form)
+- **Every AI-touched piece of content carries an [IBM-style provenance badge](AI_TRANSPARENCY.md) with confidence + sources + limitations.**
 
-- **Weighted practice test** — 20 questions drawn from a curated CPACC bank, matched to the BoK domain mix (40 / 40 / 20)
-- **Bear notes practice** — 20 questions drawn from a separate bank generated from the user's personal `#cpacc` / `#a11y/*` study notes
-- **Missed-question practice** — focused review of items missed in any prior session (shared across devices via the server)
-- **Bear notes flashcards** — 50 dense study cards distilled from the notes, with prevalence, lists, and key facts
-- **Human disabilities reference** — 71 conditions across 9 categories (visual, auditory, speech, motor, neurological, cognitive, psychological, multiple, other), with description, key facts, and accessibility solutions
-- **History, laws & standards reference** — 51 CPACC-relevant items grouped by jurisdiction (UN, EU, USA, Canada, Other Nations, Technical Standards, Timeline)
-- **Per-question chat tutor** — discuss any practice question with Claude, with the question and BoK rationale provided as context
-- **Home-page chat tutor** — free-form CPACC chat from the home page
+> Built for myself, opened up because it might help others. The audience is intentionally mixed — solo students, a11y professionals (rightly skeptical of AI), AI folks curious about accessibility, and experienced a11y engineers who'd want to fix things. Each group's needs shaped a different part of the project.
 
-The app is accessible (**WCAG 2.2 AA conformant** — see _Accessibility_ section).
+---
 
-## Files
+## Who this is for
 
-| File | Contents |
+| If you are | Start here |
 |---|---|
-| `index.html` | The app (single page; all UI and state) |
-| `styles/app.css` | All styles, organized into commented sections |
-| `server.js` | Minimal Node server: serves the app, proxies chat to the Anthropic API, persists missed-questions |
-| `data/questions.js` | Main CPACC question bank, tagged with domain, type, and BoK page citation |
-| `data/bear-questions.js` | Question bank generated from the user's Bear-app `#cpacc` / `#a11y/*` notes |
-| `data/bear-flashcards.js` | Dense study flashcards distilled from the same notes |
-| `data/disabilities.js` | Human-disabilities reference dataset |
-| `data/legal.js` | History, laws, and standards reference dataset |
-| `tests/run.js` | Node-based smoke tests validating every data file |
-| `CPACC_BoK.pdf` | Source document (from accessibilityassociation.org) |
+| **Studying for CPACC yourself** | [Run it locally](#run-it-locally), then read [How sampling works](#how-sampling-works) |
+| **An a11y professional curious about the AI claims** | Read [`AI_TRANSPARENCY.md`](AI_TRANSPARENCY.md) first — every content bucket, source, review status, and limitation is documented |
+| **An a11y engineer who wants to audit / contribute** | Skim [`ARCHITECTURE.md`](ARCHITECTURE.md), then [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| **Deploying your own copy** | [`DEPLOY.md`](DEPLOY.md) — Cloudflare Pages (recommended) or local Node |
+| **AI-curious, not an a11y specialist** | Read the [AI section](#how-ai-is-used) below, then poke around |
 
-## Run
+---
+
+## Run it locally
+
+Two deploy modes (full instructions in [`DEPLOY.md`](DEPLOY.md)):
+
+### Quick local
 
 ```bash
-# Required only if you want chat tutor features
+# (Optional) Enable the chat tutor:
 export ANTHROPIC_API_KEY=sk-ant-...
-
-# Optional: pick a model (default: claude-sonnet-4-6)
-export ANTHROPIC_MODEL=claude-opus-4-7
 
 node server.js
 ```
 
-On startup the server prints the URLs it's reachable at:
+The server prints both URLs on startup:
 
 ```
 CPACC test app running:
@@ -54,27 +53,51 @@ CPACC test app running:
   LAN:    http://192.168.1.42:8787   (open this on your phone — same Wi-Fi)
 ```
 
-Open `Local:` on your computer and `LAN:` on your phone — both devices share the same missed-questions list.
+Open `Local:` on your laptop and `LAN:` on your phone — both share the same missed-questions list via a server-side `data.json`.
 
-Without an API key, all features work except the chat tutor.
+Without an API key, everything works *except* the chat tutor.
 
-## Tests
+### Cloudflare Pages (public deploy)
 
-```bash
-node tests/run.js
-```
+See [`DEPLOY.md`](DEPLOY.md#option-a-cloudflare-pages-recommended-for-public-hosting). Five minutes from a connected GitHub repo to a live site. Chat tutor is off by default; flip it on with one environment variable.
 
-Validates that every data file (`questions.js`, `bear-questions.js`, `bear-flashcards.js`, `disabilities.js`, `legal.js`) loads, has expected structure, and has unique IDs. No external dependencies.
+---
 
-## Phone access & shared missed list
+## How AI is used
 
-- The server binds to all interfaces, so any device on the same Wi-Fi can open the LAN URL.
-- Missed questions are persisted server-side in `data.json` (gitignored). Both desktop and phone read/write that file, so a question you miss on one device shows up in the missed list on the other.
-- The app uses native ES modules, so it must be served over `http://` (run `node server.js`). Opening `index.html` directly via `file://` is no longer supported — browsers block module loading from the file scheme.
+**Short version:** every AI-touched piece of content has a visible badge near it that tells you exactly what generated it, what it was trained on / cited from, whether a human reviewed it, and how much you should trust it.
 
-**Security note:** no auth means anyone on the same Wi-Fi can hit your app. Home Wi-Fi: fine. Public Wi-Fi: don't run it without adding a token.
+**Three categories, three labels:**
 
-## Sampling
+| Category | What it is | Confidence | Examples |
+|---|---|---|---|
+| 🤖 **AI-authored from BoK** | Claude wrote it directly from a citable primary source; author reviewed against the citation | High | Main practice questions (`data/questions.js`), laws & standards reference |
+| 🤖 **AI-derived from author's notes** | Claude generated it from the author's personal study notes (one step removed from primary sources) | Medium | Bear-notes practice bank, flashcards, disabilities reference |
+| 🤖 **AI live response** | Claude answers your chat message in real time; not pre-reviewed | Variable | Per-question chat tutor, home-page tutor chat |
+
+Click any badge in the app to see the full provenance card (source, model, generated date, human review, confidence, limitations). The home-page footer has an **"About AI in this app"** link that opens the page-level explainer.
+
+**The long version:** [`AI_TRANSPARENCY.md`](AI_TRANSPARENCY.md). Read it. Especially if you're skeptical — that's the audience it's written for.
+
+---
+
+## What's in it
+
+| Feature | Detail |
+|---|---|
+| Weighted practice test | 20 questions per session, weighted to BoK domain mix (8 / 8 / 4) |
+| Bear-notes practice | Same format, separate bank from author's notes |
+| Missed-question practice | Focused review; missed list persists per-browser (and cross-device on the LAN deploy) |
+| Bear-notes flashcards | 50 dense study cards distilled from notes |
+| Human disabilities reference | 71 conditions × 9 categories, prevalence + accessibility solutions |
+| History / laws / standards | 51 CPACC-relevant items × 7 jurisdictions, plus a timeline view |
+| Per-question chat tutor | Click "Discuss this question with Claude" — gets question + BoK rationale as context |
+| Home-page chat tutor | Free-form CPACC chat |
+| Accessibility | WCAG 2.2 AA conformant; see [Accessibility](#accessibility) |
+
+---
+
+## How sampling works
 
 Each weighted practice test draws 20 questions matched to the BoK domain mix:
 
@@ -82,48 +105,145 @@ Each weighted practice test draws 20 questions matched to the BoK domain mix:
 - Domain 2 (Accessibility & UD) — **40%** → 8 questions
 - Domain 3 (Standards, Laws & Mgmt) — **20%** → 4 questions
 
-Bear practice tests use the same sampling against the Bear bank. Retakes reshuffle.
-
-## Real exam vs this app
+Bear practice uses the same sampling against the Bear bank. Retakes reshuffle.
 
 The actual CPACC exam is **100 multiple-choice questions in 2 hours** (~72 sec/question, ~70% pass). This app is a study tool, not a length-accurate mock.
 
-## Growing the question banks
-
-Append items to `CPACC_BANK` in `data/questions.js` or `BEAR_BANK` in `data/bear-questions.js`. Each item:
-
-```js
-{
-  id: 99,
-  domain: 1,                      // 1 | 2 | 3
-  type: "application",            // "recall" | "application" | "analysis"
-  q: "Question text…",
-  choices: { A: "…", B: "…", C: "…", D: "…" },
-  answer: "B",
-  why: { A: "why wrong…", B: "why right…", C: "…", D: "…" },
-  cite: "BoK p.42"
-}
-```
-
-Item IDs across both banks must be unique. The smoke tests in `tests/run.js` will fail if they collide.
+---
 
 ## Accessibility
 
-The app targets **WCAG 2.2 AA conformance**. Highlights:
+Targets **WCAG 2.2 AA**. Notable contracts (enforced by `tests/views.test.js`):
 
-- All interactive elements are real `<button>` / `<input>` elements (no clickable `<div>`s) — keyboard accessible (SC 2.1.1, 4.1.2)
-- Visible focus indicator on every focusable element (SC 2.4.7) — 3px solid amber ring (`--focus-ring`)
-- `Skip to main content` link (SC 2.4.1)
-- Headings use a proper hierarchy (`<h1>` page / `<h2>` panels / `<h3>` items) (SC 1.3.1, 2.4.6)
-- Question choices are wrapped in `role="radiogroup"` with a label (SC 1.3.1)
-- Chat logs use `role="log"` + `aria-live="polite"` so screen readers announce new messages (SC 4.1.3)
-- Verdict (correct/incorrect) uses `aria-live="polite"` and includes a ✓/✗ marker, not color alone (SC 1.4.1, 4.1.3)
-- Border color (`--border`) hits ≥3:1 contrast against all panel backgrounds (SC 1.4.11)
-- Target sizes ≥24×24 CSS px (SC 2.5.8)
-- `scroll-margin-top` prevents the sticky anchor bar from obscuring focused items (SC 2.4.11)
-- Decorative emoji are `aria-hidden="true"` so they don't pollute the accessible name (SC 1.1.1)
-- All form inputs have accessible labels (SC 3.3.2)
+- Semantic HTML before ARIA (`<button>`, real `<input>`, `<h1>`–`<h6>`, `<main>`)
+- Skip link → `<main tabindex="-1">` for keyboard users
+- One H1 per view, H2 sub-headings, no skipped levels
+- Visible focus indicator on every focusable element (3px amber)
+- Color contrast: text ≥ 4.5:1, UI components ≥ 3:1
+- Color never the sole channel (confidence pills pair color + shape + text)
+- Radio groups: spec-compliant roving tabindex; visible hint adapts to touch vs keyboard via `(pointer: coarse)`
+- Live regions used only where announcement is the goal — no dueling polite regions
+- Decorative emoji `aria-hidden="true"`
+- `prefers-reduced-motion: reduce` honored for scroll behavior
+- AI provenance disclosure uses native `<details>`/`<summary>` (zero JS, mobile-friendly, implicit `aria-expanded`)
+- AI-info dialog is a native `<dialog>` with focus return on close
 
-## Origin of the Bear-derived content
+Every UI change in this repo went through accessibility-lead review before merging. See [`CONTRIBUTING.md`](CONTRIBUTING.md#accessibility-expectations) if you want to contribute.
 
-`bear-questions.js`, `bear-flashcards.js`, and parts of `disabilities.js` / `legal.js` were generated from the original author's personal Bear study notes tagged `#cpacc` and `#a11y/*`. The content is paraphrased and reorganized; raw notes are not in this repo.
+---
+
+## Zero runtime dependencies
+
+The runtime is plain browser + plain Node + Cloudflare Workers runtime. No bundler, no transpiler, no React, no Vue. You can read every file in one sitting. That's the point.
+
+```bash
+node server.js   # works out of the box, no install
+```
+
+The only dependency is `jsdom` for the test suite — and only if you want to run tests:
+
+```bash
+npm install      # dev dependency only
+npm test
+```
+
+---
+
+## Project layout
+
+```
+test-maker/
+├── index.html                 # Page shell — skip link, home button, <main>, script tag
+├── styles/app.css             # All styles, organized into 10 commented sections
+├── server.js                  # Local Node http server: static files + /chat + /missed
+├── functions/                 # Cloudflare Pages Functions
+│   ├── chat.js                #  POST /chat (per-question)
+│   ├── chat-general.js        #  POST /chat-general (home tutor)
+│   ├── chat-status.js         #  GET /chat-status
+│   ├── _lib/anthropic.js      #  shared Anthropic Messages API helper
+│   └── _routes.json
+├── src/
+│   ├── main.js                # Entry: wires data + state + actions + render loop
+│   ├── state.js               # Single mutable state factory
+│   ├── storage.js             # Missed-set persistence (server + localStorage fallback)
+│   ├── chat.js                # Fetch wrappers for the chat endpoints
+│   ├── sampling.js            # Pure: shuffle, sampleQuestions, sampleMissedQuestions
+│   ├── scoring.js             # Pure: scoreTest, domainLabel
+│   ├── provenance.js          # IBM-style AI transparency badge + dialog
+│   ├── dom.js                 # Tiny helpers: escapeHtml, scrollIntoViewMotionSafe
+│   └── views/
+│       ├── home.js            # Home (test launchers + home chat)
+│       ├── question.js        # Practice question + jump grid
+│       ├── results.js         # Final score + per-question review + chats
+│       ├── flashcards.js      # Bear flashcards
+│       ├── disabilities.js    # Disabilities reference
+│       ├── legal.js           # Laws & standards reference
+│       └── chat.js            # Per-question chat fragment (shared)
+├── data/
+│   ├── questions.js           # Main CPACC bank + CPACC_BANK_PROVENANCE
+│   ├── bear-questions.js      # Bear-derived bank + BEAR_BANK_PROVENANCE
+│   ├── bear-flashcards.js     # Flashcards + BEAR_FLASHCARDS_PROVENANCE
+│   ├── disabilities.js        # 71 conditions × 9 categories + DISABILITIES_PROVENANCE
+│   └── legal.js               # 60 laws/standards × 7 jurisdictions + LEGAL_PROVENANCE
+├── tests/
+│   ├── run.js                 # Runner — discovers + executes every *.test.js
+│   ├── sampling.test.js       # Unit tests for sampling logic
+│   ├── scoring.test.js        # Unit tests for scoring
+│   ├── storage.test.js        # Unit tests for missed-set persistence
+│   └── views.test.js          # jsdom DOM tests for view accessibility contracts
+├── ARCHITECTURE.md            # How the code fits together
+├── AI_TRANSPARENCY.md         # Detailed AI provenance and limitations doc
+├── DEPLOY.md                  # Cloudflare Pages + local Node deploy guides
+├── CONTRIBUTING.md            # How to contribute (a11y expectations, PR checklist)
+├── LICENSE                    # MIT
+└── package.json               # devDeps only (jsdom)
+```
+
+---
+
+## Tests
+
+```bash
+npm install      # one-time: pulls jsdom for the DOM tests
+npm test         # runs everything
+```
+
+Expect 54+ passing.
+
+The test suite is intentionally split into layers:
+
+- **Data smoke** (inline) — every dataset is well-formed, IDs unique, provenance present
+- **Unit tests** — `sampling`, `scoring`, `storage` (mocked fetch + localStorage)
+- **DOM smoke** — `views` (jsdom) asserts the accessibility contracts of every view
+
+`tests/views.test.js` is the regression guard. If you change a view, every contract there must still hold.
+
+---
+
+## Contributing
+
+PRs welcome. The bar:
+
+1. Tests pass (`npm test`)
+2. Any UI change goes through the accessibility checklist (see [`CONTRIBUTING.md`](CONTRIBUTING.md#accessibility-expectations))
+3. Commit messages explain *why*, not just *what*
+
+If you're correcting a wrong answer, use the [Wrong answer issue template](.github/ISSUE_TEMPLATE/wrong-answer.yml) to give the maintainer the source they need to verify.
+
+If you find an accessibility issue, please file it — those get triaged first. Template: [Accessibility issue](.github/ISSUE_TEMPLATE/accessibility.yml).
+
+---
+
+## Why does this exist
+
+I built it to study. I opened it because (a) someone else might find it useful, (b) experienced a11y folks would have valid feedback, and (c) I wanted a public, auditable example of how to integrate AI into a study tool *without* hiding the AI provenance behind a vague label.
+
+The code, the AI choices, the tests, and the docs are all answerable to that goal. If something doesn't measure up, please open an issue or send a PR.
+
+---
+
+## License
+
+MIT — see [`LICENSE`](LICENSE).
+
+Not affiliated with or endorsed by IAAP. CPACC is a trademark of the International Association of Accessibility Professionals.

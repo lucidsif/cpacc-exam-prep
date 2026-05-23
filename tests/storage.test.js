@@ -104,6 +104,23 @@ export async function run({ test, assertTrue, assertEq }) {
     assertEq(cached.join(','), '11');
   });
 
+  await test('when server probe fails (e.g. Cloudflare deploy with no /missed), subsequent writes skip the network', async () => {
+    installFakeLocalStorage();
+    // Initial GET fails (server unavailable). After that no further fetches
+    // should fire — the store should detect "no server" and skip persist/clear.
+    const f = makeFakeFetch([new Error('404')]);
+    const store = createMissedStore({ fetch: f });
+    await store.fetchFromServer();
+    store.add(42);
+    await store.persist();
+    await store.clear();
+    // Only one fetch call (the initial probe).
+    assertEq(f.calls.length, 1);
+    // localStorage still got the persist + clear writes.
+    const cached = JSON.parse(localStorage.getItem('cpacc:missed'));
+    assertEq(cached.length, 0);
+  });
+
   await test('clear wipes the in-memory set and local cache', async () => {
     installFakeLocalStorage();
     const f = makeFakeFetch([{ json: { ids: [1, 2, 3] } }, { json: {} }]);

@@ -1,0 +1,15 @@
+# Cloudflare Pages config (used by `wrangler pages dev` for local testing).
+#
+# Production deploy is driven by the Cloudflare dashboard:
+#   - Connect this repo
+#   - Build command: (leave empty — no build step)
+#   - Build output directory: /
+#
+# Required environment variable for chat:
+#   ANTHROPIC_API_KEY — set as an encrypted Pages secret in the dashboard.
+# Optional:
+#   ANTHROPIC_MODEL   — defaults to claude-sonnet-4-6.
+
+name = "cpacc-test-maker"
+compatibility_date = "2024-10-01"
+pages_build_output_dir = "."

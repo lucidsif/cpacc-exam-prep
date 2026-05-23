@@ -39,7 +39,8 @@ window.addEventListener('data-ready', () => {
   const state = {
     mode: 'weighted',  // "weighted" | "missed" | "bear"
     questions: [],     // sampled questions for this test
-    answers: {},       // id -> "A" | "B" | "C" | "D"
+    answers: {},       // id -> "A" | "B" | "C" | "D"  (committed answers)
+    pending: {},       // id -> "A" | "B" | "C" | "D"  (picked but not yet submitted)
     revealed: {},      // id -> true once the user has seen the answer
     index: 0,
     submitted: false,
@@ -103,7 +104,10 @@ window.addEventListener('data-ready', () => {
   }
   function loadMissed() { return _missed; }            // synchronous read of cached set
   async function updateMissedAfterTest() {
+    // Only update missed-set for questions the user actually submitted an
+    // answer for. Unanswered questions stay in whatever state they were in.
     for (const q of state.questions) {
+      if (!state.revealed[q.id]) continue;
       const a = state.answers[q.id];
       if (a === q.answer) _missed.delete(q.id);
       else _missed.add(q.id);
@@ -362,6 +366,7 @@ window.addEventListener('data-ready', () => {
       : state.mode === 'bear' ? sampleQuestions(window.BEAR_BANK || [])
       : sampleQuestions();
     state.answers = {};
+    state.pending = {};
     state.revealed = {};
     state.index = 0;
     state.submitted = false;
@@ -478,72 +483,127 @@ window.addEventListener('data-ready', () => {
 
   function renderQuestion() {
     const q = state.questions[state.index];
-    const picked = state.answers[q.id];
+    const committed = state.answers[q.id];                 // locked-in answer (after Submit answer)
+    const pending = state.pending[q.id];                   // currently selected radio (pre-submit)
     const revealed = !!state.revealed[q.id];
+    const picked = revealed ? committed : pending;         // what to show as "selected"
+    const allRevealed = state.questions.every(qq => state.revealed[qq.id]);
+    const isLast = state.index === state.questions.length - 1;
+    const showSubmitAll = isLast || allRevealed;
+
     const choicesHtml = ["A","B","C","D"].map(letter => {
       const isSel = picked === letter;
       let cls = isSel ? 'selected' : '';
       if (revealed) {
         if (letter === q.answer) cls = 'correct';
-        else if (letter === picked) cls = 'incorrect';
+        else if (letter === committed) cls = 'incorrect';
         else cls = '';
       }
       return `
         <label class="choice ${cls}">
           <input type="radio" name="choice" value="${letter}" ${isSel ? 'checked' : ''} ${revealed ? 'disabled' : ''} />
           <b>${letter}.</b> ${escapeHtml(q.choices[letter])}
-          ${revealed && (letter === q.answer || letter === picked) ? `<div class="why"><b>${letter === q.answer ? 'Correct' : 'Why not'}:</b> ${escapeHtml(q.why[letter])}</div>` : ''}
+          ${revealed && (letter === q.answer || letter === committed) ? `<div class="why"><b>${letter === q.answer ? 'Correct' : 'Why not'}:</b> ${escapeHtml(q.why[letter])}</div>` : ''}
         </label>`;
     }).join('');
 
     const answered = Object.keys(state.answers).length;
     const verdictHtml = revealed
-      ? (picked === q.answer
+      ? (committed === q.answer
           ? `<div class="why" style="border-left-color:var(--right)"><b style="color:var(--right)">✓ Correct.</b></div>`
           : `<div class="why" style="border-left-color:var(--wrong)"><b style="color:var(--wrong)">✗ Incorrect.</b> Correct answer: <b>${q.answer}</b>.</div>`)
       : '';
+
+    // Submit-answer button state
+    const canSubmitAnswer = !revealed && !!pending;
+    const submitAnswerAttrs = canSubmitAnswer
+      ? `aria-describedby="kbd-hint"`
+      : `disabled aria-describedby="${revealed ? 'kbd-hint' : 'submit-help'}"`;
+    const submitHelpHtml = revealed
+      ? ''
+      : `<span id="submit-help" class="sr-only">Select a choice to enable Submit answer.</span>`;
+
     app.innerHTML = `
       <h1>CPACC Practice Test</h1>
-      <div class="sub">Question ${state.index + 1} of ${state.questions.length} · answered ${answered}/${state.questions.length}</div>
+      <div class="sub" role="status" aria-live="polite">Question ${state.index + 1} of ${state.questions.length} · answered ${answered}/${state.questions.length}</div>
       <div class="panel">
         <div class="qmeta">${domainLabel(q.domain)} · ${q.type}</div>
         <p class="qtext">${escapeHtml(q.q)}</p>
-        <div id="choices" role="radiogroup" aria-label="Answer choices">${choicesHtml}</div>
-        <div aria-live="polite" aria-atomic="true">${verdictHtml}</div>
+        <div id="kbd-hint" class="cite" style="display:block;margin-bottom:8px">Use the ↑ / ↓ arrow keys to move between choices, then press <b>Submit answer</b>.</div>
+        <div id="choices" role="radiogroup" aria-label="Answer choices" aria-describedby="kbd-hint" ${revealed ? 'aria-disabled="true"' : ''}>${choicesHtml}</div>
+        <div id="verdict" tabindex="-1" aria-live="polite" aria-atomic="true">${verdictHtml}</div>
         ${revealed && q.cite ? `<div class="cite">Source: ${escapeHtml(q.cite)}</div>` : ''}
+        ${submitHelpHtml}
         <div class="nav">
           <div>
             <button class="secondary" id="prev" ${state.index === 0 ? 'disabled' : ''}>← Prev</button>
             <button class="secondary" id="next" ${state.index === state.questions.length - 1 ? 'disabled' : ''}>Next →</button>
           </div>
-          <div class="progress">
-            <button id="submit">Submit test</button>
+          <div class="row" style="gap:8px">
+            ${revealed
+              ? ''
+              : `<button id="submit-answer" ${submitAnswerAttrs}>Submit answer</button>`}
+            ${showSubmitAll
+              ? `<button id="submit-all" class="secondary" style="border-color:var(--accent);color:var(--accent);font-weight:700">Submit test and see score</button>`
+              : ''}
           </div>
         </div>
       </div>
       ${renderJumpGrid()}
     `;
 
+    // Radio change → just track pending (no auto-reveal)
     document.querySelectorAll('input[name="choice"]').forEach(el => {
       el.onchange = (e) => {
         if (state.revealed[q.id]) return;
-        state.answers[q.id] = e.target.value;
+        state.pending[q.id] = e.target.value;
+        // Update Submit-answer button enabled state without a full re-render.
+        const btn = document.getElementById('submit-answer');
+        if (btn) {
+          btn.disabled = false;
+          btn.setAttribute('aria-describedby', 'kbd-hint');
+        }
+        // Toggle .selected styling on the choice labels.
+        document.querySelectorAll('#choices .choice').forEach((lbl, i) => {
+          const letter = ["A","B","C","D"][i];
+          lbl.classList.toggle('selected', letter === e.target.value);
+        });
+      };
+    });
+
+    document.getElementById('prev').onclick = () => { if (state.index > 0) { state.index--; render(); } };
+    document.getElementById('next').onclick = () => { if (state.index < state.questions.length - 1) { state.index++; render(); } };
+
+    const submitAnswerBtn = document.getElementById('submit-answer');
+    if (submitAnswerBtn) {
+      submitAnswerBtn.onclick = () => {
+        const choice = state.pending[q.id];
+        if (!choice) return;
+        state.answers[q.id] = choice;
         state.revealed[q.id] = true;
-        if (e.target.value !== q.answer) _missed.add(q.id);
+        if (choice !== q.answer) _missed.add(q.id);
         else _missed.delete(q.id);
         persistMissed();
         render();
+        // After re-render, move focus to the verdict region so the result
+        // is announced and the user sees what they just earned.
+        requestAnimationFrame(() => {
+          const v = document.getElementById('verdict');
+          if (v) v.focus();
+        });
       };
-    });
-    document.getElementById('prev').onclick = () => { if (state.index > 0) { state.index--; render(); } };
-    document.getElementById('next').onclick = () => { if (state.index < state.questions.length - 1) { state.index++; render(); } };
-    document.getElementById('submit').onclick = async () => {
-      const missing = state.questions.length - Object.keys(state.answers).length;
-      if (missing > 0 && !confirm(`${missing} unanswered. Submit anyway?`)) return;
-      state.submitted = true;
-      await updateMissedAfterTest();
-      render();
-    };
+    }
+
+    const submitAllBtn = document.getElementById('submit-all');
+    if (submitAllBtn) {
+      submitAllBtn.onclick = async () => {
+        const unanswered = state.questions.filter(qq => !state.revealed[qq.id]).length;
+        if (unanswered > 0 && !confirm(`${unanswered} question(s) still unanswered. Submit test anyway?`)) return;
+        state.submitted = true;
+        await updateMissedAfterTest();
+        render();
+      };
+    }
   }
 
   function renderJumpGrid() {
@@ -734,6 +794,7 @@ window.addEventListener('data-ready', () => {
         if (mid && !confirm('Leave this test and return home? Your progress will be lost.')) return;
         state.questions = [];
         state.answers = {};
+        state.pending = {};
         state.revealed = {};
         state.index = 0;
         state.submitted = false;

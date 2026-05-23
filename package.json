@@ -1,0 +1,14 @@
+{
+  "name": "cpacc-test-maker",
+  "private": true,
+  "version": "0.1.0",
+  "description": "CPACC Body of Knowledge practice tests, flashcards, and references.",
+  "license": "MIT",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node tests/run.js"
+  },
+  "devDependencies": {
+    "jsdom": "^24.0.0"
+  }
+}

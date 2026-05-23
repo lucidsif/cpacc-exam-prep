@@ -14,3 +14,4 @@ node_modules/
 
 # Backups created when patching external files (e.g., Bear DB)
 *.backup-*
+package-lock.json

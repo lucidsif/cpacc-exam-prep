@@ -6,7 +6,11 @@
   "license": "MIT",
   "scripts": {
     "start": "node server.js",
-    "test": "node tests/run.js"
+    "test": "node tests/run.js",
+    "build": "bash scripts/build-dist.sh",
+    "deploy": "npm test && npm run build && wrangler pages deploy dist --project-name=cpacc-test-maker --commit-dirty=true --branch=main",
+    "deploy:preview": "npm run build && wrangler pages deploy dist --project-name=cpacc-test-maker --commit-dirty=true",
+    "dev:cf": "npm run build && wrangler pages dev dist"
   },
   "devDependencies": {
     "jsdom": "^24.0.0"

@@ -1,6 +1,8 @@
 # CPACC Practice Test
 
-[![CI](https://github.com/USER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/USER/REPO/actions/workflows/ci.yml)
+**Live: [https://cpacc-test-maker.pages.dev](https://cpacc-test-maker.pages.dev)**
+
+[![Live on Cloudflare Pages](https://img.shields.io/badge/live-cpacc--test--maker.pages.dev-orange)](https://cpacc-test-maker.pages.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![WCAG 2.2 AA](https://img.shields.io/badge/WCAG-2.2%20AA-blue.svg)](#accessibility)
 [![Zero deps](https://img.shields.io/badge/runtime-zero%20deps-success)](#zero-runtime-dependencies)
@@ -59,7 +61,9 @@ Without an API key, everything works *except* the chat tutor.
 
 ### Cloudflare Pages (public deploy)
 
-See [`DEPLOY.md`](DEPLOY.md#option-a-cloudflare-pages-recommended-for-public-hosting). Five minutes from a connected GitHub repo to a live site. Chat tutor is off by default; flip it on with one environment variable.
+The author's deploy lives at **https://cpacc-test-maker.pages.dev** (chat currently disabled).
+
+For your own deploy, see [`DEPLOY.md`](DEPLOY.md#option-a-cloudflare-pages-recommended-for-public-hosting). Once set up, `npm run deploy` stages, tests, and ships in one command.
 
 ---
 

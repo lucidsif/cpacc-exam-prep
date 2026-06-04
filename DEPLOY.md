@@ -42,13 +42,45 @@ Chat is **off by default** on Cloudflare. To enable it:
 | Missed-question list | ✅ Per-browser (localStorage) |
 | **Cross-device missed sync** | ❌ Not supported (would need Workers KV — see issue tracker) |
 
+### Deploying from the CLI (recommended)
+
+Once the Pages project exists, deploys are one command:
+
+```bash
+npm install          # one-time: dev deps for tests
+npm run deploy       # runs tests → stages dist/ → wrangler pages deploy
+```
+
+What `npm run deploy` does:
+
+1. Runs the test suite (`node tests/run.js`) — fails fast if anything is broken
+2. Stages a clean `dist/` folder via `scripts/build-dist.sh` — only the files the runtime needs (no `CPACC_BoK.pdf`, no `data.json`, no `tests/`, no `node_modules/`)
+3. Runs `wrangler pages deploy dist`
+
+Related scripts:
+
+- `npm run build` — stage `dist/` without deploying (useful before `wrangler pages dev`)
+- `npm run deploy:preview` — deploy to a preview branch (won't update production)
+- `npm run dev:cf` — local Cloudflare Pages preview at `http://localhost:8788`
+
+### First-time project setup
+
+If the Pages project doesn't exist yet:
+
+```bash
+wrangler login   # browser-based OAuth
+wrangler pages project create cpacc-test-maker --production-branch=main
+npm run deploy
+```
+
+Wrangler prints the deployment URL when it finishes (something like `https://cpacc-test-maker.pages.dev`).
+
 ### Local preview before deploying
 
 ```bash
-npm install
-npx wrangler pages dev --port 8788 .
-# In another terminal:
-ANTHROPIC_API_KEY=sk-ant-... npx wrangler pages dev --port 8788 .
+npm run dev:cf
+# In another terminal, if you want chat to work locally:
+ANTHROPIC_API_KEY=sk-ant-... npm run dev:cf
 ```
 
 Visit `http://localhost:8788`.

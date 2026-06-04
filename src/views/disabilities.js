@@ -44,6 +44,7 @@ export function renderDisabilities(ctx) {
     app.innerHTML = `
         <h1>Human disabilities</h1>
         <div class="sub">${d.items.length} conditions across ${d.categories.length} categories. Tap a category to browse.</div>
+        <p class="scope-note"><span class="scope-icon" aria-hidden="true">ℹ️</span> <span><b>Goes beyond CPACC scope</b> — for deeper study.</span></p>
         ${renderProvenanceBadge(prov, 'the disabilities reference')}
         <div class="cat-grid" role="list">${cards}</div>
       `;

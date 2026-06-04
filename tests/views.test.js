@@ -261,6 +261,42 @@ export async function run({ test, assertTrue, assertEq }) {
     assertTrue(wrap.querySelector('[data-close-ai-info]'), 'dialog needs a close trigger');
   });
 
+  await test('home page shows a "Goes beyond CPACC scope" note on the Human disabilities card', async () => {
+    const dom = makeDom();
+    const { renderHome } = await loadView('src/views/home.js');
+    renderHome({
+      app: dom.window.document.getElementById('app'),
+      state: fakeState,
+      data: { CPACC_BANK: [fakeQuestion], BEAR_BANK: [], BEAR_FLASHCARDS: [], DISABILITIES: { categories: [], items: [] }, LEGAL: { jurisdictions: [], items: [] } },
+      provenance: {},
+      missed: fakeMissed,
+      actions: fakeActions,
+    });
+    // Scope note is rendered inside the Human disabilities panel — find by the trigger button id.
+    const btn = dom.window.document.getElementById('start-disabilities');
+    assertTrue(btn, 'disabilities button missing');
+    const panel = btn.closest('.panel');
+    const note = panel.querySelector('.scope-note');
+    assertTrue(note, 'home Disabilities panel must include a scope-note');
+    assertTrue(note.textContent.toLowerCase().includes('beyond cpacc scope'), 'note must read "beyond CPACC scope"');
+  });
+
+  await test('disabilities reference page repeats the scope note (deep links / back-nav land here)', async () => {
+    const dom = makeDom();
+    const { renderDisabilities } = await loadView('src/views/disabilities.js');
+    renderDisabilities({
+      app: dom.window.document.getElementById('app'),
+      state: { ...fakeState, disabilities: { view: 'categories' } },
+      data: { DISABILITIES: { categories: [{ id: 'visual', label: 'Visual', emoji: '👁️', color: '#fff', summary: 's' }], items: [{ category: 'visual', id: 'x', name: 'X', emoji: 'x', description: 'd' }] } },
+      provenance: {},
+      missed: fakeMissed,
+      actions: fakeActions,
+    });
+    const note = dom.window.document.querySelector('.scope-note');
+    assertTrue(note, 'disabilities reference page must include a scope-note');
+    assertTrue(note.textContent.toLowerCase().includes('beyond cpacc scope'), 'note must read "beyond CPACC scope"');
+  });
+
   await test('decorative emoji in renderHome have aria-hidden="true"', async () => {
     const dom = makeDom();
     const { renderHome } = await loadView('src/views/home.js');

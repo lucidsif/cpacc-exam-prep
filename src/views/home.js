@@ -72,6 +72,7 @@ export function renderHome(ctx) {
       <div class="panel">
         <h2 class="qmeta"><span class="qmeta-emoji" aria-hidden="true">♿</span> Human disabilities reference</h2>
         <div class="qtext">Browse ${(data.DISABILITIES?.items || []).length} disabilities organized into ${(data.DISABILITIES?.categories || []).length} categories — with images, prevalence, key facts, and accessibility solutions.</div>
+        <p class="scope-note"><span class="scope-icon" aria-hidden="true">ℹ️</span> <span><b>Goes beyond CPACC scope</b> — for deeper study.</span></p>
         <div class="row">
           <button id="start-disabilities" ${!data.DISABILITIES ? 'disabled' : ''}>Open disabilities reference</button>
         </div>

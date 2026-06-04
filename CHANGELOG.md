@@ -1,0 +1,97 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html) starting at v0.1.0.
+
+## [Unreleased]
+
+## [0.1.0] — 2026-06-04
+
+First open-source release. The app went from a single 858-line `index.html` to a modular, documented, tested, and deployed codebase.
+
+### Added — content
+
+- 75-item main CPACC question bank (`data/questions.js`) authored from the IAAP CPACC Body of Knowledge (Oct 2023, v4.0)
+- 59-item Bear-notes-derived practice bank (`data/bear-questions.js`)
+- 50 study flashcards distilled from Bear notes (`data/bear-flashcards.js`)
+- Human disabilities reference: 71 conditions across 9 categories (`data/disabilities.js`)
+- History / laws / standards reference: 51 CPACC-relevant items across 7 jurisdictions (`data/legal.js`)
+- Optional Claude-powered chat tutor (per-question + home-page)
+
+### Added — UX
+
+- Per-question explicit submit flow with locked-after-reveal radios
+- "Submit test and see score" button visually distinct from per-question submit; only renders on the last question or after all are revealed
+- Missed-question focused-practice mode (persists per-browser via localStorage; cross-device on local LAN deploy via server-side `data.json`)
+- Home-page "About AI in this app" footer link → modal explainer
+- Jump-grid keyboard navigation with `aria-current` on the active cell
+- Per-section emoji icons on the home page
+- Device-aware keyboard hint above radio groups (drops the kbd sentence on touch devices via `@media (pointer: coarse)`)
+- "Goes beyond CPACC scope — for deeper study" label on the Human disabilities reference
+
+### Added — AI transparency
+
+- IBM-style provenance badges on every AI-touched piece of content
+- Three content buckets: AI-authored from primary source (high), AI-derived from author's notes (medium), AI live response (variable)
+- Confidence pills use paired color + shape glyph + text (WCAG 1.4.1)
+- Native `<details>` disclosure for the per-item provenance card (semantic, zero-JS, mobile-friendly)
+- Native `<dialog>` for the page-level "About AI in this app" explainer with focus return on close
+- Permanent banner above every chat transcript: "AI live response — not pre-reviewed"
+- `*_PROVENANCE` constants exported by every data file in the IBM AI FactSheet shape
+- Comprehensive `AI_TRANSPARENCY.md` long-form companion to the in-app dialog
+
+### Added — accessibility
+
+- WCAG 2.2 AA conformance across all views
+- Skip link → focusable `<main>`
+- Radio groups use the WAI-ARIA roving-tabindex pattern with a visible hint
+- Single polite `aria-live` verdict region per view (no dueling live regions)
+- Revealed radios use `aria-disabled` instead of native `disabled` so keyboard review still works
+- Decorative emoji wrapped in `<span aria-hidden="true">`
+- `prefers-reduced-motion: reduce` honored for `scrollIntoView`
+- 3px amber focus ring on all focusable elements
+- Border color hits ≥3:1 contrast (`--border: #708098`)
+- `ACCESSIBILITY.md` statement listing the conformance target, audit history, known limitations, and reporting flow
+
+### Added — architecture
+
+- Modular ES-module codebase under `src/` and `data/` (replaced a 700-line inline IIFE)
+- Single mutable state factory in `src/state.js`
+- Render dispatcher in `src/main.js`; views never mutate state directly
+- IBM-style provenance UI module in `src/provenance.js`
+- Storage module with server probe + localStorage fallback
+- Chat module with fetch wrappers for both `/chat` and `/chat-general`
+
+### Added — deploy
+
+- Cloudflare Pages support via `functions/chat.js`, `functions/chat-general.js`, `functions/chat-status.js`
+- `wrangler.toml` for `wrangler pages dev` local preview
+- `scripts/build-dist.sh` stages a clean `dist/` (excludes `CPACC_BoK.pdf`, `data.json`, `tests/`, `node_modules/`)
+- `npm run deploy` runs tests → builds → ships in one command
+- Live at https://cpacc-test-maker.pages.dev (chat disabled by default — env-var-gated)
+
+### Added — tests
+
+- 56 tests covering: data-file structure + uniqueness + provenance shape; sampling logic with injected RNG; scoring math; missed-set persistence (mocked fetch + localStorage polyfill); jsdom DOM tests asserting accessibility contracts of every view
+- `tests/run.js` discovers and runs every `*.test.js`
+- GitHub Actions CI runs the suite on every push and PR
+
+### Added — docs
+
+- `README.md` multi-audience entrypoint
+- `ARCHITECTURE.md` with four Mermaid diagrams (paired with plain-text descriptions)
+- `AI_TRANSPARENCY.md` long-form provenance doc
+- `DEPLOY.md` Cloudflare Pages + local Node guides
+- `CONTRIBUTING.md` PR checklist
+- `ACCESSIBILITY.md` accessibility statement
+- `SECURITY.md` responsible disclosure policy
+- `SUPPORT.md` getting-help routing
+- `CODE_OF_CONDUCT.md` Contributor Covenant 2.1
+- `LICENSE` MIT
+- Per-directory READMEs in `data/`, `src/`, `tests/`, `functions/`
+- Issue templates: bug, accessibility, wrong-answer
+- Pull request template
+
+[Unreleased]: https://github.com/USER/REPO/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/USER/REPO/releases/tag/v0.1.0

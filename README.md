@@ -27,10 +27,12 @@ A study tool for the **IAAP Certified Professional in Accessibility Core Compete
 | If you are | Start here |
 |---|---|
 | **Studying for CPACC yourself** | [Run it locally](#run-it-locally), then read [How sampling works](#how-sampling-works) |
-| **An a11y professional curious about the AI claims** | Read [`AI_TRANSPARENCY.md`](AI_TRANSPARENCY.md) first — every content bucket, source, review status, and limitation is documented |
-| **An a11y engineer who wants to audit / contribute** | Skim [`ARCHITECTURE.md`](ARCHITECTURE.md), then [`CONTRIBUTING.md`](CONTRIBUTING.md) |
+| **An a11y professional curious about the AI claims** | Read [`AI_TRANSPARENCY.md`](AI_TRANSPARENCY.md) first — every content bucket, source, review status, and limitation is documented. Then [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for the conformance statement. |
+| **An a11y engineer who wants to audit / contribute** | Skim [`ARCHITECTURE.md`](ARCHITECTURE.md), then [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`src/README.md`](src/README.md) |
 | **Deploying your own copy** | [`DEPLOY.md`](DEPLOY.md) — Cloudflare Pages (recommended) or local Node |
 | **AI-curious, not an a11y specialist** | Read the [AI section](#how-ai-is-used) below, then poke around |
+| **Reporting a security issue** | [`SECURITY.md`](SECURITY.md) |
+| **Asking a support question** | [`SUPPORT.md`](SUPPORT.md) |
 
 ---
 

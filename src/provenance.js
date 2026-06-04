@@ -148,7 +148,7 @@ export function renderAiInfoDialog() {
           <dd>Live AI response; quality varies per query.</dd>
         </dl>
 
-        <p><a href="https://github.com/USER/REPO/blob/main/AI_TRANSPARENCY.md">Read the full AI transparency document on GitHub →</a></p>
+        <p>The full <b>AI_TRANSPARENCY.md</b> document in the project repository covers the three content buckets, per-item provenance shape, confidence pill semantics, and how to file a correction.</p>
 
         <div class="nav" style="justify-content:flex-end">
           <button type="button" data-close-ai-info>Close</button>

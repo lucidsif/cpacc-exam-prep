@@ -55,7 +55,7 @@ export function renderResults(ctx) {
           ${q.flag ? `<div class="flag"><b>⚑ Confidence note:</b> ${escapeHtml(q.flag)}</div>` : ''}
           ${state.chatEnabled ? `
           <div class="row" style="margin-top:10px">
-            <button type="button" class="toggle linkish" data-toggle="${q.id}" aria-expanded="${!!chatOpen}"><span aria-hidden="true">${chatOpen ? '▾' : '▸'}</span> ${chatOpen ? 'Hide chat' : 'Discuss this question with Claude'}</button>
+            <button type="button" class="toggle linkish" data-toggle="${q.id}" aria-expanded="${!!chatOpen}"><span aria-hidden="true">${chatOpen ? '▾' : '▸'}</span> ${chatOpen ? 'Hide chat' : 'Discuss this question with the AI tutor'}</button>
           </div>
           ${chatOpen ? renderChatFragment(q, state.chats[q.id]) : ''}` : ''}
         </div>`;

@@ -43,11 +43,26 @@ export function run({ test, assertTrue, assertEq }) {
     assertEq(cfg.provider, 'local');
   });
 
-  test('local defaults to the LM Studio endpoint and a 7B instruct model', () => {
+  test('local defaults to the LM Studio endpoint', () => {
     const cfg = resolveConfig({ LLM_PROVIDER: 'local' });
     assertEq(cfg.baseUrl, 'http://127.0.0.1:1234/v1');
-    assertEq(cfg.model, 'qwen2.5-7b-instruct');
     assertEq(cfg.configured, true);
+  });
+
+  test('local gets a larger token budget than the cloud providers', () => {
+    // Reasoning models spend budget thinking before emitting anything visible;
+    // a cloud-sized 1024 budget truncates them into an empty reply.
+    const local = resolveConfig({ LLM_PROVIDER: 'local' });
+    const cloud = resolveConfig({ ANTHROPIC_API_KEY: 'k' });
+    assertEq(cloud.maxTokens, 1024);
+    assertTrue(local.maxTokens > cloud.maxTokens, 'local budget should exceed cloud');
+  });
+
+  test('LLM_MAX_TOKENS overrides the per-provider budget', () => {
+    assertEq(resolveConfig({ LLM_PROVIDER: 'local', LLM_MAX_TOKENS: '4096' }).maxTokens, 4096);
+    // Garbage values fall back to the default rather than sending max_tokens: NaN.
+    assertEq(resolveConfig({ LLM_PROVIDER: 'local', LLM_MAX_TOKENS: 'lots' }).maxTokens, 3000);
+    assertEq(resolveConfig({ LLM_PROVIDER: 'local', LLM_MAX_TOKENS: '0' }).maxTokens, 3000);
   });
 
   test('generic LLM_* vars take precedence over vendor-specific ones', () => {

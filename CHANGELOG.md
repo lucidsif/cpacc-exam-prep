@@ -11,7 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `functions/_lib/llm.js` — one helper, three interchangeable backends (`anthropic`, `openai`, `local`), selected with `LLM_PROVIDER`
 - `LLM_API_KEY`, `LLM_MODEL`, `LLM_BASE_URL` env vars. Provider is auto-detected when `LLM_PROVIDER` is unset (`LLM_BASE_URL` → `local`, else `ANTHROPIC_API_KEY` → `anthropic`, else `OPENAI_API_KEY` → `openai`)
 - `local` support for any OpenAI-compatible server you run yourself (LM Studio, Ollama, llama.cpp, vLLM); no API key required, 120s timeout for cold model loads
-- `tests/llm.test.js` — 16 tests covering provider resolution, per-provider wire format, and reply extraction
+- `LLM_MAX_TOKENS` env var — overrides the per-provider answer budget. Non-numeric or `<= 0` values fall back to the provider default (1024 for `anthropic` and `openai`, 3000 for `local`)
+- `tests/llm.test.js` — 18 tests covering provider resolution, the per-provider token budgets and their `LLM_MAX_TOKENS` override, per-provider wire format, and reply extraction
 
 ### Changed
 
@@ -19,6 +20,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Breaking (API):** `GET /chat-status` now returns `{ enabled, provider, model }` instead of `{ enabled }`. `provider` and `model` are `null` when nothing is configured
 - `server.js` loads the shared helper via a cached dynamic `import()` instead of keeping its own inline Anthropic call, so the local Node server and the Cloudflare Pages Functions run one provider implementation
 - `<think>…</think>` scratchpads from local reasoning models are stripped from the reply
+- Default `local` model is now `qwen/qwen3.6-35b-a3b` (was `qwen2.5-7b-instruct`). The 7B model was confidently wrong in testing — it gave the four WCAG principles as "Perceivable, Understandable, Robust, and Semantically Correct", inventing one and dropping Operable. The larger model answers correctly
+- `local` now gets a 3000-token answer budget instead of the cloud-sized 1024. Reasoning-capable models spend the budget on hidden thinking before any visible text (~1,300 reasoning tokens for a simple question), so 1024 truncated them into an empty reply
+- An empty reply that also reports truncation (`finish_reason: "length"`, or `stop_reason: "max_tokens"` on Anthropic) now returns an error naming the token limit that was hit and suggesting `LLM_MAX_TOKENS` or a non-reasoning model, instead of the generic "returned an empty reply". Still HTTP 502
 - Docs updated throughout for provider-neutral setup. `AI_TRANSPARENCY.md` now documents where chat messages go per provider, including that `local` keeps them off any third-party vendor
 
 ### Removed

@@ -29,6 +29,7 @@ Chat is **off by default** on Cloudflare. To enable it:
    | `LLM_API_KEY` | your provider key (`sk-ant-…` / `sk-…`) | **Encrypted** |
    | `LLM_MODEL` *(optional)* | e.g. `claude-sonnet-4-6`, `gpt-4o-mini` | Plain text |
    | `LLM_BASE_URL` *(optional)* | endpoint override; must be reachable from the public internet | Plain text |
+   | `LLM_MAX_TOKENS` *(optional)* | answer-budget override; defaults to 1024 for the cloud providers | Plain text |
 
 2. Set them for the **Production** environment (and Preview if you want PR previews to have chat).
 3. Trigger a redeploy. Chat will appear in the UI when the `/chat-status` function reports `enabled: true`.
@@ -116,7 +117,8 @@ export LLM_MODEL=gpt-4o-mini            # optional
 # Local model (no key needed)
 export LLM_PROVIDER=local
 export LLM_BASE_URL=http://127.0.0.1:1234/v1
-export LLM_MODEL=qwen2.5-7b-instruct    # optional
+export LLM_MODEL=qwen/qwen3.6-35b-a3b   # optional
+export LLM_MAX_TOKENS=3000              # optional (this is the local default)
 
 # 2. Start the server
 node server.js
@@ -147,9 +149,20 @@ Open the LAN URL on your phone. Both devices read and write the same `data.json`
 ```bash
 export LLM_PROVIDER=local
 export LLM_BASE_URL=http://127.0.0.1:1234/v1   # default
-export LLM_MODEL=qwen2.5-7b-instruct           # default
+export LLM_MODEL=qwen/qwen3.6-35b-a3b          # default
+export LLM_MAX_TOKENS=3000                     # default for local
 node server.js
 ```
+
+### The reasoning-model token budget (read this before you debug an empty reply)
+
+Reasoning/thinking-capable local models spend their token budget on hidden reasoning *before* they emit a single visible character. Measured against the default `qwen/qwen3.6-35b-a3b`, a simple question burned roughly 1,300 reasoning tokens on its own. Hand that model a cloud-sized 1024-token budget and it gets truncated mid-thought and returns an empty reply — the request looks successful right up until there's nothing to render.
+
+That's why `local` defaults to 3000 tokens while `anthropic` and `openai` default to 1024. If a bigger or chattier reasoning model still comes back empty, raise `LLM_MAX_TOKENS` (it overrides the per-provider budget; non-numeric or `<= 0` values fall back to the default) or switch to a non-reasoning model. The 502 error text names the limit that was hit, so you don't have to guess.
+
+### Pick a model that's actually right
+
+Small models are confidently wrong, which is worse than slow. `qwen2.5-7b-instruct` — the previous default — listed the four WCAG principles as "Perceivable, Understandable, Robust, and Semantically Correct": it invented one and dropped Operable. The larger default answers correctly. For a study tool, accuracy beats latency.
 
 Notes:
 

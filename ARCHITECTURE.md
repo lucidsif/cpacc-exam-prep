@@ -215,8 +215,9 @@ Both sides call the *same* provider implementation: `functions/_lib/llm.js`. The
 | `LLM_API_KEY` | Credential. Required for `anthropic` and `openai`, not for `local`. Falls back to `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` |
 | `LLM_MODEL` | Model id. Falls back to `ANTHROPIC_MODEL` / `OPENAI_MODEL`, then a per-provider default |
 | `LLM_BASE_URL` | Endpoint override. Any OpenAI-compatible server |
+| `LLM_MAX_TOKENS` | Answer-budget override. Non-numeric or `<= 0` falls back to the per-provider default |
 
-Defaults: `anthropic` → `https://api.anthropic.com` + `claude-sonnet-4-6`; `openai` → `https://api.openai.com/v1` + `gpt-4o-mini`; `local` → `http://127.0.0.1:1234/v1` + `qwen2.5-7b-instruct`. Timeouts are 120s for `local` (cold model load) and 60s for cloud providers.
+Defaults: `anthropic` → `https://api.anthropic.com` + `claude-sonnet-4-6` + 1024 tokens; `openai` → `https://api.openai.com/v1` + `gpt-4o-mini` + 1024 tokens; `local` → `http://127.0.0.1:1234/v1` + `qwen/qwen3.6-35b-a3b` + 3000 tokens. `local` gets the larger budget because reasoning-capable models spend most of it on hidden thinking before emitting any visible text (~1,300 reasoning tokens for a simple question against the default model), and a cloud-sized 1024 truncates them into an empty reply. Timeouts are 120s for `local` (cold model load) and 60s for cloud providers.
 
 `local` is the OpenAI wire format pointed at a server you run yourself (LM Studio, Ollama, llama.cpp, vLLM), with the key optional. It works under `node server.js` or a local `wrangler pages dev` **only** — deployed Pages Functions run on Cloudflare's edge network and cannot reach `localhost`, a LAN address, or a Tailscale `100.x` address.
 

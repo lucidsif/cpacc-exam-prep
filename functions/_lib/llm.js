@@ -20,10 +20,17 @@
 
 export const PROVIDERS = ['anthropic', 'openai', 'local'];
 
+// Per-provider endpoint, model, and answer budget.
+//
+// `maxTokens` differs on purpose. Reasoning-capable local models spend their
+// budget thinking before they emit a single visible character — a 4-billion-
+// parameter-class question measured at ~1,300 reasoning tokens here — so a
+// 1024 budget silently truncates them into an empty reply. Cloud defaults stay
+// at 1024 because the tutor answers are meant to be short.
 const DEFAULTS = {
-  anthropic: { baseUrl: 'https://api.anthropic.com', model: 'claude-sonnet-4-6' },
-  openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini' },
-  local: { baseUrl: 'http://127.0.0.1:1234/v1', model: 'qwen2.5-7b-instruct' },
+  anthropic: { baseUrl: 'https://api.anthropic.com', model: 'claude-sonnet-4-6', maxTokens: 1024 },
+  openai: { baseUrl: 'https://api.openai.com/v1', model: 'gpt-4o-mini', maxTokens: 1024 },
+  local: { baseUrl: 'http://127.0.0.1:1234/v1', model: 'qwen/qwen3.6-35b-a3b', maxTokens: 3000 },
 };
 
 // Cloud providers need a credential to be usable; a local server does not.
@@ -71,12 +78,13 @@ export function resolveConfig(env = {}) {
     || (provider === 'openai' ? env.OPENAI_MODEL : '')
     || d.model;
   const baseUrl = String(env.LLM_BASE_URL || d.baseUrl).replace(/\/+$/, '');
+  const maxTokens = Number(env.LLM_MAX_TOKENS) > 0 ? Number(env.LLM_MAX_TOKENS) : d.maxTokens;
 
   if (NEEDS_KEY[provider] && !apiKey) {
-    return { provider, model, baseUrl, apiKey: '', configured: false,
+    return { provider, model, baseUrl, apiKey: '', maxTokens, configured: false,
       error: `LLM_API_KEY is required for provider "${provider}".` };
   }
-  return { provider, model, baseUrl, apiKey, configured: true };
+  return { provider, model, baseUrl, apiKey, maxTokens, configured: true };
 }
 
 /** Local reasoning models emit a visible scratchpad; it is not part of the answer. */
@@ -123,11 +131,11 @@ export function extractReply(provider, data) {
  * Send one chat turn to the configured provider.
  * @returns {Promise<{ok:true, reply:string, provider:string, model:string}|{ok:false, status:number, error:string}>}
  */
-export async function chat({ system, messages, maxTokens = 1024 }, env) {
+export async function chat({ system, messages, maxTokens }, env) {
   const cfg = resolveConfig(env);
   if (!cfg.configured) return { ok: false, status: 503, error: cfg.error };
 
-  const req = buildRequest(cfg, { system, messages, maxTokens });
+  const req = buildRequest(cfg, { system, messages, maxTokens: maxTokens || cfg.maxTokens });
 
   let res;
   try {
@@ -155,7 +163,15 @@ export async function chat({ system, messages, maxTokens = 1024 }, env) {
   }
 
   const reply = extractReply(cfg.provider, data);
-  if (!reply) return { ok: false, status: 502, error: `${cfg.provider} returned an empty reply.` };
+  if (!reply) {
+    // A reasoning model that spends its whole budget thinking returns nothing
+    // visible. That is a budget problem, not an outage — say so.
+    const truncated = data?.choices?.[0]?.finish_reason === 'length'
+      || data?.stop_reason === 'max_tokens';
+    return { ok: false, status: 502, error: truncated
+      ? `${cfg.provider} hit its ${req.body.max_tokens}-token limit before answering (a reasoning model may be thinking too long). Raise LLM_MAX_TOKENS or use a non-reasoning model.`
+      : `${cfg.provider} returned an empty reply.` };
+  }
 
   return { ok: true, reply, provider: cfg.provider, model: cfg.model };
 }

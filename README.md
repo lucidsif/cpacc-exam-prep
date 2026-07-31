@@ -56,12 +56,12 @@ export LLM_API_KEY=sk-...
 # A local OpenAI-compatible server (LM Studio, Ollama, llama.cpp, vLLM) — no key needed
 export LLM_PROVIDER=local
 export LLM_BASE_URL=http://127.0.0.1:1234/v1
-export LLM_MODEL=qwen2.5-7b-instruct
+export LLM_MODEL=qwen/qwen3.6-35b-a3b
 
 node server.js
 ```
 
-`LLM_MODEL` is optional everywhere; each provider has a default (`claude-sonnet-4-6`, `gpt-4o-mini`, `qwen2.5-7b-instruct`). Existing `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` setups keep working without changes.
+`LLM_MODEL` is optional everywhere; each provider has a default (`claude-sonnet-4-6`, `gpt-4o-mini`, `qwen/qwen3.6-35b-a3b`). `LLM_MAX_TOKENS` is optional too — it overrides the per-provider answer budget (1024 for the cloud providers, 3000 for `local`, which needs room for a reasoning model's hidden thinking tokens). Existing `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` setups keep working without changes.
 
 The server prints both URLs on startup:
 
@@ -113,7 +113,7 @@ Click any badge in the app to see the full provenance card (source, model, gener
 | Bear-notes flashcards | 50 dense study cards distilled from notes |
 | Human disabilities reference | 71 conditions × 9 categories, prevalence + accessibility solutions |
 | History / laws / standards | 51 CPACC-relevant items × 7 jurisdictions, plus a timeline view |
-| Per-question chat tutor | Click "Discuss this question with Claude" — gets question + BoK rationale as context |
+| Per-question chat tutor | Click "Discuss this question with the AI tutor" — gets question + BoK rationale as context |
 | Home-page chat tutor | Free-form CPACC chat |
 | Accessibility | WCAG 2.2 AA conformant; see [Accessibility](#accessibility) |
 

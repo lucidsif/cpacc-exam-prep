@@ -38,6 +38,7 @@ Out of scope:
 
 ## Known limitations
 
-- The local `node server.js` deploy has **no authentication**. Running it on a network you don't trust will expose the missed-question state and the chat tutor (if `ANTHROPIC_API_KEY` is set) to anyone on the LAN. Documented in `DEPLOY.md` under the security note.
-- The Cloudflare deploy is public by default. If chat is enabled, anyone visiting the public URL can use it, billed to the operator's Anthropic account. There is no rate limiting in the bundled Function — add Cloudflare WAF rules or a middleware Function if you self-host.
-- Chat input is sent to the Anthropic API per [their privacy policy](https://www.anthropic.com/legal/privacy). Don't paste secrets.
+- The local `node server.js` deploy has **no authentication**. Running it on a network you don't trust will expose the missed-question state and the chat tutor (if a provider is configured via `LLM_PROVIDER` / `LLM_API_KEY`) to anyone on the LAN. Documented in `DEPLOY.md` under the security note.
+- The Cloudflare deploy is public by default. If chat is enabled, anyone visiting the public URL can use it, billed to the operator's configured provider account. There is no rate limiting in the bundled Function — add Cloudflare WAF rules or a middleware Function if you self-host.
+- Chat input is sent to whichever provider is configured. With `anthropic` it goes to Anthropic ([privacy policy](https://www.anthropic.com/legal/privacy)); with `openai` it goes to OpenAI ([privacy policy](https://openai.com/policies/privacy-policy/)); with `local` it stays on the machine or network running your model server. Don't paste secrets.
+- The provider credential is read server-side only (`LLM_API_KEY`, or the legacy `ANTHROPIC_API_KEY` / `OPENAI_API_KEY`) and is never sent to the browser. `/chat-status` reports only `{ enabled, provider, model }`.

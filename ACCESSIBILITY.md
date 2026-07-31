@@ -63,7 +63,7 @@ This statement applies to:
 It does **not** cover:
 
 - The IAAP CPACC Body of Knowledge PDF itself (third-party content)
-- Anthropic's chat responses (live AI output, by definition unreviewed)
+- Chat tutor responses from the configured LLM provider (live AI output, by definition unreviewed)
 
 ## Last reviewed
 

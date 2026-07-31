@@ -45,18 +45,23 @@ test-maker/
     ├── sampling.test.js    # Unit tests for the sampling module
     ├── scoring.test.js     # Unit tests for scoring
     ├── storage.test.js     # Unit tests for missed-set persistence (mocked fetch)
+    ├── llm.test.js         # Unit tests for provider resolution + per-provider wire format
     └── views.test.js       # jsdom DOM tests asserting view accessibility contracts
 ```
 
 ## Running locally
 
 ```bash
-# 1. (Optional) For the chat tutor:
-export ANTHROPIC_API_KEY=sk-ant-...
+# 1. (Optional) For the chat tutor, pick one provider:
+export LLM_PROVIDER=anthropic && export LLM_API_KEY=sk-ant-...
+export LLM_PROVIDER=openai    && export LLM_API_KEY=sk-...
+export LLM_PROVIDER=local     && export LLM_BASE_URL=http://127.0.0.1:1234/v1   # no key needed
 
 # 2. Start the server:
 node server.js
 ```
+
+`LLM_MODEL` is optional; each provider has a default. `local` is any OpenAI-compatible server you run yourself (LM Studio, Ollama, llama.cpp, vLLM) and works only under `node server.js` or a local `wrangler pages dev` — never on the deployed Cloudflare site, whose Functions run on the edge and cannot reach your network. Full matrix in [`DEPLOY.md`](DEPLOY.md).
 
 The server prints both the local and LAN URLs on startup. Open the LAN URL on your phone to test cross-device.
 
@@ -78,7 +83,7 @@ node tests/run.js
 npm test
 ```
 
-Expect to see "49/49 passed" (or whatever the current count is). Every PR must keep tests green.
+Expect to see "72/72 passed" (or whatever the current count is). Every PR must keep tests green.
 
 ## Adding a new practice question
 

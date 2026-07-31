@@ -6,6 +6,31 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added — provider-agnostic chat tutor (2026-07-30)
+
+- `functions/_lib/llm.js` — one helper, three interchangeable backends (`anthropic`, `openai`, `local`), selected with `LLM_PROVIDER`
+- `LLM_API_KEY`, `LLM_MODEL`, `LLM_BASE_URL` env vars. Provider is auto-detected when `LLM_PROVIDER` is unset (`LLM_BASE_URL` → `local`, else `ANTHROPIC_API_KEY` → `anthropic`, else `OPENAI_API_KEY` → `openai`)
+- `local` support for any OpenAI-compatible server you run yourself (LM Studio, Ollama, llama.cpp, vLLM); no API key required, 120s timeout for cold model loads
+- `tests/llm.test.js` — 16 tests covering provider resolution, per-provider wire format, and reply extraction
+
+### Changed
+
+- **Breaking (API):** `/chat` and `/chat-general` now return a normalised `{ reply, provider, model }` for every provider instead of the raw Anthropic envelope. Errors return `{ error }` with a real status code (503 not configured, 502 unreachable or empty, upstream status on upstream error)
+- **Breaking (API):** `GET /chat-status` now returns `{ enabled, provider, model }` instead of `{ enabled }`. `provider` and `model` are `null` when nothing is configured
+- `server.js` loads the shared helper via a cached dynamic `import()` instead of keeping its own inline Anthropic call, so the local Node server and the Cloudflare Pages Functions run one provider implementation
+- `<think>…</think>` scratchpads from local reasoning models are stripped from the reply
+- Docs updated throughout for provider-neutral setup. `AI_TRANSPARENCY.md` now documents where chat messages go per provider, including that `local` keeps them off any third-party vendor
+
+### Removed
+
+- `functions/_lib/anthropic.js` — replaced by `functions/_lib/llm.js`
+
+### Notes
+
+- Existing `ANTHROPIC_API_KEY` / `ANTHROPIC_MODEL` (and `OPENAI_API_KEY` / `OPENAI_MODEL`) setups keep working unchanged as fallbacks
+- `LLM_PROVIDER=local` is not usable on the deployed Cloudflare site: Pages Functions run on Cloudflare's edge network and cannot reach `localhost`, a LAN address, or a Tailscale `100.x` address. Use it with `node server.js`, or point `LLM_BASE_URL` at a publicly reachable endpoint
+- The bundled question banks, flashcards, and reference data are unchanged and remain authored by Claude Sonnet 4.6, as recorded in each file's `*_PROVENANCE` constant
+
 ## [0.1.0] — 2026-06-04
 
 First open-source release. The app went from a single 858-line `index.html` to a modular, documented, tested, and deployed codebase.

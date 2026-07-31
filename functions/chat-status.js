@@ -1,11 +1,17 @@
 // functions/chat-status.js — Cloudflare Pages Function.
-// GET /chat-status → { enabled: boolean }
+// GET /chat-status → { enabled, provider, model }
 //
-// Reports whether ANTHROPIC_API_KEY is configured in the Pages environment.
-// The client uses this to decide whether to render the chat UI.
+// Reports whether a chat provider is configured in the Pages environment.
+// The client uses this to decide whether to render the chat UI, and to label
+// which backend is answering.
+
+import { resolveConfig, jsonResponse } from './_lib/llm.js';
 
 export async function onRequestGet({ env }) {
-  return new Response(JSON.stringify({ enabled: !!env.ANTHROPIC_API_KEY }), {
-    headers: { 'content-type': 'application/json; charset=utf-8' },
+  const cfg = resolveConfig(env);
+  return jsonResponse({
+    enabled: cfg.configured,
+    provider: cfg.configured ? cfg.provider : null,
+    model: cfg.configured ? cfg.model : null,
   });
 }

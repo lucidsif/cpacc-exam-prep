@@ -1,16 +1,17 @@
-// Minimal local server: serves the static app and proxies /chat to the Anthropic API.
-// Run:  ANTHROPIC_API_KEY=sk-ant-... node server.js
+// Minimal local server: serves the static app and proxies /chat to whichever
+// LLM provider is configured (Anthropic, OpenAI, or a local OpenAI-compatible
+// server such as LM Studio or Ollama). See functions/_lib/llm.js.
+//
+// Run:  LLM_PROVIDER=local LLM_BASE_URL=http://127.0.0.1:1234/v1 node server.js
+//       LLM_PROVIDER=anthropic LLM_API_KEY=... node server.js
 // Then open: http://localhost:8787
 
 const http = require('http');
-const https = require('https');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
 const PORT = process.env.PORT || 8787;
-const API_KEY = process.env.ANTHROPIC_API_KEY;
-const MODEL = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
 const ROOT = __dirname;
 const DATA_FILE = path.join(ROOT, 'data.json');
 
@@ -32,8 +33,13 @@ function lanAddresses() {
   return out;
 }
 
-if (!API_KEY) {
-  console.warn('[warn] ANTHROPIC_API_KEY is not set — /chat will return 500. The test itself still works.');
+// The provider helper is an ES module and this file is CommonJS, so it is
+// pulled in with a cached dynamic import rather than duplicated here — one
+// implementation serves both this server and the Cloudflare Functions.
+let _llm = null;
+async function llm() {
+  if (!_llm) _llm = await import('./functions/_lib/llm.js');
+  return _llm;
 }
 
 const MIME = {
@@ -67,34 +73,28 @@ function readBody(req) {
   });
 }
 
-function callAnthropic(payload) {
-  return new Promise((resolve, reject) => {
-    const body = JSON.stringify(payload);
-    const req = https.request({
-      hostname: 'api.anthropic.com',
-      path: '/v1/messages',
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
-        'content-length': Buffer.byteLength(body)
-      }
-    }, (r) => {
-      const chunks = [];
-      r.on('data', c => chunks.push(c));
-      r.on('end', () => resolve({ status: r.statusCode, body: Buffer.concat(chunks).toString('utf8') }));
-    });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
+/** Run one chat turn and write the normalised { reply, provider, model } result. */
+async function respondChat(res, system, messages) {
+  const { chat } = await llm();
+  const r = await chat({ system, messages }, process.env);
+  if (!r.ok) {
+    res.writeHead(r.status, { 'content-type': 'application/json' });
+    return res.end(JSON.stringify({ error: r.error }));
+  }
+  res.writeHead(200, { 'content-type': 'application/json' });
+  res.end(JSON.stringify({ reply: r.reply, provider: r.provider, model: r.model }));
 }
 
 const server = http.createServer(async (req, res) => {
   if (req.method === 'GET' && req.url === '/chat-status') {
+    const { resolveConfig } = await llm();
+    const cfg = resolveConfig(process.env);
     res.writeHead(200, { 'content-type': 'application/json' });
-    return res.end(JSON.stringify({ enabled: !!API_KEY, model: API_KEY ? MODEL : null }));
+    return res.end(JSON.stringify({
+      enabled: cfg.configured,
+      provider: cfg.configured ? cfg.provider : null,
+      model: cfg.configured ? cfg.model : null,
+    }));
   }
 
   // Shared missed-questions store (server-side). No auth — LAN-only intended.
@@ -124,14 +124,11 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && req.url === '/chat-general') {
-    if (!API_KEY) { res.writeHead(500, {'content-type':'application/json'}); return res.end(JSON.stringify({error:'ANTHROPIC_API_KEY not set on server'})); }
     try {
       const { history = [], userMessage } = await readBody(req);
       const system = "You are a CPACC exam tutor. Be concise (2-4 short paragraphs max). Ground answers in the IAAP CPACC Body of Knowledge (Oct 2023, v4.0) when relevant. Cover disabilities, accessibility/UD, standards, laws, and management as needed.";
       const messages = [...history, { role: 'user', content: userMessage }];
-      const r = await callAnthropic({ model: MODEL, max_tokens: 1024, system, messages });
-      res.writeHead(r.status, { 'content-type': 'application/json' });
-      res.end(r.body);
+      await respondChat(res, system, messages);
     } catch (e) {
       res.writeHead(500, {'content-type':'application/json'});
       res.end(JSON.stringify({ error: String(e) }));
@@ -140,7 +137,6 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === 'POST' && req.url === '/chat') {
-    if (!API_KEY) { res.writeHead(500, {'content-type':'application/json'}); return res.end(JSON.stringify({error:'ANTHROPIC_API_KEY not set on server'})); }
     try {
       const { question, correctLetter, userLetter, choices, why, cite, history = [], userMessage } = await readBody(req);
       const system = [
@@ -165,9 +161,7 @@ const server = http.createServer(async (req, res) => {
         { role: 'user', content: userMessage }
       ];
 
-      const r = await callAnthropic({ model: MODEL, max_tokens: 1024, system, messages });
-      res.writeHead(r.status, { 'content-type': 'application/json' });
-      res.end(r.body);
+      await respondChat(res, system, messages);
     } catch (e) {
       res.writeHead(500, {'content-type':'application/json'});
       res.end(JSON.stringify({ error: String(e) }));
@@ -184,6 +178,11 @@ server.listen(PORT, '0.0.0.0', () => {
   for (const ip of lanAddresses()) {
     console.log(`  LAN:    http://${ip}:${PORT}   (open this on your phone — same Wi-Fi)`);
   }
-  console.log(API_KEY ? `Chat: enabled (model: ${MODEL})` : 'Chat: disabled (set ANTHROPIC_API_KEY to enable)');
-  console.log(`Missed-questions store: ${DATA_FILE}`);
+  llm().then(({ resolveConfig }) => {
+    const cfg = resolveConfig(process.env);
+    console.log(cfg.configured
+      ? `Chat: enabled (provider: ${cfg.provider}, model: ${cfg.model})`
+      : `Chat: disabled — ${cfg.error}`);
+    console.log(`Missed-questions store: ${DATA_FILE}`);
+  });
 });

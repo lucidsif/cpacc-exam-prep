@@ -9,7 +9,7 @@ The browser-side app. Loaded as a single ES module via `<script type="module" sr
 | `main.js` | Entry point. Imports data + provenance, creates state, defines actions, runs the render dispatcher |
 | `state.js` | Factory for the single mutable state bag |
 | `storage.js` | Missed-question persistence (server probe → localStorage fallback) |
-| `chat.js` | `fetch` wrappers for `/chat`, `/chat-general`, `/chat-status` |
+| `chat.js` | `fetch` wrappers for `/chat`, `/chat-general`, `/chat-status`. Vendor-neutral: the server normalises every provider to `{ reply, provider, model }` |
 | `sampling.js` | Pure: `shuffle`, `sampleQuestions`, `sampleMissedQuestions`. RNG injectable for tests |
 | `scoring.js` | Pure: `scoreTest`, `domainLabel` |
 | `provenance.js` | IBM-style AI transparency badge + page-level dialog |
@@ -23,6 +23,10 @@ The browser-side app. Loaded as a single ES module via `<script type="module" sr
 | `views/chat.js` | Per-question chat fragment (shared by question + results views) |
 
 See [`../ARCHITECTURE.md`](../ARCHITECTURE.md) for the data-flow diagram, render-dispatcher decision tree, and chat-lifecycle sequence diagram.
+
+## Nothing here is vendor-specific
+
+`chat.js` reads `data.reply` on success and `data.error` on failure, and treats `/chat-status`'s `enabled` flag as the only gate on rendering the chat UI. Which backend answers (`anthropic`, `openai`, or a `local` model server) is a server-side concern resolved in [`../functions/_lib/llm.js`](../functions/_lib/llm.js). If you add UI that names the model, read it from `/chat-status`'s `provider` / `model` fields rather than hard-coding a vendor.
 
 ## View pattern
 

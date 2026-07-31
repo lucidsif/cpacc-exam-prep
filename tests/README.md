@@ -16,6 +16,7 @@ The runner discovers every `*.test.js` file in this directory and calls its expo
 | `sampling.test.js` | Unit | `shuffle` is non-mutating + deterministic with injected RNG; `sampleQuestions` returns 20 items in the 8/8/4 domain mix; tops up from the rest of the bank when a domain is short; `sampleMissedQuestions` only returns items in the missed set |
 | `scoring.test.js` | Unit | `scoreTest` handles perfect / zero / partial scores; per-domain breakdown math; `domainLabel` strings |
 | `storage.test.js` | Unit | Missed-set store with mocked `fetch` and in-memory `localStorage` polyfill — server success, server failure → local fallback, PUT persistence, offline behavior, clear, and the Cloudflare "no server" path that skips network writes |
+| `llm.test.js` | Unit | `functions/_lib/llm.js`: provider auto-detection, `LLM_*` env vars with `ANTHROPIC_*` / `OPENAI_*` fallbacks, per-provider defaults, missing-credential errors, the two wire formats (`/v1/messages` vs `/chat/completions`), reply extraction, and `<think>` scratchpad stripping |
 | `views.test.js` | DOM smoke (jsdom) | Every view's accessibility contracts |
 
 ## DOM smoke tests in detail

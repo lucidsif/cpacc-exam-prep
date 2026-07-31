@@ -15,7 +15,7 @@ A study tool for the **IAAP Certified Professional in Accessibility Core Compete
 - Missed-question focused review
 - 71-condition human disabilities reference with prevalence + accessibility solutions
 - 51-item history / laws / standards reference
-- Optional Claude-powered chat tutor (per-question and free-form)
+- Optional AI chat tutor (per-question and free-form), backed by Anthropic, OpenAI, or a local model you run yourself
 - **Every AI-touched piece of content carries an [IBM-style provenance badge](AI_TRANSPARENCY.md) with confidence + sources + limitations.**
 
 > Built for myself, opened up because it might help others. The audience is intentionally mixed — solo students, a11y professionals (rightly skeptical of AI), AI folks curious about accessibility, and experienced a11y engineers who'd want to fix things. Each group's needs shaped a different part of the project.
@@ -43,11 +43,25 @@ Two deploy modes (full instructions in [`DEPLOY.md`](DEPLOY.md)):
 ### Quick local
 
 ```bash
-# (Optional) Enable the chat tutor:
-export ANTHROPIC_API_KEY=sk-ant-...
+# (Optional) Enable the chat tutor. Pick one provider:
+
+# Anthropic
+export LLM_PROVIDER=anthropic
+export LLM_API_KEY=sk-ant-...
+
+# OpenAI
+export LLM_PROVIDER=openai
+export LLM_API_KEY=sk-...
+
+# A local OpenAI-compatible server (LM Studio, Ollama, llama.cpp, vLLM) — no key needed
+export LLM_PROVIDER=local
+export LLM_BASE_URL=http://127.0.0.1:1234/v1
+export LLM_MODEL=qwen2.5-7b-instruct
 
 node server.js
 ```
+
+`LLM_MODEL` is optional everywhere; each provider has a default (`claude-sonnet-4-6`, `gpt-4o-mini`, `qwen2.5-7b-instruct`). Existing `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` setups keep working without changes.
 
 The server prints both URLs on startup:
 
@@ -59,7 +73,9 @@ CPACC test app running:
 
 Open `Local:` on your laptop and `LAN:` on your phone — both share the same missed-questions list via a server-side `data.json`.
 
-Without an API key, everything works *except* the chat tutor.
+Without a configured provider, everything works *except* the chat tutor.
+
+`LLM_PROVIDER=local` only works when *you* are running the server (`node server.js`, or `npm run dev:cf` on your own machine). Cloudflare Pages Functions execute on Cloudflare's edge network and cannot reach `localhost`, a LAN address, or a Tailscale `100.x` address. See [`DEPLOY.md`](DEPLOY.md#using-a-local-model).
 
 ### Cloudflare Pages (public deploy)
 
@@ -79,7 +95,7 @@ For your own deploy, see [`DEPLOY.md`](DEPLOY.md#option-a-cloudflare-pages-recom
 |---|---|---|---|
 | 🤖 **AI-authored from BoK** | Claude wrote it directly from a citable primary source; author reviewed against the citation | High | Main practice questions (`data/questions.js`), laws & standards reference |
 | 🤖 **AI-derived from author's notes** | Claude generated it from the author's personal study notes (one step removed from primary sources) | Medium | Bear-notes practice bank, flashcards, disabilities reference |
-| 🤖 **AI live response** | Claude answers your chat message in real time; not pre-reviewed | Variable | Per-question chat tutor, home-page tutor chat |
+| 🤖 **AI live response** | The configured provider answers your chat message in real time; not pre-reviewed | Variable | Per-question chat tutor, home-page tutor chat |
 
 Click any badge in the app to see the full provenance card (source, model, generated date, human review, confidence, limitations). The home-page footer has an **"About AI in this app"** link that opens the page-level explainer.
 
@@ -166,7 +182,7 @@ test-maker/
 │   ├── chat.js                #  POST /chat (per-question)
 │   ├── chat-general.js        #  POST /chat-general (home tutor)
 │   ├── chat-status.js         #  GET /chat-status
-│   ├── _lib/anthropic.js      #  shared Anthropic Messages API helper
+│   ├── _lib/llm.js            #  shared provider-agnostic LLM helper (anthropic | openai | local)
 │   └── _routes.json
 ├── src/
 │   ├── main.js                # Entry: wires data + state + actions + render loop
@@ -196,6 +212,7 @@ test-maker/
 │   ├── sampling.test.js       # Unit tests for sampling logic
 │   ├── scoring.test.js        # Unit tests for scoring
 │   ├── storage.test.js        # Unit tests for missed-set persistence
+│   ├── llm.test.js            # Unit tests for provider resolution + wire formats
 │   └── views.test.js          # jsdom DOM tests for view accessibility contracts
 ├── ARCHITECTURE.md            # How the code fits together
 ├── AI_TRANSPARENCY.md         # Detailed AI provenance and limitations doc
@@ -214,12 +231,12 @@ npm install      # one-time: pulls jsdom for the DOM tests
 npm test         # runs everything
 ```
 
-Expect 54+ passing.
+Expect 72+ passing.
 
 The test suite is intentionally split into layers:
 
 - **Data smoke** (inline) — every dataset is well-formed, IDs unique, provenance present
-- **Unit tests** — `sampling`, `scoring`, `storage` (mocked fetch + localStorage)
+- **Unit tests** — `sampling`, `scoring`, `storage` (mocked fetch + localStorage), `llm` (provider resolution + per-provider wire format)
 - **DOM smoke** — `views` (jsdom) asserts the accessibility contracts of every view
 
 `tests/views.test.js` is the regression guard. If you change a view, every contract there must still hold.

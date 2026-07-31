@@ -7,7 +7,7 @@
 //     userMessage: string,
 //   }
 
-import { proxyAnthropic } from './_lib/anthropic.js';
+import { chatResponse } from './_lib/llm.js';
 
 export async function onRequestPost({ request, env }) {
   let body;
@@ -21,5 +21,5 @@ export async function onRequestPost({ request, env }) {
   const { history = [], userMessage } = body;
   const system = 'You are a CPACC exam tutor. Be concise (2-4 short paragraphs max). Ground answers in the IAAP CPACC Body of Knowledge (Oct 2023, v4.0) when relevant.';
   const messages = [...history, { role: 'user', content: userMessage }];
-  return proxyAnthropic({ system, messages }, env);
+  return chatResponse({ system, messages }, env);
 }

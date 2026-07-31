@@ -8,9 +8,9 @@
 //     userMessage: string,
 //   }
 //
-// Returns the raw Anthropic response (the client unpacks data.content[0].text).
+// Returns the normalised shape { reply, provider, model } regardless of backend.
 
-import { proxyAnthropic } from './_lib/anthropic.js';
+import { chatResponse } from './_lib/llm.js';
 
 export async function onRequestPost({ request, env }) {
   let body;
@@ -35,7 +35,7 @@ export async function onRequestPost({ request, env }) {
 
   const messages = [...history, { role: 'user', content: userMessage }];
 
-  return proxyAnthropic({ system, messages }, env);
+  return chatResponse({ system, messages }, env);
 }
 
 function badJson() {

@@ -139,6 +139,7 @@ Targets **WCAG 2.2 AA**. Notable contracts (enforced by `tests/views.test.js`):
 
 - Semantic HTML before ARIA (`<button>`, real `<input>`, `<h1>`–`<h6>`, `<main>`)
 - Skip link → `<main tabindex="-1">` for keyboard users
+- Browser Back/Forward navigate within the app; every route change moves focus to `<main>` and updates `document.title`
 - One H1 per view, H2 sub-headings, no skipped levels
 - Visible focus indicator on every focusable element (3px amber)
 - Color contrast: text ≥ 4.5:1, UI components ≥ 3:1
@@ -187,6 +188,7 @@ test-maker/
 ├── src/
 │   ├── main.js                # Entry: wires data + state + actions + render loop
 │   ├── state.js               # Single mutable state factory
+│   ├── router.js              # Pure hash-path <-> state mapping (Back/Forward)
 │   ├── storage.js             # Missed-set persistence (server + localStorage fallback)
 │   ├── chat.js                # Fetch wrappers for the chat endpoints
 │   ├── sampling.js            # Pure: shuffle, sampleQuestions, sampleMissedQuestions
@@ -231,12 +233,12 @@ npm install      # one-time: pulls jsdom for the DOM tests
 npm test         # runs everything
 ```
 
-Expect 72+ passing.
+Expect 94+ passing.
 
 The test suite is intentionally split into layers:
 
 - **Data smoke** (inline) — every dataset is well-formed, IDs unique, provenance present
-- **Unit tests** — `sampling`, `scoring`, `storage` (mocked fetch + localStorage), `llm` (provider resolution + per-provider wire format)
+- **Unit tests** — `sampling`, `scoring`, `storage` (mocked fetch + localStorage), `llm` (provider resolution + per-provider wire format), `router` (hash-path ↔ state round-tripping and fallbacks)
 - **DOM smoke** — `views` (jsdom) asserts the accessibility contracts of every view
 
 `tests/views.test.js` is the regression guard. If you change a view, every contract there must still hold.

@@ -16,11 +16,12 @@ These constraints are what keep the project readable for new contributors. Pleas
 ```mermaid
 graph TD
   accTitle: High-level architecture of the CPACC test-maker app
-  accDescr: index.html loads main.js which imports data and provenance, creates state, and runs a render dispatcher. The dispatcher delegates to one of seven view modules. Views read from a shared state object and never mutate it directly — they invoke actions defined in main.js. The chat endpoints are served either by a local Node server or by Cloudflare Pages Functions. Both call the same shared helper, functions/_lib/llm.js, which forwards the request to the configured LLM provider: Anthropic, OpenAI, or a local OpenAI-compatible model server.
+  accDescr: index.html loads main.js which imports data and provenance, creates state, and runs a render dispatcher. The dispatcher delegates to one of seven view modules based on the explicit state.view field, then syncs the URL hash via the router module so browser Back and Forward work. Views read from a shared state object and never mutate it directly — they invoke actions defined in main.js. The chat endpoints are served either by a local Node server or by Cloudflare Pages Functions. Both call the same shared helper, functions/_lib/llm.js, which forwards the request to the configured LLM provider: Anthropic, OpenAI, or a local OpenAI-compatible model server.
 
   H[index.html<br/>page shell: skip link, home button, &lt;main&gt;]
-  M[src/main.js<br/>imports data + provenance<br/>creates state, defines actions<br/>runs render dispatcher]
-  S[src/state.js<br/>single mutable bag]
+  M[src/main.js<br/>imports data + provenance<br/>creates state, defines actions<br/>runs render dispatcher<br/>syncs URL via router]
+  S[src/state.js<br/>single mutable bag<br/>incl. explicit view field]
+  R[src/router.js<br/>pure hash path ⟷ state mapping]
   ST[src/storage.js<br/>missed-set: server probe<br/>+ localStorage fallback]
   P[src/provenance.js<br/>IBM-style AI badge + dialog]
   V[src/views/*<br/>home · question · results<br/>flashcards · disabilities · legal · chat]
@@ -34,6 +35,7 @@ graph TD
 
   H -->|script type=module| M
   M --> S
+  M --> R
   M --> ST
   M --> P
   M --> V
@@ -51,8 +53,9 @@ graph TD
 **Plain-text description (read this if the diagram doesn't render or you're using a screen reader):**
 
 - `index.html` is the page shell — skip link, home button, and a `<main>` element.
-- It loads `src/main.js` as a native ES module. `main.js` is the orchestrator: it imports the data files and their provenance constants, creates the shared mutable state object, defines all action callbacks, and runs the render dispatcher.
-- `src/state.js` exports a factory for the single mutable state bag.
+- It loads `src/main.js` as a native ES module. `main.js` is the orchestrator: it imports the data files and their provenance constants, creates the shared mutable state object, defines all action callbacks, runs the render dispatcher, and syncs the URL hash (via `src/router.js`) after every render.
+- `src/state.js` exports a factory for the single mutable state bag, including the explicit `view` field the dispatcher reads.
+- `src/router.js` is a pure module (no DOM, no history API) mapping between a hash path like `#/test/3` and the state fields needed to restore it. Used by `main.js` for URL sync and popstate handling.
 - `src/storage.js` handles missed-question persistence. It probes the server's `/missed` endpoint once at boot; if that fails (e.g. on Cloudflare Pages, which doesn't host that endpoint), it falls back to per-browser `localStorage` for the rest of the session.
 - `src/provenance.js` renders the IBM-style AI transparency badge and the page-level "About AI in this app" dialog.
 - `src/views/*` are the per-screen render functions (home, question, results, flashcards, disabilities, legal, and the chat fragment shared by question + results). They read from state, render HTML strings, and wire event handlers.
@@ -65,38 +68,44 @@ graph TD
 ```mermaid
 flowchart TD
   accTitle: Render dispatcher decision tree
-  accDescr: render() inspects the state object in this priority order and returns after the first match. legal view, then disabilities, then flashcards, then submitted (results), then empty questions array (home), and finally falls through to the question view. After every state mutation, render() is called again.
+  accDescr: render() switches on the explicit state.view field to one of six views. After rendering, it syncs the URL hash to match state via the router module, unless the render was itself driven by a popstate event, in which case it moves focus to main instead of pushing a new history entry. After every state mutation, render() is called again.
 
-  A[Action mutates state]
+  A[Action mutates state incl. state.view]
   A --> R{{render dispatcher}}
-  R -->|state.legal set| L[renderLegal]
-  R -->|state.disabilities set| D[renderDisabilities]
-  R -->|state.flashcards set| F[renderFlashcards]
-  R -->|state.submitted true| RR[renderResults]
-  R -->|state.questions.length === 0| H[renderHome]
-  R -->|otherwise| Q[renderQuestion]
+  R -->|state.view = legal| L[renderLegal]
+  R -->|state.view = disabilities| D[renderDisabilities]
+  R -->|state.view = flashcards| F[renderFlashcards]
+  R -->|state.view = results| RR[renderResults]
+  R -->|state.view = test| Q[renderQuestion]
+  R -->|state.view = home| H[renderHome]
+  L --> SYNC{{sync URL via router.pathFor}}
+  D --> SYNC
+  F --> SYNC
+  RR --> SYNC
+  Q --> SYNC
+  H --> SYNC
+  SYNC -->|popstate-driven| FOCUS[focus main]
+  SYNC -->|user action, path changed| PUSH[history.pushState]
 ```
 
-**Plain-text description:** every state mutation calls `render()` again. The dispatcher checks state fields in this priority order and returns at the first match:
+**Plain-text description:** every state mutation calls `render()` again. There is no virtual DOM, no reactive framework — every render replaces the entire `<main>` contents. Since 2026-07-31 there IS a router (`src/router.js`), used only for URL sync, not for dispatch. The dispatcher itself switches on the explicit `state.view` field (`'home' | 'test' | 'results' | 'flashcards' | 'disabilities' | 'legal'`), set by whichever action last changed the screen — it is not inferred from data presence. That distinction is load-bearing: inferring the screen from data (e.g. "home = empty `state.questions`") would force "go back to home" to destroy the in-progress test, which would make Forward unable to resume it. With an explicit view, Back to home leaves `state.questions` (and `answers`, `pending`, `revealed`) intact in memory, and Forward restores the `test` view with everything still in place.
 
-1. `state.legal` → `renderLegal`
-2. `state.disabilities` → `renderDisabilities`
-3. `state.flashcards` → `renderFlashcards`
-4. `state.submitted === true` → `renderResults`
-5. `state.questions.length === 0` → `renderHome`
-6. otherwise → `renderQuestion`
-
-There is no router, no virtual DOM, no reactive framework. The pattern in code:
+The pattern in code:
 
 ```js
 function render() {
   // wire the home button (lives outside <main>)
-  if (state.legal)          return renderLegal(ctx);
-  if (state.disabilities)   return renderDisabilities(ctx);
-  if (state.flashcards)     return renderFlashcards(ctx);
-  if (state.submitted)      return renderResults(ctx);
-  if (state.questions.length === 0) return renderHome(ctx);
-  return renderQuestion(ctx);
+  switch (state.view) {
+    case 'legal':        renderLegal(ctx); break;
+    case 'disabilities': renderDisabilities(ctx); break;
+    case 'flashcards':   renderFlashcards(ctx); break;
+    case 'results':      renderResults(ctx); break;
+    case 'test':         renderQuestion(ctx); break;
+    case 'home':
+    default:             renderHome(ctx); break;
+  }
+  document.title = titleFor(state);
+  // sync URL hash to state.view (see "Browser Back/Forward" below)
 }
 ```
 
@@ -106,6 +115,7 @@ A single mutable object created in `src/state.js`. Views never own state; they r
 
 ```js
 {
+  view:           // "home" | "test" | "results" | "flashcards" | "disabilities" | "legal"
   mode:           // "weighted" | "missed" | "bear"
   questions:      // sampled questions for the current test
   answers:        // qid → "A"|"B"|"C"|"D" (committed)
@@ -134,11 +144,49 @@ There is no diffing — every render replaces the entire `<main>` contents. This
 
 When a re-render would lose focus on something the user is interacting with (e.g. the verdict region after Submit answer), the view explicitly captures and restores focus with `requestAnimationFrame(() => el.focus())`.
 
+## Browser Back/Forward
+
+`src/router.js` maps between a URL hash path and the state fields needed to restore that screen. It is pure — no DOM, no `history`/`location` reads — so it's unit-tested directly in `tests/router.test.js` without a browser.
+
+Route table:
+
+```
+#/                          home
+#/test/<n>                  question view, n = 1-based question number
+#/results                   results
+#/flashcards                flashcards
+#/disabilities              category grid
+#/disabilities/<categoryId> category detail list
+#/legal                     jurisdiction grid
+#/legal/<categoryId>        jurisdiction detail list
+```
+
+Two functions:
+
+- `pathFor(state)` — the hash path for the current state.
+- `applyPath(path, state, ids)` — mutates state to match `path`. Returns `true` if restorable, `false` if not. `ids` (`{disabilityCategoryIds, legalCategoryIds}`) is used only to detect an unknown category/jurisdiction id; passed separately because `state` doesn't own the static reference data.
+
+**Scope decisions, deliberate:**
+
+- Question index IS in the path — stepping between questions in a sampled, in-memory test is a genuine navigation axis, and Back/Forward between questions preserves answers because of the `state.view` refactor (see "The render loop" above).
+- Flashcard index is NOT in the path. Advancing a card is a study action on a freshly-shuffled deck, not navigation — putting 60 cards in history would make Back useless for actually leaving the deck.
+- `flipped` state, chat open/closed, and answer selections are NOT in the path.
+
+**Cold-load / unrestorable fallback.** `#/test/3` and `#/results` cannot be reconstructed from a URL alone: the question set is sampled at runtime and the answers live only in memory. On a fresh page load (or a Back into a stale entry after a reload), `applyPath` returns `false` for these and the caller falls back to home via `history.replaceState` — never `pushState` — so the URL never lies about what's on screen. The same applies to `#/disabilities/<id>` / `#/legal/<id>` with an unknown id (falls back to the category/jurisdiction grid) and `#/test/<n>` with `n` out of range (clamps to the nearest valid question instead of failing outright).
+
+**Wiring, in `src/main.js`:**
+
+- After every render, `pathFor(state)` is compared against `location.hash`. Only pushes a new entry if they differ — this is what keeps chat sends, card flips, and radio clicks (re-renders that don't change `state.view`/index/category) from spamming the history stack.
+- A `popstate` listener calls `applyPath(location.hash, state, routeIds)`, falls back via `replaceState` if unrestorable, then re-renders. A module-level flag (`renderingFromPopstate`) tells `render()` this pass came from Back/Forward, so it skips the push and instead moves focus to `<main>` (see Accessibility patterns below).
+- On startup, `location.hash` is parsed once and resolved with `history.replaceState` — never `pushState`, since this establishes the current entry rather than creating a new one.
+- `document.title` is set per view (`titleFor(state)`) on every render, so Back/Forward is distinguishable in browser history and announced by screen readers.
+
 ## Accessibility patterns
 
 The accessibility contracts live in `src/views/*` and `styles/app.css`. Some highlights:
 
 - **Skip link → `<main tabindex="-1">`** so keyboard users skip past the home button.
+- **Focus on popstate.** A Back/Forward-driven render moves focus to `<main id="app" tabindex="-1">` so keyboard and screen-reader users aren't stranded on a node that `innerHTML` just replaced. Renders driven by clicking inside the app keep each view's own focus handling (e.g. the verdict region on submit) and don't additionally move focus to `<main>`.
 - **Radio groups** use the WAI-ARIA roving-tabindex pattern (Tab enters, Arrow keys move within). A visible hint above the group explains the pattern for users who don't know it. The hint adapts via `@media (pointer: coarse)` to drop the keyboard sentence on touch devices.
 - **Verdict announcement** uses a single `<div id="verdict" tabindex="-1" aria-live="polite">` that receives focus on submit. Only one polite live region per view (a11y-lead caught a "dueling live regions" bug in the original monolith).
 - **Revealed radios** use `aria-disabled="true"` not native `disabled` — keyboard users can still navigate to review their choices.
@@ -232,15 +280,15 @@ The runner discovers every `tests/*.test.js` and calls its exported `run({ test,
 | Layer | Files |
 |---|---|
 | Data smoke tests (inline in `run.js`) | every dataset is well-formed, IDs unique, provenance present |
-| Unit tests | `sampling.test.js`, `scoring.test.js`, `storage.test.js`, `llm.test.js` |
-| DOM smoke tests (jsdom) | `views.test.js` — asserts every view's accessibility contracts |
+| Unit tests | `sampling.test.js`, `scoring.test.js`, `storage.test.js`, `llm.test.js`, `router.test.js` |
+| DOM smoke tests (jsdom) | `views.test.js` — asserts every view's accessibility contracts, plus a full-app popstate-focus test |
 
-74+ tests as of writing; every PR should keep this green.
+94+ tests as of writing; every PR should keep this green.
 
 ```mermaid
 graph LR
   accTitle: Test suite layers
-  accDescr: The test runner discovers every *.test.js file in tests/. There are three layers: data smoke tests (inline in run.js) validate data file structure and provenance. Unit tests cover pure logic in sampling, scoring, storage, and the LLM provider helper. DOM smoke tests use jsdom to assert view-level accessibility contracts.
+  accDescr: The test runner discovers every *.test.js file in tests/. There are three layers: data smoke tests (inline in run.js) validate data file structure and provenance. Unit tests cover pure logic in sampling, scoring, storage, the LLM provider helper, and the router. DOM smoke tests use jsdom to assert view-level accessibility contracts, including a full-app test that Back/Forward moves focus to main.
 
   R[tests/run.js<br/>runner]
   DS[Data smoke<br/>inline in run.js]
@@ -255,11 +303,13 @@ graph LR
   U --> Ub[scoring.test.js]
   U --> Uc[storage.test.js]
   U --> Ud[llm.test.js]
+  U --> Ue[router.test.js]
   V --> Va[index.html shell<br/>has skip link, main]
   V --> Vb[Every view has<br/>1 h1, no broken aria-describedby]
   V --> Vc[Question view:<br/>radiogroup, verdict, submit-answer states]
   V --> Vd[Revealed radios use<br/>aria-disabled, not disabled]
   V --> Ve[Provenance badge structure<br/>+ dialog labeling]
+  V --> Vf[Full-app: popstate<br/>moves focus to main]
 ```
 
 **Plain-text description:** the runner has three layers:
@@ -270,7 +320,8 @@ graph LR
   - `scoring.test.js` covers `scoreTest` (perfect/zero/partial/domain breakdown) and `domainLabel`.
   - `storage.test.js` covers the missed-set store with mocked `fetch` and an in-memory `localStorage` polyfill.
   - `llm.test.js` covers `resolveConfig` (provider auto-detection, env-var fallbacks, per-provider defaults, missing-credential errors), the per-provider request shape, reply extraction, and `<think>` stripping.
-- **DOM smoke tests** (`views.test.js`, using jsdom): assert the accessibility contracts of every view — index.html shell has the skip link and focusable main; every view has exactly one h1; the question view's radiogroup, verdict region, submit-answer button states, and aria-describedby targets all resolve; revealed radios use `aria-disabled` not native `disabled`; the provenance badge has the expected structure (labeled summary, dual-encoded confidence pill, semantic `<dl>` card); and the AI-info dialog is properly labelled.
+  - `router.test.js` covers `pathFor`/`applyPath`: every route round-trips, unrestorable paths (cold-load `#/test/n` or `#/results`, no deck for `#/flashcards`) return `false`, unknown category/jurisdiction ids fall back to the grid, out-of-range question numbers clamp, and malformed/empty hashes resolve to home.
+- **DOM smoke tests** (`views.test.js`, using jsdom): assert the accessibility contracts of every view — index.html shell has the skip link and focusable main; every view has exactly one h1; the question view's radiogroup, verdict region, submit-answer button states, and aria-describedby targets all resolve; revealed radios use `aria-disabled` not native `disabled`; the provenance badge has the expected structure (labeled summary, dual-encoded confidence pill, semantic `<dl>` card); the AI-info dialog is properly labelled; and a full-app boot test asserts that clicking through a test pushes `#/test/<n>` entries and that `history.back()` restores the previous question and moves focus to `<main>`.
 
 ## Things that look weird and aren't
 

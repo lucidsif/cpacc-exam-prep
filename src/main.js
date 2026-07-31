@@ -6,10 +6,14 @@
 //   - chat fetch helpers (src/chat.js)
 //   - sampling (src/sampling.js)
 //   - view modules (src/views/*.js)
+//   - router (src/router.js)
 //
-// The render loop is a single dispatcher: it inspects the state shape
-// and delegates to the right view. Views never call each other; they
-// invoke `actions.*` callbacks to mutate state and re-render.
+// The render loop is a single dispatcher: it reads the explicit
+// `state.view` field and delegates to the right view. Views never call
+// each other; they invoke `actions.*` callbacks to mutate state and
+// re-render. After each render, the URL hash is synced to match state so
+// browser Back/Forward works; a popstate-driven render does the reverse
+// (URL → state) and must not push a new history entry.
 
 import { CPACC_BANK, CPACC_BANK_PROVENANCE } from '../data/questions.js';
 import { BEAR_BANK, BEAR_BANK_PROVENANCE } from '../data/bear-questions.js';
@@ -22,6 +26,7 @@ import { createState, resetState } from './state.js';
 import { createMissedStore } from './storage.js';
 import { fetchChatStatus, sendHomeMessage, sendQuestionMessage } from './chat.js';
 import { sampleQuestions, sampleMissedQuestions } from './sampling.js';
+import { pathFor, applyPath } from './router.js';
 
 import { renderHome }         from './views/home.js';
 import { renderQuestion }     from './views/question.js';
@@ -54,6 +59,27 @@ function provenanceForQuestion(q) {
   return _cpaccIds.has(q?.id) ? provenance.CPACC_BANK : provenance.BEAR_BANK;
 }
 
+// Known category/jurisdiction ids, for the router to detect an unknown
+// #/disabilities/<id> or #/legal/<id> and fall back to the grid.
+const routeIds = {
+  disabilityCategoryIds: new Set(DISABILITIES.categories.map(c => c.id)),
+  legalCategoryIds: new Set(LEGAL.jurisdictions.map(j => j.id)),
+};
+
+// Page title per view, so Back/Forward is distinguishable in browser
+// history and announced by screen readers.
+function titleFor(state) {
+  switch (state.view) {
+    case 'test':         return `Question ${state.index + 1} of ${state.questions.length} — CPACC Practice Test`;
+    case 'results':       return 'Results — CPACC Practice Test';
+    case 'flashcards':    return 'Flashcards — CPACC Practice Test';
+    case 'disabilities':  return 'Human disabilities — CPACC Practice Test';
+    case 'legal':         return 'History, laws & standards — CPACC Practice Test';
+    case 'home':
+    default:              return 'CPACC Practice Test';
+  }
+}
+
 // -------- actions --------------------------------------------------------
 
 function startTest(mode) {
@@ -68,6 +94,7 @@ function startTest(mode) {
   state.index = 0;
   state.submitted = false;
   state.chats = {};
+  state.view = 'test';
   render();
 }
 
@@ -75,22 +102,26 @@ function startFlashcards() {
   // Lazy import to avoid a top-level circular concern; shuffle is small.
   import('./sampling.js').then(({ shuffle }) => {
     state.flashcards = { cards: shuffle(BEAR_FLASHCARDS || []), index: 0, flipped: false };
+    state.view = 'flashcards';
     render();
   });
 }
 
 function openDisabilities() {
   state.disabilities = { view: 'categories' };
+  state.view = 'disabilities';
   render();
 }
 
 function openLegal() {
   state.legal = { view: 'categories' };
+  state.view = 'legal';
   render();
 }
 
 async function submitAll() {
   state.submitted = true;
+  state.view = 'results';
   // Only update missed-set for questions the user actually submitted an
   // answer for. Unanswered questions stay in whatever state they were in.
   for (const q of state.questions) {
@@ -140,6 +171,12 @@ async function sendChat(qid) {
 
 // -------- render dispatcher ---------------------------------------------
 
+// Set right before a popstate-driven render so it can skip the history
+// push (the URL already matches state — pushing again would duplicate the
+// entry) and instead move focus to <main> for keyboard/screen-reader users
+// landing on a route they didn't click into.
+let renderingFromPopstate = false;
+
 function render() {
   // (Re-)wire the home button on every render; it lives outside <main>.
   if (homeBtn) {
@@ -156,17 +193,61 @@ function render() {
     submitAll, sendHomeChat, clearHomeChat, sendChat,
   }};
 
-  if (state.legal)              return renderLegal(ctx);
-  if (state.disabilities)       return renderDisabilities(ctx);
-  if (state.flashcards)         return renderFlashcards(ctx);
-  if (state.submitted)          return renderResults(ctx);
-  if (state.questions.length === 0) return renderHome(ctx);
-  return renderQuestion(ctx);
+  switch (state.view) {
+    case 'legal':       renderLegal(ctx); break;
+    case 'disabilities': renderDisabilities(ctx); break;
+    case 'flashcards':  renderFlashcards(ctx); break;
+    case 'results':     renderResults(ctx); break;
+    case 'test':        renderQuestion(ctx); break;
+    case 'home':
+    default:            renderHome(ctx); break;
+  }
+
+  document.title = titleFor(state);
+
+  // Sync the URL to match state. Comparing paths (not pushing
+  // unconditionally) is what keeps chat sends, card flips, and radio
+  // clicks from spamming the history stack — those re-render but don't
+  // change state.view/index/category, so the path is unchanged.
+  const path = pathFor(state);
+  if (renderingFromPopstate) {
+    // URL already matches (it's what drove this render) — move focus to
+    // <main> so keyboard/screen-reader users aren't stranded on a
+    // detached node after the DOM was replaced.
+    if (app) app.focus();
+  } else if (path !== location.hash) {
+    history.pushState(null, '', path);
+  }
 }
+
+// -------- popstate --------------------------------------------------------
+
+window.addEventListener('popstate', () => {
+  const restored = applyPath(location.hash, state, routeIds);
+  if (!restored) {
+    // The URL points at something that no longer exists in memory (a
+    // fresh reload landed mid-test, or on results, etc). Replace rather
+    // than push so the URL never lies about what's on screen and Back
+    // from here doesn't bounce right back to the same dead entry.
+    history.replaceState(null, '', pathFor(state));
+  }
+  renderingFromPopstate = true;
+  render();
+  renderingFromPopstate = false;
+});
 
 // -------- startup --------------------------------------------------------
 
-// Probe chat availability (server may or may not have ANTHROPIC_API_KEY).
+// Resolve whatever hash the page loaded with (deep link, reload, or a
+// stale entry) once at boot. Always replaceState, never push — this is
+// establishing the current entry, not creating a new one. applyPath has
+// already fallen back to home in state if the hash wasn't restorable
+// (nothing is sampled yet on a fresh load, so #/test/n or #/results
+// never restore here — see src/router.js).
+applyPath(location.hash, state, routeIds);
+history.replaceState(null, '', pathFor(state));
+
+// Probe chat availability (server may or may not have an LLM provider configured).
 fetchChatStatus().then(enabled => {
   state.chatEnabled = enabled;
   render();

@@ -87,7 +87,7 @@ export function renderResults(ctx) {
     `;
 
   document.getElementById('retake').onclick = () => actions.startTest(state.mode);
-  document.getElementById('back').onclick = () => { state.questions = []; actions.render(); };
+  document.getElementById('back').onclick = () => { state.questions = []; state.view = 'home'; actions.render(); };
 
   document.querySelectorAll('[data-jump]').forEach(cell => {
     cell.onclick = () => {

@@ -52,7 +52,7 @@ export function renderLegal(ctx) {
         <div class="cat-grid">${cards}</div>
       `;
     document.querySelectorAll('[data-jur]').forEach(el => {
-      el.onclick = () => { state.legal = { view: 'list', category: el.dataset.jur }; actions.render(); };
+      el.onclick = () => { state.legal = { view: 'list', category: el.dataset.jur }; state.view = 'legal'; actions.render(); };
     });
     return;
   }
@@ -97,7 +97,7 @@ export function renderLegal(ctx) {
         <div class="dis-anchor-bar"><div class="anchor-list">${anchors}</div></div>
         ${inline}
       `;
-  document.getElementById('back-jurs').onclick = () => { state.legal = { view: 'categories' }; actions.render(); };
+  document.getElementById('back-jurs').onclick = () => { state.legal = { view: 'categories' }; state.view = 'legal'; actions.render(); };
   document.querySelectorAll('[data-anchor]').forEach(el => {
     el.onclick = () => {
       const target = document.getElementById('dis-' + el.dataset.anchor);

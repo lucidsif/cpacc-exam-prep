@@ -6,6 +6,7 @@
 // (they invoke action callbacks instead).
 //
 // State shape:
+//   view           — current screen ("home" | "test" | "results" | "flashcards" | "disabilities" | "legal")
 //   mode           — active test mode ("weighted" | "missed" | "bear")
 //   questions      — currently sampled questions for this test
 //   answers        — map of qid → committed answer letter
@@ -19,9 +20,15 @@
 //   flashcards     — flashcards session ({cards,index,flipped}) when active
 //   disabilities   — reference view ({view,category}) when active
 //   legal          — reference view ({view,category}) when active
+//
+// `view` is explicit rather than inferred from data presence so that
+// navigating back to home doesn't require destroying `questions` — an
+// in-progress test survives in memory and Forward can resume it
+// (see src/router.js).
 
 export function createState() {
   return {
+    view: 'home',
     mode: 'weighted',
     questions: [],
     answers: {},
@@ -40,6 +47,7 @@ export function createState() {
 
 /** Reset state to the home-page default. */
 export function resetState(state) {
+  state.view = 'home';
   state.questions = [];
   state.answers = {};
   state.pending = {};

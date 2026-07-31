@@ -1,0 +1,169 @@
+// tests/router.test.js — unit tests for src/router.js
+//
+// Verifies:
+//   - every route round-trips: pathFor(applyPath(path)) === path
+//   - unrestorable paths (#/test/n, #/results with nothing in memory) return false
+//   - unknown category/jurisdiction ids fall back to the grid
+//   - out-of-range question numbers clamp instead of failing outright
+//   - malformed/empty hashes resolve to home
+
+import { pathFor, applyPath } from '../src/router.js';
+import { createState } from '../src/state.js';
+
+const routeIds = {
+  disabilityCategoryIds: ['visual', 'auditory'],
+  legalCategoryIds: ['us', 'eu'],
+};
+
+export function run({ test, assertTrue, assertEq }) {
+  test('home round-trips', () => {
+    const state = createState();
+    const ok = applyPath('#/', state);
+    assertTrue(ok, 'home should be restorable');
+    assertEq(state.view, 'home');
+    assertEq(pathFor(state), '#/');
+  });
+
+  test('empty hash resolves to home', () => {
+    const state = createState();
+    const ok = applyPath('', state);
+    assertTrue(ok);
+    assertEq(state.view, 'home');
+  });
+
+  test('malformed hash resolves to home (not restorable)', () => {
+    const state = createState();
+    const ok = applyPath('#/nonsense/garbage', state);
+    assertEq(ok, false);
+    assertEq(state.view, 'home');
+  });
+
+  test('#/test/<n> round-trips when a question set is in memory', () => {
+    const state = createState();
+    state.questions = [{ id: 1 }, { id: 2 }, { id: 3 }];
+    const ok = applyPath('#/test/2', state);
+    assertTrue(ok, 'should restore with a sampled set present');
+    assertEq(state.view, 'test');
+    assertEq(state.index, 1, '1-based path -> 0-based index');
+    assertEq(pathFor(state), '#/test/2');
+  });
+
+  test('#/test/<n> is unrestorable on a cold load (no questions in memory)', () => {
+    const state = createState();
+    const ok = applyPath('#/test/3', state);
+    assertEq(ok, false, 'no sampled set exists yet — cannot honor this path');
+    assertEq(state.view, 'home', 'falls back to home');
+  });
+
+  test('#/test/<n> out of range clamps to the last question', () => {
+    const state = createState();
+    state.questions = [{ id: 1 }, { id: 2 }];
+    const ok = applyPath('#/test/99', state);
+    assertTrue(ok);
+    assertEq(state.index, 1, 'clamped to last valid index');
+  });
+
+  test('#/test/<n> with n < 1 is unrestorable', () => {
+    const state = createState();
+    state.questions = [{ id: 1 }];
+    const ok = applyPath('#/test/0', state);
+    assertEq(ok, false);
+  });
+
+  test('#/test/<n> with a non-numeric n is unrestorable', () => {
+    const state = createState();
+    state.questions = [{ id: 1 }];
+    const ok = applyPath('#/test/abc', state);
+    assertEq(ok, false);
+  });
+
+  test('#/results round-trips when the test was submitted', () => {
+    const state = createState();
+    state.questions = [{ id: 1 }];
+    state.submitted = true;
+    const ok = applyPath('#/results', state);
+    assertTrue(ok);
+    assertEq(state.view, 'results');
+    assertEq(pathFor(state), '#/results');
+  });
+
+  test('#/results is unrestorable on a cold load (nothing submitted)', () => {
+    const state = createState();
+    const ok = applyPath('#/results', state);
+    assertEq(ok, false);
+    assertEq(state.view, 'home');
+  });
+
+  test('#/flashcards round-trips when a deck is active', () => {
+    const state = createState();
+    state.flashcards = { cards: [{ id: 1 }], index: 0, flipped: false };
+    const ok = applyPath('#/flashcards', state);
+    assertTrue(ok);
+    assertEq(state.view, 'flashcards');
+    assertEq(pathFor(state), '#/flashcards');
+  });
+
+  test('#/flashcards is unrestorable when no deck is active', () => {
+    const state = createState();
+    const ok = applyPath('#/flashcards', state);
+    assertEq(ok, false);
+    assertEq(state.view, 'home');
+  });
+
+  test('#/disabilities (grid) round-trips', () => {
+    const state = createState();
+    const ok = applyPath('#/disabilities', state);
+    assertTrue(ok);
+    assertEq(state.view, 'disabilities');
+    assertEq(state.disabilities.view, 'categories');
+    assertEq(pathFor(state), '#/disabilities');
+  });
+
+  test('#/disabilities/<known id> round-trips', () => {
+    const state = createState();
+    const ok = applyPath('#/disabilities/visual', state, routeIds);
+    assertTrue(ok);
+    assertEq(state.disabilities.view, 'list');
+    assertEq(state.disabilities.category, 'visual');
+    assertEq(pathFor(state), '#/disabilities/visual');
+  });
+
+  test('#/disabilities/<unknown id> falls back to the category grid', () => {
+    const state = createState();
+    const ok = applyPath('#/disabilities/not-a-real-category', state, routeIds);
+    assertEq(ok, false);
+    assertEq(state.view, 'disabilities');
+    assertEq(state.disabilities.view, 'categories');
+  });
+
+  test('#/disabilities/<id> is accepted without the ids param (permissive default)', () => {
+    const state = createState();
+    const ok = applyPath('#/disabilities/anything', state);
+    assertTrue(ok, 'without a known-ids list, any non-empty id is accepted');
+    assertEq(state.disabilities.category, 'anything');
+  });
+
+  test('#/legal (grid) round-trips', () => {
+    const state = createState();
+    const ok = applyPath('#/legal', state);
+    assertTrue(ok);
+    assertEq(state.view, 'legal');
+    assertEq(pathFor(state), '#/legal');
+  });
+
+  test('#/legal/<known id> round-trips', () => {
+    const state = createState();
+    const ok = applyPath('#/legal/us', state, routeIds);
+    assertTrue(ok);
+    assertEq(state.legal.category, 'us');
+    assertEq(pathFor(state), '#/legal/us');
+  });
+
+  test('#/legal/<unknown id> falls back to the jurisdiction grid', () => {
+    const state = createState();
+    const ok = applyPath('#/legal/nowhere', state, routeIds);
+    assertEq(ok, false);
+    assertEq(state.view, 'legal');
+    assertEq(state.legal.view, 'categories');
+  });
+}

@@ -38,6 +38,7 @@ const fakeQuestion = {
 };
 
 const fakeState = {
+  view: 'test',
   mode: 'weighted',
   questions: [fakeQuestion],
   answers: {}, pending: {}, revealed: {},
@@ -295,6 +296,35 @@ export async function run({ test, assertTrue, assertEq }) {
     const note = dom.window.document.querySelector('.scope-note');
     assertTrue(note, 'disabilities reference page must include a scope-note');
     assertTrue(note.textContent.toLowerCase().includes('beyond cpacc scope'), 'note must read "beyond CPACC scope"');
+  });
+
+  await test('popstate-driven navigation moves focus to <main> (src/main.js + src/router.js)', async () => {
+    // Full-app boot, not a single-view mount: the focus-on-route-change
+    // contract lives in main.js's popstate listener, not in any one view.
+    const indexHtml = fs.readFileSync(path.join(HERE, '..', 'index.html'), 'utf8');
+    const dom = new JSDOM(indexHtml, { url: 'http://localhost/#/', pretendToBeVisual: true, runScripts: 'outside-only' });
+    globalThis.window = dom.window;
+    globalThis.document = dom.window.document;
+    globalThis.location = dom.window.location;
+    globalThis.history = dom.window.history;
+    globalThis.localStorage = dom.window.localStorage;
+    globalThis.confirm = () => true;
+
+    await loadView('src/main.js');
+    await new Promise(r => setTimeout(r, 20)); // let the async chat-status/missed-set probes settle
+
+    document.getElementById('start').click();
+    await new Promise(r => setTimeout(r, 5));
+    assertEq(location.hash, '#/test/1', 'starting a test should push #/test/1');
+
+    document.getElementById('next').click();
+    await new Promise(r => setTimeout(r, 5));
+    assertEq(location.hash, '#/test/2', 'advancing a question should push #/test/2');
+
+    history.back();
+    await new Promise(r => setTimeout(r, 5));
+    assertEq(location.hash, '#/test/1', 'Back should restore the previous question');
+    assertEq(document.activeElement && document.activeElement.id, 'app', 'Back should move focus to <main id="app"> for keyboard/AT users');
   });
 
   await test('decorative emoji in renderHome have aria-hidden="true"', async () => {

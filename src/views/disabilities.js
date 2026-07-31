@@ -49,7 +49,7 @@ export function renderDisabilities(ctx) {
         <div class="cat-grid" role="list">${cards}</div>
       `;
     document.querySelectorAll('[data-cat]').forEach(el => {
-      el.onclick = () => { state.disabilities = { view: 'list', category: el.dataset.cat }; actions.render(); };
+      el.onclick = () => { state.disabilities = { view: 'list', category: el.dataset.cat }; state.view = 'disabilities'; actions.render(); };
     });
     return;
   }
@@ -101,7 +101,7 @@ export function renderDisabilities(ctx) {
         <div class="dis-anchor-bar"><div class="anchor-list">${anchors}</div></div>
         ${inline}
       `;
-  document.getElementById('back-cats').onclick = () => { state.disabilities = { view: 'categories' }; actions.render(); };
+  document.getElementById('back-cats').onclick = () => { state.disabilities = { view: 'categories' }; state.view = 'disabilities'; actions.render(); };
   document.querySelectorAll('[data-anchor]').forEach(el => {
     el.onclick = () => {
       const target = document.getElementById('dis-' + el.dataset.anchor);

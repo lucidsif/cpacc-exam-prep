@@ -21,6 +21,7 @@ test-maker/
 ├── src/
 │   ├── main.js             # Entry: imports data + modules, defines actions, runs the render loop
 │   ├── state.js            # The shared mutable state object factory
+│   ├── router.js           # Pure hash path <-> state mapping (Back/Forward support)
 │   ├── storage.js          # Missed-question persistence (server + localStorage)
 │   ├── chat.js             # Fetch wrappers for the chat endpoints
 │   ├── sampling.js         # Pure: shuffle, sampleQuestions, sampleMissedQuestions
@@ -46,6 +47,7 @@ test-maker/
     ├── scoring.test.js     # Unit tests for scoring
     ├── storage.test.js     # Unit tests for missed-set persistence (mocked fetch)
     ├── llm.test.js         # Unit tests for provider resolution + per-provider wire format
+    ├── router.test.js      # Unit tests for the hash-path <-> state router
     └── views.test.js       # jsdom DOM tests asserting view accessibility contracts
 ```
 
@@ -83,7 +85,7 @@ node tests/run.js
 npm test
 ```
 
-Expect to see "74/74 passed" (or whatever the current count is). Every PR must keep tests green.
+Expect to see "94/94 passed" (or whatever the current count is). Every PR must keep tests green.
 
 ## Adding a new practice question
 

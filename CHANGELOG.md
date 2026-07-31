@@ -6,6 +6,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added — browser Back/Forward navigation (2026-07-31)
+
+- `src/router.js` — pure hash-path <-> state mapping (`pathFor`, `applyPath`), no DOM or history API, fully unit-testable
+- Explicit `state.view` field (`'home' | 'test' | 'results' | 'flashcards' | 'disabilities' | 'legal'`) replacing the old infer-the-screen-from-data-presence dispatch in `render()`. Back to home no longer has to destroy `state.questions`, so an in-progress test survives in memory and Forward resumes it with answers intact
+- Route table: `#/`, `#/test/<n>` (question index IS in the path), `#/results`, `#/flashcards`, `#/disabilities[/<id>]`, `#/legal[/<id>]`
+- `document.title` now updates per view so Back/Forward is distinguishable in history and announced by screen readers
+- Focus moves to `<main>` on any popstate-driven render, so keyboard/screen-reader users aren't stranded on a node `innerHTML` just replaced
+- `tests/router.test.js` — 19 tests covering round-tripping every route, unrestorable cold-load paths, unknown category/jurisdiction fallback, out-of-range question clamping, and malformed/empty hashes
+- A full-app jsdom test in `tests/views.test.js` asserting Back/Forward push/restore the right hash and move focus to `<main>`
+
+### Notes
+
+- Flashcard index, `flipped` state, chat open/closed, and answer selections are deliberately NOT in the URL — flashcard advance is a study action on a freshly-shuffled deck, not navigation, and 60 cards in history would make Back useless for leaving the deck
+- `#/test/<n>` and `#/results` can't be reconstructed from a URL alone (the question set is sampled at runtime and answers live only in memory); a cold load or a stale history entry after reload falls back to home via `history.replaceState` rather than showing a URL that lies about what's on screen
+- The home button's confirm-before-leaving dialog is unchanged: it still calls `resetState()` and destroys the in-progress test, which is a real (if now avoidable) loss of progress, so the warning stays accurate. Browser Back is the new non-destructive way to step out of a test
+
+### Fixed — de-vendored chat-status copy (2026-07-31)
+
+- Home-page "Chat tutor: disabled" copy still told users to set `ANTHROPIC_API_KEY`, left over from before the provider-agnostic adapter (7e7b04e / 0d9dae2). Now reads: set `LLM_PROVIDER` and `LLM_API_KEY`, works with Anthropic, OpenAI, or a local OpenAI-compatible server
+- Stale code comment in `src/main.js` naming `ANTHROPIC_API_KEY` specifically, made provider-neutral
+
 ### Added — provider-agnostic chat tutor (2026-07-30)
 
 - `functions/_lib/llm.js` — one helper, three interchangeable backends (`anthropic`, `openai`, `local`), selected with `LLM_PROVIDER`

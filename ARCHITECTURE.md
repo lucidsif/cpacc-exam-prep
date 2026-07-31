@@ -235,7 +235,7 @@ The runner discovers every `tests/*.test.js` and calls its exported `run({ test,
 | Unit tests | `sampling.test.js`, `scoring.test.js`, `storage.test.js`, `llm.test.js` |
 | DOM smoke tests (jsdom) | `views.test.js` — asserts every view's accessibility contracts |
 
-72+ tests as of writing; every PR should keep this green.
+74+ tests as of writing; every PR should keep this green.
 
 ```mermaid
 graph LR

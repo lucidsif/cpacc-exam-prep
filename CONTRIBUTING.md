@@ -83,7 +83,7 @@ node tests/run.js
 npm test
 ```
 
-Expect to see "72/72 passed" (or whatever the current count is). Every PR must keep tests green.
+Expect to see "74/74 passed" (or whatever the current count is). Every PR must keep tests green.
 
 ## Adding a new practice question
 

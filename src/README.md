@@ -47,7 +47,7 @@ Every view exports a function `renderX(ctx)` that:
   provenanceForQuestion(q),  // looks up the right provenance per question
   missed,                    // missed-set store
   actions: {                 // ctx.actions.*() mutates state and re-renders
-    render(),
+    render(opts),             // opts.focus?: CSS selector, or 'route' to force route-h1 focus
     startTest(mode),
     startFlashcards(),
     openDisabilities(),
@@ -56,6 +56,7 @@ Every view exports a function `renderX(ctx)` that:
     sendHomeChat(),
     clearHomeChat(),
     sendChat(qid),
+    announce(msg, opts),      // opts.assertive?: bool — writes to the persistent #route-status region
   }
 }
 ```
@@ -75,12 +76,11 @@ Views never mutate `state` directly — they invoke `ctx.actions.*` callbacks de
 
 ## Accessibility patterns to preserve
 
-- One `<h1>` per view, no skipped heading levels
-- All interactive elements are real `<button>` / `<input>` / etc.
+- One `<h1>` per view, no skipped heading levels — and it must be a real, visible heading; a route's focus target is that `<h1>`, and `.sr-only` is never acceptable for it (see `ACCESSIBILITY.md`'s "Focus contract")
+- All interactive elements are real `<button>` / `<input>` / etc. Answer choices are native radios grouped in a `<fieldset>`/`<legend>` — there is no roving-tabindex pattern in this codebase, and never was; Tab/Arrow-key behavior within the group is the browser's native radio-group handling. Once revealed, the fieldset is natively `disabled` (not `aria-disabled`), so review state is genuinely non-interactive; restore any per-choice state that `disabled` hides from the accessibility tree as visually-hidden text
 - Decorative emoji wrapped in `<span aria-hidden="true">`
-- Live regions only where announcement is the goal — no dueling polite regions
-- Radio groups use the WAI-ARIA roving-tabindex pattern (Tab in, Arrow keys within)
-- Focus moves to the verdict region after submit, via `requestAnimationFrame(() => v.focus())`
+- Don't reach for a per-view `aria-live` region for something a user action just triggered — use `ctx.actions.announce(msg, { assertive? })` instead, which writes to the persistent `#route-status` region (a sibling of `<main>`, survives `innerHTML` rewrites). A region created and populated in the same `innerHTML` write never announces
+- Most in-place re-renders (chat send, a toggle) don't need any focus-handling code at all — `render()` itself captures and restores focus/caret around the DOM swap. Reach for `render({ focus: '#selector' })` only when you want an explicit target the automatic capture/restore wouldn't produce, and `requestAnimationFrame(() => el.focus())` only for a control that had no focus before the click (e.g. the verdict region after Submit answer). See `ARCHITECTURE.md`'s "The render loop"
 - Use `scrollIntoViewMotionSafe` from `dom.js`, not `scrollIntoView` directly — it honors `prefers-reduced-motion`
 
 The DOM smoke tests in `tests/views.test.js` catch most regressions of these patterns.

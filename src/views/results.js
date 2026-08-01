@@ -52,12 +52,12 @@ export function renderResults(ctx) {
           <p class="qtext">${escapeHtml(q.q)}</p>
           ${choices}
           ${q.cite ? `<div class="cite">Source: ${escapeHtml(q.cite)}</div>` : ''}
-          ${q.flag ? `<div class="flag"><b>⚑ Confidence note:</b> ${escapeHtml(q.flag)}</div>` : ''}
+          ${q.flag ? `<div class="flag"><b><span aria-hidden="true">⚑</span> Confidence note:</b> ${escapeHtml(q.flag)}</div>` : ''}
           ${state.chatEnabled ? `
           <div class="row" style="margin-top:10px">
-            <button type="button" class="toggle linkish" data-toggle="${q.id}" aria-expanded="${!!chatOpen}"><span aria-hidden="true">${chatOpen ? '▾' : '▸'}</span> ${chatOpen ? 'Hide chat' : 'Discuss this question with the AI tutor'}</button>
+            <button type="button" class="toggle linkish" data-toggle="${q.id}" aria-expanded="${!!chatOpen}" aria-controls="chat-panel-${q.id}"><span aria-hidden="true">${chatOpen ? '▾' : '▸'}</span> ${chatOpen ? 'Hide chat' : 'Discuss this question with the AI tutor'}</button>
           </div>
-          ${chatOpen ? renderChatFragment(q, state.chats[q.id]) : ''}` : ''}
+          <div id="chat-panel-${q.id}">${chatOpen ? renderChatFragment(q, state.chats[q.id]) : ''}</div>` : ''}
         </div>`;
   }).join('');
 
@@ -77,7 +77,7 @@ export function renderResults(ctx) {
             `<span class="pill">${domainLabel(Number(d))}: ${s.c}/${s.t}</span>`
           ).join('')}
         </div>
-        <div class="grid" style="margin-top:14px">${cells}</div>
+        <div class="grid" style="margin-top:14px" role="group" aria-label="Question results navigation">${cells}</div>
         <div class="nav">
           <button id="retake">${state.mode === 'missed' ? `Practice ${Math.min(TEST_SIZE, missedNow)} missed again` : `Take another ${TEST_SIZE} (new random set)`}</button>
           <button class="secondary" id="back">Back to start</button>
@@ -87,12 +87,20 @@ export function renderResults(ctx) {
     `;
 
   document.getElementById('retake').onclick = () => actions.startTest(state.mode);
-  document.getElementById('back').onclick = () => { state.questions = []; state.view = 'home'; actions.render(); };
+  // "Back to start" invalidates the submission, not just the question set —
+  // clear both so a stale #/results history entry can't be restored later
+  // with nothing to show (see router.js's `results` restorability check).
+  document.getElementById('back').onclick = () => { state.questions = []; state.submitted = false; state.view = 'home'; actions.render(); };
 
   document.querySelectorAll('[data-jump]').forEach(cell => {
     cell.onclick = () => {
       const el = document.getElementById('result-q-' + cell.dataset.jump);
-      if (el) scrollIntoViewMotionSafe(el);
+      if (!el) return;
+      scrollIntoViewMotionSafe(el);
+      // Scrolling alone doesn't move a screen reader's reading position —
+      // only focus does. The panel isn't natively focusable, so make it so.
+      el.setAttribute('tabindex', '-1');
+      el.focus({ preventScroll: true });
     };
   });
 
@@ -101,7 +109,12 @@ export function renderResults(ctx) {
       const id = Number(el.dataset.toggle);
       state.chats[id] = state.chats[id] || { open: false, history: [] };
       state.chats[id].open = !state.chats[id].open;
-      actions.render();
+      // Explicit focus target (not just bare render()): this is an in-place
+      // re-render so no-arg render() would already restore focus via the
+      // data-toggle matcher, but naming it here keeps the intent legible —
+      // focus must land back on the toggle so its new aria-expanded state
+      // is announced, not silently flipped on an unfocused element.
+      actions.render({ focus: `[data-toggle="${id}"]` });
     };
   });
   document.querySelectorAll('[data-send]').forEach(el => {

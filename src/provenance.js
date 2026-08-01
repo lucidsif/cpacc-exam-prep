@@ -47,10 +47,17 @@ const CONFIDENCE = {
  * Render the inline badge + collapsible provenance card for one item.
  * Uses native <details>/<summary> for zero-JS disclosure semantics.
  *
+ * <summary> maps to role="button", which takes its accessible name from its
+ * content — so we let the visible label (prov.label) and confidence text
+ * form the name instead of overriding it with aria-label (that would satisfy
+ * only sighted users and fail WCAG 2.5.3 Label in Name for speech-input
+ * users). itemLabel is appended as a visually-hidden suffix purely to keep
+ * each badge's name unique across a page with 20+ of them.
+ *
  * @param {object} prov - provenance object (see shape above)
- * @param {string} itemLabel - human label for the item (used in aria-label
- *   so screen reader users hear "Show AI provenance details for Question 4"
- *   instead of just "Provenance" on every badge)
+ * @param {string} itemLabel - human label for the item, appended via
+ *   .sr-only so screen readers hear "... — AI provenance for Question 4"
+ *   after the visible label/confidence, disambiguating repeated badges
  * @returns {string} HTML string
  */
 export function renderProvenanceBadge(prov, itemLabel) {
@@ -60,13 +67,14 @@ export function renderProvenanceBadge(prov, itemLabel) {
 
   return `
     <details class="provenance">
-      <summary aria-label="Show AI provenance details for ${safeLabel}">
+      <summary>
         <span class="pv-icon" aria-hidden="true">🤖</span>
         <span class="pv-cat">${escapeHtml(prov.label)}</span>
         <span class="pv-conf ${conf.cls}">
           <span class="pv-conf-glyph" aria-hidden="true">${conf.glyph}</span> ${conf.text}
         </span>
         <span class="pv-chev" aria-hidden="true">▸</span>
+        <span class="sr-only"> — AI provenance for ${safeLabel}</span>
       </summary>
       <dl class="provenance-card">
         ${renderField('Source(s)', (prov.citations || []).join('; '))}
@@ -101,7 +109,7 @@ export function renderChatProvenanceBanner() {
     <div class="pv-banner" role="note">
       <span class="pv-icon" aria-hidden="true">🤖</span>
       <span><b>AI live response — not pre-reviewed.</b> Verify against authoritative sources.</span>
-      <button type="button" class="linkish pv-info-link" data-open-ai-info>About AI in this app</button>
+      <button type="button" class="linkish pv-info-link" data-open-ai-info aria-haspopup="dialog">About AI in this app</button>
     </div>
   `;
 }
@@ -172,10 +180,35 @@ export function installAiInfoDialog() {
     if (typeof dlg.showModal === 'function') dlg.showModal();
     else dlg.setAttribute('open', '');
   }
+  // The Back/Forward router re-renders <main>, which can detach the
+  // original trigger element while the dialog is open. Focusing a detached
+  // node is a silent no-op that drops focus to <body>, so fall back to the
+  // app root when the trigger is gone.
+  function restoreFocus() {
+    if (lastFocus && lastFocus.isConnected && typeof lastFocus.focus === 'function') {
+      lastFocus.focus();
+    } else {
+      document.getElementById('app')?.focus();
+    }
+  }
+
+  // The native 'close' event fires for BOTH dismissal paths: our own
+  // dlg.close() call below, and the browser's own Escape handling on a
+  // showModal() dialog (which never runs our close() function at all).
+  // Handling restoration only here — not also inline in close() — is what
+  // guarantees it runs exactly once per dismissal.
+  dlg.addEventListener('close', restoreFocus);
+
   function close() {
-    if (typeof dlg.close === 'function') dlg.close();
-    else dlg.removeAttribute('open');
-    if (lastFocus && typeof lastFocus.focus === 'function') lastFocus.focus();
+    if (typeof dlg.close === 'function') {
+      dlg.close(); // dispatches 'close', which runs restoreFocus above
+    } else {
+      // removeAttribute('open') is the no-native-<dialog> fallback and does
+      // NOT dispatch a 'close' event (only HTMLDialogElement.close() and
+      // native Escape dismissal do), so this path must restore focus itself.
+      dlg.removeAttribute('open');
+      restoreFocus();
+    }
   }
 
   document.addEventListener('click', onClick);
@@ -185,7 +218,11 @@ export function installAiInfoDialog() {
     const closer = e.target.closest('[data-close-ai-info]');
     if (closer) { e.preventDefault(); close(); return; }
   }
-  // Native <dialog> handles Escape itself in modern browsers.
+  // Native <dialog> handles Escape itself in modern browsers; the resulting
+  // 'close' event is caught by the listener registered above.
 
-  return () => document.removeEventListener('click', onClick);
+  return () => {
+    document.removeEventListener('click', onClick);
+    dlg.removeEventListener('close', restoreFocus);
+  };
 }

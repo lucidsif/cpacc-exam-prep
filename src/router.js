@@ -72,7 +72,11 @@ export function applyPath(path, state, ids = {}) {
   }
 
   if (head === 'results') {
-    if (!state.submitted) return false;
+    // `submitted` alone isn't the real invariant: "Back to start" clears
+    // state.questions but (before this fix) left `submitted` true, so a
+    // history entry could restore #/results with nothing to score or list.
+    // renderResults depends on a non-empty question set, so require both.
+    if (!state.submitted || state.questions.length === 0) return false;
     state.view = 'results';
     return true;
   }

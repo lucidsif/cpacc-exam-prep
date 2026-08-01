@@ -7,9 +7,14 @@
 <link rel="stylesheet" href="styles/app.css">
 </head>
 <body>
-<a href="#app" class="skip-link">Skip to main content</a>
-<button class="home-btn" id="home-btn" aria-label="Go to home page">⌂ Home</button>
+<header>
+<a href="#app" id="skip-link" class="skip-link">Skip to main content</a>
+<nav aria-label="Site">
+<button class="home-btn" id="home-btn"><span aria-hidden="true">⌂</span> Home</button>
+</nav>
+</header>
 <main class="wrap" id="app" tabindex="-1"></main>
+<div id="route-status" role="status" aria-live="polite" aria-atomic="true" class="sr-only"></div>
 
 <script type="module" src="src/main.js"></script>
 </body>

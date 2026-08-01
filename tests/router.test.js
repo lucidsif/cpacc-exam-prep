@@ -166,4 +166,50 @@ export function run({ test, assertTrue, assertEq }) {
     assertEq(state.view, 'legal');
     assertEq(state.legal.view, 'categories');
   });
+
+  // applyPath has no concept of "app-internal, not-a-route" fragments like
+  // the skip link's href="#app" — it treats any hash it can't parse into a
+  // known head segment as an unrestorable path and falls back to home, same
+  // as `#/nonsense/garbage` above. That's correct in isolation (it's just
+  // "unknown route -> home"), but it is NOT what keeps the skip link from
+  // bouncing a mid-test user to home: that guard is the
+  // `if (hash !== '' && !hash.startsWith('#/')) return;` early-return in
+  // main.js's popstate listener, which never calls applyPath at all for a
+  // hash like "#app" — see src/main.js around the "skip link" comment.
+  // The real regression test for "activating the skip link must not
+  // navigate" therefore belongs in views.test.js, driven through a full
+  // app boot (it's exercising main.js's listener, not router.js). This
+  // test instead documents applyPath's actual, narrower contract so a
+  // future reader doesn't mistake router.js for owning that guard.
+  test('applyPath treats "#app" as an unknown route (falls back to home) — filtering app-internal fragments is main.js\'s job, not the router\'s', () => {
+    const state = createState();
+    const ok = applyPath('#app', state);
+    assertEq(ok, false, '#app is not a route applyPath recognizes');
+    assertEq(state.view, 'home', 'router.js has no special case for "#app"; see main.js\'s popstate listener for the actual guard');
+  });
+
+  // Regression: "Back to start" clears state.questions but used to leave
+  // `submitted` true, so a stale #/results history entry could restore
+  // with `submitted === true` and an empty question set — rendering a
+  // results page claiming a phantom 0/0 (0%) score for a test that no
+  // longer existed. `submitted` alone is not the invariant; both must hold.
+  test('#/results returns false when submitted but the question set is empty — guards the phantom 0/0 (0%) results page', () => {
+    const state = createState();
+    state.submitted = true;
+    // state.questions is already [] from createState(); assert explicitly
+    // so the fixture's intent survives future createState() changes.
+    assertEq(state.questions.length, 0, 'fixture precondition: no questions in memory');
+    const ok = applyPath('#/results', state);
+    assertEq(ok, false, 'submitted=true with zero questions must not restore /results');
+  });
+
+  test('#/results still round-trips (happy path) when submitted AND a question set is present', () => {
+    const state = createState();
+    state.questions = [{ id: 1 }, { id: 2 }];
+    state.submitted = true;
+    const ok = applyPath('#/results', state);
+    assertTrue(ok, 'submitted + non-empty questions should restore /results');
+    assertEq(state.view, 'results');
+    assertEq(pathFor(state), '#/results');
+  });
 }

@@ -139,13 +139,14 @@ Targets **WCAG 2.2 AA**. Notable contracts (enforced by `tests/views.test.js`):
 
 - Semantic HTML before ARIA (`<button>`, real `<input>`, `<h1>`–`<h6>`, `<main>`)
 - Skip link → `<main tabindex="-1">` for keyboard users
-- Browser Back/Forward navigate within the app; every route change moves focus to `<main>` and updates `document.title`
+- Browser Back/Forward, and every click-driven navigation, move focus to the destination route's own `<h1>` and update `document.title`; in-place re-renders (chat send, card flip, a toggle) preserve focus and caret position instead
+- Skip link intercepts its own click so it can't be misread as an unknown route and bounce you back to home mid-test
 - One H1 per view, H2 sub-headings, no skipped levels
 - Visible focus indicator on every focusable element (3px amber)
-- Color contrast: text ≥ 4.5:1, UI components ≥ 3:1
-- Color never the sole channel (confidence pills pair color + shape + text)
-- Radio groups: spec-compliant roving tabindex; visible hint adapts to touch vs keyboard via `(pointer: coarse)`
-- Live regions used only where announcement is the goal — no dueling polite regions
+- Color contrast: text ≥ 4.5:1, UI components ≥ 3:1 — audited across every pair in the app, see [`ACCESSIBILITY.md`](ACCESSIBILITY.md)
+- Color never the sole channel (confidence pills pair color + shape + text; chat speaker identity, the jump grid, and the current-question cell all have a non-color cue too)
+- Answer choices are native radio inputs in a `<fieldset>`; visible hint adapts to touch vs keyboard via `(pointer: coarse)`; revealed choices sit in a genuinely-`disabled` fieldset, not a lying `aria-disabled`
+- Announcements (verdict, chat replies/errors) go through a single persistent live region (`#route-status`) that survives DOM rewrites
 - Decorative emoji `aria-hidden="true"`
 - `prefers-reduced-motion: reduce` honored for scroll behavior
 - AI provenance disclosure uses native `<details>`/`<summary>` (zero JS, mobile-friendly, implicit `aria-expanded`)
@@ -233,7 +234,7 @@ npm install      # one-time: pulls jsdom for the DOM tests
 npm test         # runs everything
 ```
 
-Expect 94+ passing.
+Expect 113+ passing.
 
 The test suite is intentionally split into layers:
 

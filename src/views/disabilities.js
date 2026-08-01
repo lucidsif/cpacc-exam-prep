@@ -46,7 +46,7 @@ export function renderDisabilities(ctx) {
         <div class="sub">${d.items.length} conditions across ${d.categories.length} categories. Tap a category to browse.</div>
         <p class="scope-note"><span class="scope-icon" aria-hidden="true">ℹ️</span> <span><b>Goes beyond CPACC scope</b> — for deeper study.</span></p>
         ${renderProvenanceBadge(prov, 'the disabilities reference')}
-        <div class="cat-grid" role="list">${cards}</div>
+        <div class="cat-grid">${cards}</div>
       `;
     document.querySelectorAll('[data-cat]').forEach(el => {
       el.onclick = () => { state.disabilities = { view: 'list', category: el.dataset.cat }; state.view = 'disabilities'; actions.render(); };
@@ -65,19 +65,19 @@ export function renderDisabilities(ctx) {
     return `
           <div class="dis-item" id="dis-${item.id}">
             <div class="dis-head">
-              <div class="dis-emoji">${item.emoji}</div>
+              <div class="dis-emoji" aria-hidden="true">${escapeHtml(item.emoji)}</div>
               <div>
-                <h3 class="dis-name">${escapeHtml(item.name)}</h3>
+                <h2 class="dis-name">${escapeHtml(item.name)}</h2>
                 <div class="dis-prev">${escapeHtml(item.prevalence || '')}</div>
               </div>
             </div>
             <p class="dis-desc">${escapeHtml(item.description || '')}</p>
             <div class="dis-cols">
               <div>
-                ${facts ? `<div class="section-h">Key facts</div><ul>${facts}</ul>` : ''}
+                ${facts ? `<h3 class="section-h">Key facts</h3><ul>${facts}</ul>` : ''}
               </div>
               <div>
-                ${solutions ? `<div class="section-h">Accessibility solutions</div><ul>${solutions}</ul>` : ''}
+                ${solutions ? `<h3 class="section-h">Accessibility solutions</h3><ul>${solutions}</ul>` : ''}
               </div>
             </div>
           </div>`;
@@ -85,13 +85,13 @@ export function renderDisabilities(ctx) {
 
   app.innerHTML = `
         <div class="row" style="margin-bottom:14px">
-          <button class="secondary small" id="back-cats">← All categories</button>
+          <button class="secondary small" id="back-cats"><span aria-hidden="true">←</span> All categories</button>
         </div>
         <div class="cat-overview" style="border-top: 4px solid ${cat.color}">
           <div class="cat-hero">
-            <div class="cat-hero-emoji">${cat.emoji}</div>
+            <div class="cat-hero-emoji" aria-hidden="true">${cat.emoji}</div>
             <div>
-              <h2>${escapeHtml(cat.label)}</h2>
+              <h1>${escapeHtml(cat.label)} — human disabilities</h1>
               <div class="sub" style="margin:4px 0 0">${items.length} condition${items.length === 1 ? '' : 's'}</div>
             </div>
           </div>
@@ -105,7 +105,12 @@ export function renderDisabilities(ctx) {
   document.querySelectorAll('[data-anchor]').forEach(el => {
     el.onclick = () => {
       const target = document.getElementById('dis-' + el.dataset.anchor);
-      if (target) scrollIntoViewMotionSafe(target);
+      if (target) {
+        scrollIntoViewMotionSafe(target);
+        // Move focus to the scrolled-to item so keyboard/SR users actually land there (WCAG 2.4.3).
+        target.setAttribute('tabindex', '-1');
+        target.focus({ preventScroll: true });
+      }
     };
   });
 }

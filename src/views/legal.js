@@ -69,26 +69,26 @@ export function renderLegal(ctx) {
     return `
           <div class="dis-item" id="dis-${item.id}">
             <div class="dis-head">
-              <div class="dis-emoji">${emojiForType(item.type)}</div>
+              <div class="dis-emoji" aria-hidden="true">${emojiForType(item.type)}</div>
               <div>
-                <h3 class="dis-name">${escapeHtml(item.name)}</h3>
+                <h2 class="dis-name">${escapeHtml(item.name)}</h2>
                 <div class="dis-prev">${escapeHtml(item.year || '')}${item.type ? ' · ' + escapeHtml(item.type) : ''}</div>
               </div>
             </div>
             <p class="dis-desc">${escapeHtml(item.summary || '')}</p>
-            ${facts ? `<div class="section-h">Key facts</div><ul>${facts}</ul>` : ''}
+            ${facts ? `<h3 class="section-h">Key facts</h3><ul>${facts}</ul>` : ''}
           </div>`;
   }).join('');
 
   app.innerHTML = `
         <div class="row" style="margin-bottom:14px">
-          <button class="secondary small" id="back-jurs">← All groups</button>
+          <button class="secondary small" id="back-jurs"><span aria-hidden="true">←</span> All groups</button>
         </div>
         <div class="cat-overview" style="border-top: 4px solid ${cat.color}">
           <div class="cat-hero">
-            <div class="cat-hero-emoji">${cat.emoji}</div>
+            <div class="cat-hero-emoji" aria-hidden="true">${cat.emoji}</div>
             <div>
-              <h2>${escapeHtml(cat.label)}</h2>
+              <h1>${escapeHtml(cat.label)} — history, laws & standards</h1>
               <div class="sub" style="margin:4px 0 0">${items.length} item${items.length === 1 ? '' : 's'}${cat.id === 'timeline' ? ' · sorted by year' : ''}</div>
             </div>
           </div>
@@ -101,7 +101,12 @@ export function renderLegal(ctx) {
   document.querySelectorAll('[data-anchor]').forEach(el => {
     el.onclick = () => {
       const target = document.getElementById('dis-' + el.dataset.anchor);
-      if (target) scrollIntoViewMotionSafe(target);
+      if (target) {
+        scrollIntoViewMotionSafe(target);
+        // Move focus to the scrolled-to item so keyboard/SR users actually land there (WCAG 2.4.3).
+        target.setAttribute('tabindex', '-1');
+        target.focus({ preventScroll: true });
+      }
     };
   });
 }

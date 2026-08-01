@@ -16,7 +16,8 @@
 //   submitted      — true once the user submitted the entire test
 //   chats          — per-question discussion chats (id → {open,history})
 //   homeChat       — free-form tutor chat on the home page
-//   chatEnabled    — true if /chat-status reported enabled at startup
+//   chatEnabled    — true/false once /chat-status resolves at startup; null
+//                    means "not yet probed" (treated as falsy by views)
 //   flashcards     — flashcards session ({cards,index,flipped}) when active
 //   disabilities   — reference view ({view,category}) when active
 //   legal          — reference view ({view,category}) when active
@@ -38,7 +39,7 @@ export function createState() {
     submitted: false,
     chats: {},
     homeChat: { history: [] },
-    chatEnabled: false,
+    chatEnabled: null,
     flashcards: null,
     disabilities: null,
     legal: null,

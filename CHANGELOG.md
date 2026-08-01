@@ -6,6 +6,42 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed — accessibility: focus, skip link, flashcard content, colour-only signals (2026-07-31)
+
+**Critical**
+
+- Skip link (`<a href="#app">`) no longer ejects users mid-test. Activating it fired a `popstate`; the hash router treated `#app` as an unknown route and reset the app to home. The skip link now `preventDefault`s and moves focus directly; the popstate listener also now ignores any hash that isn't `''` or `#/...`, closing off this whole class of accidental-navigation-via-hash-fragment
+- Focus tracking for real navigation. Previously focus moved to `<main>` only on Back/Forward — every click-driven navigation replaced `app.innerHTML` and silently dropped focus to `<body>`. `render()` (`src/main.js`) now compares a route key (`[view, index, disabilities category, legal category]`) on every call to tell a real navigation apart from an in-place re-render, and moves focus to the destination route's own `<h1>` on navigation while preserving focus and caret position on in-place re-renders (chat send, card flip, toggle)
+- Flashcard content is no longer hidden from screen readers. The card was a `<button>` whose `aria-label` replaced its entire text content, so the tag, front, and back text were never exposed. It's now a plain container; the existing `#flip-card` button remains the sole keyboard control — not a WCAG 2.1.1 keyboard-access regression
+
+**Serious**
+
+- The AI-confidence `<summary>` on every provenance card no longer overrides its own visible label with `aria-label` — that hid the confidence level from screen readers and failed WCAG 2.5.3 (Label in Name) for speech-input users. The visible text is now the accessible name; a disambiguating item label is appended via `.sr-only`
+- The disabilities and legal reference detail routes (`#/disabilities/<id>`, `#/legal/<id>`) gained a real, visible `<h1>` — they previously had none, so nothing meaningful ever received focus on navigation into them
+- Revealed answer choices are genuinely inert. They previously used `aria-disabled="true"` while remaining natively focusable and operable — a lying disabled state. They're now inside a `<fieldset disabled>`, which is truthfully non-interactive; the "your answer" / "correct answer" state that native `disabled` strips from the accessibility tree is restored as visually-hidden text on the affected choice(s)
+- Chat replies and errors are now announced through the app's persistent `#route-status` region. Both transcripts (`role="log"`) had no reliable live-region mechanism for content appended mid-session — see the Known limitations note in `ACCESSIBILITY.md` about the resulting double-announcement risk
+- `router.js`'s `#/results` restorability check now requires a non-empty question set, not just `submitted` — previously Back after "Back to start" could restore a results page reading "0 / 0 (0%)"
+
+### Changed — colour and use-of-colour audit (2026-07-31)
+
+A full contrast audit computed every text and non-text colour pair in the app. **All WCAG 1.4.3 (text) and 1.4.11 (non-text) pairs pass**, with real headroom — lowest text ratio 6.04:1, all 16 category accent colours pass as UI-component boundaries. The audit's actual findings were four **1.4.1 Use of Colour** failures (hue as the only channel), now fixed:
+
+- Chat speaker identity was hue-only at a 1.02:1 luminance delta — added visible "You:" / "Tutor:" / "Error:" labels
+- The jump grid's answered/unanswered state was a 1.04:1 delta — added a `✓` / `·` glyph
+- The current-question jump-grid cell had no visual indicator at all — added an inset ring
+- The "About AI in this app" trigger was indistinguishable from body text — now accent-coloured with an underline
+
+### Added — focus/announce architecture (2026-07-31)
+
+- `render(opts)` in `src/main.js` — no-arg calls auto-detect navigation vs. in-place re-render via a route key; `render({ focus: '#selector' })` targets a specific element explicitly (used by the flashcard flip control and the results per-question chat toggle)
+- `captureFocus()` / `restoreFocus()` — re-find the previously-focused control by `id` or a `data-*` attribute after `app.innerHTML` is replaced, and restore text-input caret position. Falls back to the nearest focusable sibling when the original control became `disabled` by the same re-render
+- `announce(msg, { assertive })` — writes to `#route-status`, a persistent `role="status"` region that's a sibling of `<main>` (survives `innerHTML` rewrites). Coalesces rapid calls with a 75ms `setTimeout` rather than `requestAnimationFrame` — see the in-code comment for why rAF drops a repeated identical message
+
+### Notes
+
+- The governing rule behind all of the above: **the element that receives route focus must be visible.** An earlier attempt used a `.sr-only` `<h1>` on the reference detail routes; rejected because sighted keyboard users landed on an invisible element with no visible indication of where focus went. `.sr-only` is for supplementary text, never a focus target
+- These fixes are verified by jsdom unit tests only. The original defects were confirmed by hand in headless Chromium; the fixes have not yet been re-confirmed there. Real browser behaviour generally, actual screen reader announcement (NVDA/JAWS/VoiceOver), focus-ring visibility, and `:focus-visible` matching on programmatic focus in Safari and Firefox remain unverified. See `ACCESSIBILITY.md`
+
 ### Added — browser Back/Forward navigation (2026-07-31)
 
 - `src/router.js` — pure hash-path <-> state mapping (`pathFor`, `applyPath`), no DOM or history API, fully unit-testable

@@ -8,7 +8,11 @@
 //   - status counter is role=status aria-live
 //   - chat log is role=log aria-live
 //   - decorative emoji are aria-hidden
-//   - skip link is present in index.html shell
+//   - skip link is present in index.html shell, header/nav landmarks wrap it
+//     and the home button, #route-status stays a sibling of #app
+//   - chat messages carry a non-color speaker label (WCAG 1.4.1)
+//   - jump-grid answered mark is a non-color cue that doesn't leak into
+//     the accessible name (WCAG 1.4.1)
 
 import { JSDOM } from 'jsdom';
 import path from 'node:path';
@@ -56,8 +60,47 @@ const fakeMissed = {
 const fakeActions = {
   render() {}, startTest() {}, startFlashcards() {}, openDisabilities() {},
   openLegal() {}, submitAll: async () => {}, sendHomeChat: async () => {},
-  clearHomeChat() {}, sendChat: async () => {},
+  clearHomeChat() {}, sendChat: async () => {}, announce() {},
 };
+
+// Full-app boot helper (index.html + src/main.js), for tests that need the
+// real router/focus/live-region wiring rather than a single mounted view.
+// Cache-busts the src/main.js import so each call gets a fresh module
+// instance — Node's dynamic import() caches by exact specifier, and
+// main.js runs its boot side effects (reading globalThis.document, adding
+// the popstate listener, etc.) at import time, so reusing the cached
+// instance across tests would silently skip all of that on every call
+// after the first.
+//
+// Also stubs window.scrollTo, which jsdom doesn't implement (Part 2): the
+// production call in src/main.js's moveFocusToRoute is correct, jsdom just
+// logs "Not implemented" to its virtual console instead of throwing, and
+// three stack traces per boot bury real failures in the test output.
+let _bootCounter = 0;
+async function bootApp(hash = '#/') {
+  const indexHtml = fs.readFileSync(path.join(HERE, '..', 'index.html'), 'utf8');
+  const dom = new JSDOM(indexHtml, { url: `http://localhost/${hash}`, pretendToBeVisual: true, runScripts: 'outside-only' });
+  dom.window.scrollTo = () => {};
+  globalThis.window = dom.window;
+  globalThis.document = dom.window.document;
+  globalThis.location = dom.window.location;
+  globalThis.history = dom.window.history;
+  globalThis.localStorage = dom.window.localStorage;
+  globalThis.confirm = () => true;
+  // src/views/question.js's submit-answer handler calls the bare identifier
+  // requestAnimationFrame(...) — valid in a real browser, where `window` IS
+  // the global object, but not in this harness, where `window` is a jsdom
+  // object distinct from Node's globalThis. Forward it (and its pair) the
+  // same way `window`/`document`/etc. are forwarded above, so the app code
+  // doesn't need `window.requestAnimationFrame` to run under Node.
+  globalThis.requestAnimationFrame = dom.window.requestAnimationFrame.bind(dom.window);
+  globalThis.cancelAnimationFrame = dom.window.cancelAnimationFrame.bind(dom.window);
+
+  const mainUrl = `${url.pathToFileURL(path.join(HERE, '..', 'src/main.js')).href}?boot=${_bootCounter++}`;
+  await import(mainUrl);
+  await new Promise(r => setTimeout(r, 20)); // let the async chat-status/missed-set probes settle
+  return dom;
+}
 
 export async function run({ test, assertTrue, assertEq }) {
   await test('index.html shell has skip link, home button, and main with tabindex -1', () => {
@@ -65,10 +108,49 @@ export async function run({ test, assertTrue, assertEq }) {
     const dom = new JSDOM(html);
     const doc = dom.window.document;
     assertTrue(doc.querySelector('a.skip-link'), 'no skip link');
-    assertTrue(doc.querySelector('#home-btn[aria-label]'), 'home button missing or no aria-label');
+
+    // The Home button's aria-label was deliberately removed: it duplicated
+    // the visible "⌂ Home" text for no benefit, and an aria-label always
+    // wins over visible text for the accessible name — leaving it in place
+    // risked the two silently drifting apart (WCAG 2.5.3 Label in Name).
+    // The visible text is now the sole source of the accessible name, with
+    // the decorative glyph pulled out of it via aria-hidden.
+    const homeBtn = doc.querySelector('#home-btn');
+    assertTrue(homeBtn, 'no home button');
+    assertEq(homeBtn.hasAttribute('aria-label'), false, 'home button must not carry aria-label — its visible text is now the accessible name');
+    assertTrue(homeBtn.textContent.includes('Home'), 'home button visible text should read "Home"');
+    const glyph = homeBtn.querySelector('span[aria-hidden="true"]');
+    assertTrue(glyph, 'the ⌂ glyph must be wrapped in an aria-hidden span so it does not leak into the accessible name');
+    assertTrue(glyph.textContent.includes('⌂'), 'the aria-hidden span should contain the ⌂ glyph');
+
     const main = doc.querySelector('main#app');
     assertTrue(main, 'no main#app');
     assertEq(main.getAttribute('tabindex'), '-1', 'main not focusable for skip link');
+  });
+
+  await test('index.html shell: skip link + home button live in <header>/<nav aria-label="Site">, and #route-status is a sibling of #app, not inside <header> or <main>', () => {
+    const html = fs.readFileSync(path.join(HERE, '..', 'index.html'), 'utf8');
+    const dom = new JSDOM(html);
+    const doc = dom.window.document;
+
+    const header = doc.querySelector('header');
+    assertTrue(header, 'no <header> landmark');
+    assertTrue(header.querySelector('a.skip-link'), 'skip link should live inside <header>');
+
+    const nav = header.querySelector('nav[aria-label="Site"]');
+    assertTrue(nav, 'no <nav aria-label="Site"> inside <header>');
+    assertTrue(nav.querySelector('#home-btn'), 'home button should live inside <nav aria-label="Site">');
+
+    // Load-bearing: every view render does `app.innerHTML = ...`, which
+    // would destroy #route-status if it lived inside <main id="app">. It
+    // also has no business inside <header> — it announces route changes,
+    // not site navigation. It must be a sibling of #app instead.
+    const main = doc.querySelector('main#app');
+    const routeStatus = doc.getElementById('route-status');
+    assertTrue(routeStatus, 'no #route-status element');
+    assertEq(main.contains(routeStatus), false, '#route-status must not be inside <main id="app"> — app.innerHTML rewrites would destroy it');
+    assertEq(header.contains(routeStatus), false, '#route-status must not be inside <header>');
+    assertEq(routeStatus.parentElement, main.parentElement, '#route-status must be a sibling of #app (share the same parent)');
   });
 
   await test('renderHome: one h1, no broken aria-describedby refs', async () => {
@@ -87,7 +169,7 @@ export async function run({ test, assertTrue, assertEq }) {
     assertTrue(doc.getElementById('start'), 'start button missing');
   });
 
-  await test('renderQuestion: radiogroup, kbd-hint, verdict region, status counter, aria-describedby resolves', async () => {
+  await test('renderQuestion: fieldset/legend choices group, kbd-hint, verdict region, aria-describedby resolves', async () => {
     const dom = makeDom();
     const { renderQuestion } = await loadView('src/views/question.js');
     renderQuestion({
@@ -98,22 +180,39 @@ export async function run({ test, assertTrue, assertEq }) {
     });
     const doc = dom.window.document;
 
-    // h1 / heading hierarchy
+    // h1 / heading hierarchy — the h1 must identify the specific question
+    // (not just the app name), since it's the route-focus target a screen
+    // reader user lands on after every Next/Prev/jump-grid step. The app
+    // name demotes to the .sub line instead.
     assertEq(doc.querySelectorAll('h1').length, 1);
+    assertEq(doc.querySelector('h1').textContent, 'Question 1 of 1');
 
-    // radiogroup wired correctly
+    // #choices is a native <fieldset> — implicit role=group, named by its
+    // <legend> — not an ARIA radiogroup with aria-label. A <label>-less
+    // radiogroup relies on authors remembering aria-label/aria-labelledby;
+    // a fieldset/legend can't be forgotten the same way and degrades
+    // gracefully with no ARIA at all.
     const rg = doc.getElementById('choices');
     assertTrue(rg, 'no choices container');
-    assertEq(rg.getAttribute('role'), 'radiogroup');
+    assertEq(rg.tagName, 'FIELDSET', 'choices container should be a native <fieldset>');
+    const legend = rg.querySelector('legend');
+    assertTrue(legend, 'fieldset needs a <legend> to name the group');
+    assertTrue(legend.textContent.toLowerCase().includes('question 1'), 'legend should name the question');
     const desc = rg.getAttribute('aria-describedby');
     assertEq(desc, 'kbd-hint');
     assertTrue(doc.getElementById('kbd-hint'), 'aria-describedby target missing');
 
-    // verdict is focusable + live
+    // verdict is focusable but NOT a pre-populated live region: it's empty
+    // in this same-innerHTML-write render (nothing revealed yet), and even
+    // when populated (see the "aria-disabled" rewrite below) a live region
+    // created with its content already in place never announces — the
+    // announcement goes through actions.announce() (#route-status)
+    // instead. See src/main.js's announce() and question.js's submit
+    // handler.
     const v = doc.getElementById('verdict');
     assertTrue(v, 'no verdict region');
     assertEq(v.getAttribute('tabindex'), '-1');
-    assertEq(v.getAttribute('aria-live'), 'polite');
+    assertEq(v.hasAttribute('aria-live'), false, 'verdict must not be a live region — it is pre-populated by the same innerHTML write, so aria-live would never fire');
 
     // Progress counter is plain text — intentionally NOT a live region.
     // (Per accessibility-lead Phase 6 review: only one polite live region
@@ -122,25 +221,69 @@ export async function run({ test, assertTrue, assertEq }) {
     assertTrue(sub, 'progress counter missing');
     assertEq(sub.hasAttribute('aria-live'), false, 'counter should not be a live region');
     assertEq(sub.hasAttribute('role'), false, 'counter should not carry role=status');
+    assertTrue(sub.textContent.includes('CPACC Practice Test'), 'the app name demotes to the .sub line, not the h1');
 
     // 4 radios
     assertEq(doc.querySelectorAll('input[type="radio"][name="choice"]').length, 4);
   });
 
-  await test('renderQuestion uses aria-disabled (not disabled) on revealed radios so keyboard review still works', async () => {
+  await test('renderQuestion makes revealed choices genuinely inert via <fieldset disabled>, restoring the picked/correct state as sr-only text', async () => {
     const dom = makeDom();
     const { renderQuestion } = await loadView('src/views/question.js');
     renderQuestion({
       app: dom.window.document.getElementById('app'),
+      // fakeQuestion.answer is 'A'; picking 'B' exercises both the "your
+      // answer" (B, wrong) and "correct answer" (A) sr-only branches.
       state: { ...fakeState, answers: { 1: 'B' }, revealed: { 1: true } },
       missed: fakeMissed,
       actions: fakeActions,
     });
-    const radios = dom.window.document.querySelectorAll('input[type="radio"][name="choice"]');
+    const doc = dom.window.document;
+
+    // The fieldset itself carries native `disabled`, which cascades to every
+    // control inside it — this is what makes revealed choices genuinely
+    // inert (unlike the old per-radio aria-disabled, which left them
+    // focusable/actionable to assistive tech despite looking disabled).
+    const fieldset = doc.getElementById('choices');
+    assertTrue(fieldset, 'no choices container');
+    assertTrue(fieldset.hasAttribute('disabled'), 'fieldset should be disabled once the answer is revealed');
+
+    // No individual radio should carry the old aria-disabled workaround —
+    // the fieldset's native disabled state already does the job.
+    const radios = doc.querySelectorAll('input[type="radio"][name="choice"]');
+    assertEq(radios.length, 4);
     for (const r of radios) {
-      assertEq(r.hasAttribute('disabled'), false, 'revealed radios must not use native disabled');
-      assertEq(r.getAttribute('aria-disabled'), 'true', 'revealed radios must use aria-disabled');
+      assertEq(r.hasAttribute('aria-disabled'), false, 'radios must not carry the old aria-disabled workaround');
     }
+
+    // Native `disabled` removes a control from the accessibility tree's
+    // interactive state, which would otherwise silently drop the "which
+    // one did I pick" / "which one was correct" signal. That's restored as
+    // visually-hidden text alongside the affected choice(s).
+    const labels = doc.querySelectorAll('#choices .choice');
+    const byLetter = {};
+    labels.forEach((lbl, i) => { byLetter[["A","B","C","D"][i]] = lbl; });
+    assertTrue(byLetter.B.querySelector('.sr-only').textContent.includes('Your answer.'), 'the picked (wrong) choice needs "Your answer." sr-only text');
+    assertTrue(byLetter.A.querySelector('.sr-only').textContent.includes('Correct answer.'), 'the correct choice needs "Correct answer." sr-only text');
+    assertTrue(!byLetter.C.querySelector('.sr-only'), 'an unrelated choice should carry no sr-only state text');
+    assertTrue(!byLetter.D.querySelector('.sr-only'), 'an unrelated choice should carry no sr-only state text');
+  });
+
+  await test('renderQuestion: sr-only state text reads "Your answer. Correct." when the picked choice is also correct', async () => {
+    const dom = makeDom();
+    const { renderQuestion } = await loadView('src/views/question.js');
+    renderQuestion({
+      app: dom.window.document.getElementById('app'),
+      // fakeQuestion.answer is 'A' — picking it merges the "your answer"
+      // and "correct answer" branches into one sr-only string.
+      state: { ...fakeState, answers: { 1: 'A' }, revealed: { 1: true } },
+      missed: fakeMissed,
+      actions: fakeActions,
+    });
+    const doc = dom.window.document;
+    const labels = doc.querySelectorAll('#choices .choice');
+    const a = labels[0]; // letter A
+    assertTrue(a.querySelector('.sr-only').textContent.includes('Your answer. Correct.'), 'a correct pick should read "Your answer. Correct."');
   });
 
   await test('renderQuestion submit-answer disabled when no pending answer', async () => {
@@ -171,6 +314,36 @@ export async function run({ test, assertTrue, assertEq }) {
     assertTrue(dom.window.document.getElementById('submit-all'), 'submit-all should show on last Q');
   });
 
+  await test('renderQuestion: h1 text differs between question indices (WCAG 2.4.6 — the route-focus target must identify which question, not just repeat the app name)', async () => {
+    const twoQuestions = [
+      fakeQuestion,
+      { ...fakeQuestion, id: 2, q: 'What is Y?' },
+    ];
+
+    const domFirst = makeDom();
+    const { renderQuestion } = await loadView('src/views/question.js');
+    renderQuestion({
+      app: domFirst.window.document.getElementById('app'),
+      state: { ...fakeState, questions: twoQuestions, index: 0 },
+      missed: fakeMissed,
+      actions: fakeActions,
+    });
+    const h1First = domFirst.window.document.querySelector('h1').textContent;
+
+    const domSecond = makeDom();
+    renderQuestion({
+      app: domSecond.window.document.getElementById('app'),
+      state: { ...fakeState, questions: twoQuestions, index: 1 },
+      missed: fakeMissed,
+      actions: fakeActions,
+    });
+    const h1Second = domSecond.window.document.querySelector('h1').textContent;
+
+    assertTrue(h1First !== h1Second, 'h1 must change between questions, or a screen reader user stepping through the test hears the same heading every time');
+    assertEq(h1First, 'Question 1 of 2');
+    assertEq(h1Second, 'Question 2 of 2');
+  });
+
   await test('renderResults shows score and per-question review markup', async () => {
     const dom = makeDom();
     const { renderResults } = await loadView('src/views/results.js');
@@ -187,7 +360,7 @@ export async function run({ test, assertTrue, assertEq }) {
     assertTrue(doc.getElementById('back'), 'back button missing');
   });
 
-  await test('renderFlashcards renders an accessible card toggle', async () => {
+  await test('renderFlashcards: #card is a plain container (not a button) so its text is reachable; #flip-card is the real keyboard control', async () => {
     const dom = makeDom();
     const { renderFlashcards } = await loadView('src/views/flashcards.js');
     renderFlashcards({
@@ -195,10 +368,25 @@ export async function run({ test, assertTrue, assertEq }) {
       state: { ...fakeState, flashcards: { cards: [{ id: 1, tag: 't', front: 'F', back: 'B' }], index: 0, flipped: false } },
       actions: fakeActions,
     });
-    const card = dom.window.document.getElementById('card');
-    assertTrue(card, 'card button missing');
-    assertEq(card.getAttribute('aria-pressed'), 'false');
-    assertTrue(card.hasAttribute('aria-label'), 'card needs aria-label');
+    const doc = dom.window.document;
+    const card = doc.getElementById('card');
+    assertTrue(card, 'card container missing');
+    // A button (or any element with aria-label/aria-pressed) computes its
+    // accessible name from the label attribute alone, which swallows the
+    // card's actual content — front/back text and tag became invisible to
+    // screen readers. #card must be a plain container whose content is
+    // ordinary navigable text instead.
+    assertTrue(card.tagName !== 'BUTTON', '#card must not be a <button>');
+    assertEq(card.hasAttribute('aria-label'), false, '#card must not carry aria-label — it would swallow the card content');
+    assertEq(card.hasAttribute('aria-pressed'), false, '#card must not carry aria-pressed — it is not a toggle button');
+    assertTrue(card.textContent.includes('F'), 'front text should be reachable as ordinary text content');
+    const side = card.querySelector('.sr-only');
+    assertTrue(side, 'card needs an sr-only side indicator');
+    assertEq(side.textContent, 'Front of card');
+    // The real, keyboard-operable control.
+    const flip = doc.getElementById('flip-card');
+    assertTrue(flip, '#flip-card control missing');
+    assertEq(flip.tagName, 'BUTTON', '#flip-card should be a real button');
   });
 
   await test('renderProvenanceBadge produces a <details> with labeled summary, confidence pill, and dl card', async () => {
@@ -221,7 +409,21 @@ export async function run({ test, assertTrue, assertEq }) {
     assertTrue(det, 'no <details> rendered');
     const summary = det.querySelector('summary');
     assertTrue(summary, 'no <summary>');
-    assertTrue(summary.getAttribute('aria-label').includes('Question 1'), 'aria-label should include the item label');
+    // <summary> maps to role=button, which takes its accessible name from
+    // its CONTENT. An aria-label here would override that and suppress
+    // the visible provenance label + confidence level from the name,
+    // failing WCAG 2.5.3 Label in Name (speech-input users say what they
+    // see, and what they see wouldn't be in the name). The name must come
+    // from the summary's own text content instead — the visible label,
+    // the confidence word, and a trailing .sr-only suffix that
+    // disambiguates repeated badges across a page.
+    assertEq(summary.hasAttribute('aria-label'), false, 'summary must not carry aria-label — it would suppress the visible label/confidence from the accessible name');
+    assertTrue(summary.textContent.includes(prov.label), 'summary text should include the visible provenance label');
+    assertTrue(summary.textContent.toLowerCase().includes('high'), 'summary text should include the confidence word');
+    assertTrue(summary.textContent.includes('Question 1'), 'summary text should include the disambiguating item label');
+    const srSuffix = summary.querySelector('.sr-only');
+    assertTrue(srSuffix, 'summary needs a .sr-only suffix carrying the item label');
+    assertTrue(srSuffix.textContent.includes('Question 1'), 'the .sr-only suffix should carry the item label');
     // Decorative emoji must be hidden from AT
     const emoji = summary.querySelector('.pv-icon');
     assertEq(emoji.getAttribute('aria-hidden'), 'true');
@@ -298,33 +500,39 @@ export async function run({ test, assertTrue, assertEq }) {
     assertTrue(note.textContent.toLowerCase().includes('beyond cpacc scope'), 'note must read "beyond CPACC scope"');
   });
 
-  await test('popstate-driven navigation moves focus to <main> (src/main.js + src/router.js)', async () => {
+  await test('click- and popstate-driven navigation moves focus to the route\'s <h1> inside #app, not <body> or bare #app (src/main.js + src/router.js)', async () => {
     // Full-app boot, not a single-view mount: the focus-on-route-change
-    // contract lives in main.js's popstate listener, not in any one view.
-    const indexHtml = fs.readFileSync(path.join(HERE, '..', 'index.html'), 'utf8');
-    const dom = new JSDOM(indexHtml, { url: 'http://localhost/#/', pretendToBeVisual: true, runScripts: 'outside-only' });
-    globalThis.window = dom.window;
-    globalThis.document = dom.window.document;
-    globalThis.location = dom.window.location;
-    globalThis.history = dom.window.history;
-    globalThis.localStorage = dom.window.localStorage;
-    globalThis.confirm = () => true;
+    // contract lives in main.js's popstate listener and render(), not in
+    // any one view. Focus now correctly lands on the route's <h1> (which
+    // has no id), so checking `.id === 'app'` would always be empty —
+    // assert element identity instead.
+    await bootApp('#/');
+    const app = document.getElementById('app');
 
-    await loadView('src/main.js');
-    await new Promise(r => setTimeout(r, 20)); // let the async chat-status/missed-set probes settle
+    function assertFocusOnRouteH1(msg) {
+      const el = document.activeElement;
+      assertTrue(el, `${msg}: nothing focused`);
+      assertTrue(app.contains(el), `${msg}: focus should be inside #app`);
+      assertEq(el.tagName, 'H1', `${msg}: focus should be the route's <h1>`);
+    }
 
+    // This is the exact gap that let ~20 navigation paths ship dropping
+    // focus to <body>: the previous suite only ever asserted location.hash
+    // after these clicks, never where focus went.
     document.getElementById('start').click();
     await new Promise(r => setTimeout(r, 5));
     assertEq(location.hash, '#/test/1', 'starting a test should push #/test/1');
+    assertFocusOnRouteH1('after starting a test');
 
     document.getElementById('next').click();
     await new Promise(r => setTimeout(r, 5));
     assertEq(location.hash, '#/test/2', 'advancing a question should push #/test/2');
+    assertFocusOnRouteH1('after clicking next');
 
     history.back();
     await new Promise(r => setTimeout(r, 5));
     assertEq(location.hash, '#/test/1', 'Back should restore the previous question');
-    assertEq(document.activeElement && document.activeElement.id, 'app', 'Back should move focus to <main id="app"> for keyboard/AT users');
+    assertFocusOnRouteH1('after Back');
   });
 
   await test('decorative emoji in renderHome have aria-hidden="true"', async () => {
@@ -343,5 +551,399 @@ export async function run({ test, assertTrue, assertEq }) {
     for (const e of emoji) {
       assertEq(e.getAttribute('aria-hidden'), 'true', 'decorative emoji must be aria-hidden');
     }
+  });
+
+  // ---- WCAG 1.4.1 color-independence coverage: chat speaker labels, jump-grid answered mark ----
+
+  await test('renderChatFragment: each role gets its WCAG 1.4.1 speaker label; message content is escaped, the label is not', async () => {
+    const { renderChatFragment } = await loadView('src/views/chat.js');
+    const chat = {
+      history: [
+        { role: 'user', content: '<b>ignore me</b> what does POUR mean?' },
+        { role: 'assistant', content: 'POUR = Perceivable, Operable, Understandable, Robust.' },
+        { role: 'error', content: 'Something went wrong.' },
+      ],
+    };
+    const html = renderChatFragment(fakeQuestion, chat);
+    const dom = makeDom();
+    const wrap = dom.window.document.createElement('div');
+    wrap.innerHTML = html;
+    const msgs = wrap.querySelectorAll('.msg');
+    assertEq(msgs.length, 3, 'expected one .msg per history entry');
+
+    const expected = [['user', 'You:'], ['assistant', 'Tutor:'], ['error', 'Error:']];
+    expected.forEach(([role, label], i) => {
+      const msg = msgs[i];
+      assertTrue(msg.classList.contains(role), `message ${i} should carry the .${role} class`);
+      const roleEl = msg.querySelector('b.msg-role');
+      assertTrue(roleEl, `message ${i} missing <b class="msg-role">`);
+      assertEq(roleEl.textContent, label, `message ${i} label mismatch`);
+    });
+
+    // Content is escaped — the literal "<b>" from history[0].content must
+    // survive as visible text, not become a real element. If it were
+    // unescaped it would parse as markup and disappear from textContent,
+    // and a second <b> (beyond .msg-role) would appear in the DOM.
+    assertTrue(msgs[0].textContent.includes('<b>ignore me</b>'), 'message content must be escapeHtml-escaped, not parsed as markup');
+    assertEq(msgs[0].querySelectorAll('b').length, 1, 'only the .msg-role <b> should exist — an unescaped content <b> would add a second one');
+  });
+
+  await test('renderHome: home chat carries the same WCAG 1.4.1 speaker labels for all three roles, content escaped', async () => {
+    const dom = makeDom();
+    const { renderHome } = await loadView('src/views/home.js');
+    const state = {
+      ...fakeState,
+      chatEnabled: true,
+      homeChat: {
+        history: [
+          { role: 'user', content: 'What is <script>alert(1)</script>?' },
+          { role: 'assistant', content: 'A definition.' },
+          { role: 'error', content: 'Network error.' },
+        ],
+      },
+    };
+    renderHome({
+      app: dom.window.document.getElementById('app'),
+      state,
+      data: { CPACC_BANK: [fakeQuestion], BEAR_BANK: [], BEAR_FLASHCARDS: [], DISABILITIES: { categories: [], items: [] }, LEGAL: { jurisdictions: [], items: [] } },
+      provenance: {},
+      missed: fakeMissed,
+      actions: fakeActions,
+    });
+    const doc = dom.window.document;
+    const log = doc.getElementById('home-log');
+    assertTrue(log, 'home chat log missing (chatEnabled: true should render the chat panel)');
+    const msgs = log.querySelectorAll('.msg');
+    assertEq(msgs.length, 3, 'expected one .msg per history entry');
+
+    const expected = [['user', 'You:'], ['assistant', 'Tutor:'], ['error', 'Error:']];
+    expected.forEach(([role, label], i) => {
+      assertTrue(msgs[i].classList.contains(role), `message ${i} should carry the .${role} class`);
+      const roleEl = msgs[i].querySelector('b.msg-role');
+      assertTrue(roleEl, `message ${i} missing <b class="msg-role">`);
+      assertEq(roleEl.textContent, label, `message ${i} label mismatch`);
+    });
+
+    assertTrue(msgs[0].textContent.includes('<script>alert(1)</script>'), 'message content must be escaped, not parsed as markup');
+    assertEq(msgs[0].querySelectorAll('script').length, 0, 'escaped content must not create a real <script> element');
+  });
+
+  await test('renderJumpGrid: answered mark differs from unanswered, lives inside an aria-hidden span, and does not leak into the button aria-label', async () => {
+    const dom = makeDom();
+    const { renderQuestion } = await loadView('src/views/question.js');
+    const twoQuestions = [fakeQuestion, { ...fakeQuestion, id: 2, q: 'What is Y?' }];
+    renderQuestion({
+      app: dom.window.document.getElementById('app'),
+      state: { ...fakeState, questions: twoQuestions, index: 0, answers: { 1: 'A' }, revealed: { 1: true } },
+      missed: fakeMissed,
+      actions: fakeActions,
+    });
+    const doc = dom.window.document;
+    const cells = doc.querySelectorAll('#jump .cell');
+    assertEq(cells.length, 2, 'expected one cell per question');
+    const [answeredCell, unansweredCell] = cells;
+
+    const answeredGlyphSpan = answeredCell.querySelector('span[aria-hidden="true"]');
+    const unansweredGlyphSpan = unansweredCell.querySelector('span[aria-hidden="true"]');
+    assertTrue(answeredGlyphSpan, 'answered cell missing aria-hidden glyph span');
+    assertTrue(unansweredGlyphSpan, 'unanswered cell missing aria-hidden glyph span');
+
+    assertTrue(answeredGlyphSpan.textContent.includes('✓'), 'answered cell glyph should include ✓');
+    assertTrue(unansweredGlyphSpan.textContent.includes('·'), 'unanswered cell glyph should include ·');
+    assertTrue(answeredGlyphSpan.textContent !== unansweredGlyphSpan.textContent, 'glyphs must differ between answered and unanswered cells');
+
+    // Critically: the glyph must not leak into the accessible name — the
+    // button's aria-label stays exactly "Question N, answered/unanswered",
+    // sourced separately from the aria-hidden span's content.
+    assertEq(answeredCell.getAttribute('aria-label'), 'Question 1, answered');
+    assertEq(unansweredCell.getAttribute('aria-label'), 'Question 2, unanswered');
+    assertTrue(!answeredCell.getAttribute('aria-label').includes('✓'), 'aria-label must not contain the glyph');
+    assertTrue(!unansweredCell.getAttribute('aria-label').includes('·'), 'aria-label must not contain the glyph');
+  });
+
+  await test('regression guard: chat role and jump-grid answered state are distinguishable by something other than a class/color alone (WCAG 1.4.1)', async () => {
+    // The original defect in both places was that `.msg.user` vs
+    // `.msg.assistant` and `.cell.answered` vs `.cell` differed only by
+    // class name (and therefore only by color) — nothing a screen reader
+    // user or someone who can't perceive the color difference could sense
+    // was different. This test would fail if either fix were reverted to
+    // "just add a class back" instead of restoring a genuinely perceivable
+    // (here: textual) cue, because it never inspects the class list —
+    // only rendered text content.
+    const { renderChatFragment } = await loadView('src/views/chat.js');
+    const chatHtml = renderChatFragment(fakeQuestion, {
+      history: [
+        { role: 'user', content: 'a question' },
+        { role: 'assistant', content: 'an answer' },
+      ],
+    });
+    const chatDom = makeDom();
+    const wrap = chatDom.window.document.createElement('div');
+    wrap.innerHTML = chatHtml;
+    const [userMsg, assistantMsg] = wrap.querySelectorAll('.msg');
+    assertTrue(userMsg.textContent.trim().startsWith('You:'), 'user message text alone must announce the speaker');
+    assertTrue(assistantMsg.textContent.trim().startsWith('Tutor:'), 'assistant message text alone must announce the speaker');
+    assertTrue(userMsg.textContent.slice(0, 10) !== assistantMsg.textContent.slice(0, 10), 'the two messages must read differently by text alone');
+
+    const { renderQuestion } = await loadView('src/views/question.js');
+    const gridDom = makeDom();
+    const twoQuestions = [fakeQuestion, { ...fakeQuestion, id: 2, q: 'What is Y?' }];
+    renderQuestion({
+      app: gridDom.window.document.getElementById('app'),
+      state: { ...fakeState, questions: twoQuestions, index: 0, answers: { 1: 'A' }, revealed: { 1: true } },
+      missed: fakeMissed,
+      actions: fakeActions,
+    });
+    const [answeredCell, unansweredCell] = gridDom.window.document.querySelectorAll('#jump .cell');
+    assertTrue(answeredCell.textContent.trim() !== unansweredCell.textContent.trim(), 'jump-grid cells must read differently by text alone, independent of the .answered class/color');
+  });
+
+  // ---- Part 3: coverage that let the focus/heading/skip-link bugs ship green ----
+
+  await test('activating the skip link does not navigate away from the current route (regression)', async () => {
+    // Regression for the critical bug: href="#app" is kept only as a
+    // no-JS fallback. With JS active, main.js intercepts the click and
+    // calls e.preventDefault() specifically so it never reaches
+    // location.hash — letting it through used to fire a popstate for a
+    // hash applyPath can't resolve to any route, which fell through to
+    // "unknown route" and bounced a mid-test user to home.
+    await bootApp('#/');
+    const app = document.getElementById('app');
+
+    document.getElementById('start').click();
+    await new Promise(r => setTimeout(r, 5));
+    assertEq(location.hash, '#/test/1', 'sanity: test started');
+
+    const skip = document.getElementById('skip-link');
+    assertTrue(skip, 'no #skip-link');
+    // A real, dispatched click (not calling .onclick directly) so the
+    // browser's native default action for an <a href="#app"> is actually
+    // exercised and has to be prevented, same as a real activation.
+    skip.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    await new Promise(r => setTimeout(r, 5));
+
+    assertEq(location.hash, '#/test/1', 'skip link must not change the route — it must still be #/test/1');
+    const el = document.activeElement;
+    assertTrue(app.contains(el), 'skip link should move focus into #app');
+    assertEq(el.tagName, 'H1', 'skip link should move focus to the route\'s <h1>');
+  });
+
+  await test('a raw popstate for a non-route hash like "#app" does not reset the app to home (regression)', async () => {
+    // jsdom may not fire popstate on fragment activation the way Chromium
+    // does, so the skip-link test above can't be trusted alone to exercise
+    // main.js's popstate guard (`if (hash !== '' && !hash.startsWith('#/'))
+    // return;`). Dispatch the popstate directly to test that guard in
+    // isolation, independent of whether jsdom's <a> activation behavior
+    // fires one on its own.
+    await bootApp('#/');
+
+    document.getElementById('start').click();
+    await new Promise(r => setTimeout(r, 5));
+    assertTrue(document.getElementById('choices'), 'sanity: mid-test, question view mounted');
+
+    window.location.hash = 'app';
+    window.dispatchEvent(new window.PopStateEvent('popstate', { state: null }));
+    await new Promise(r => setTimeout(r, 5));
+
+    assertTrue(document.getElementById('choices'), 'app must still show the in-progress test, not have reset to home');
+    assertEq(document.getElementById('start'), null, 'home view must not have been rendered for a "#app" popstate');
+  });
+
+  await test('focus restoration: disabling #prev-card on flip to card 1 lands focus on #next-card, not <body>', async () => {
+    // Subtle infrastructure (captureFocus/restoreFocus/nearestFocusableSibling
+    // in src/main.js) that rots silently without a test: when the focused
+    // control disables itself as a side effect of the click that triggered
+    // it, the old node is already gone by the time focus restoration runs,
+    // and doing nothing would drop focus to <body> — exactly the bug this
+    // file exists to prevent, just at the boundary instead of the middle.
+    await bootApp('#/');
+    document.getElementById('start-flashcards').click();
+    await new Promise(r => setTimeout(r, 30)); // startFlashcards lazy-imports sampling.js
+    assertEq(location.hash, '#/flashcards', 'sanity: flashcards started');
+
+    document.getElementById('next-card').click();
+    await new Promise(r => setTimeout(r, 5)); // now on card 2; #prev-card enabled
+
+    const prevCard = document.getElementById('prev-card');
+    assertTrue(prevCard && !prevCard.disabled, 'sanity: #prev-card enabled on card 2');
+    prevCard.focus();
+    prevCard.click(); // back to card 1 -> #prev-card disables itself
+    await new Promise(r => setTimeout(r, 5));
+
+    const el = document.activeElement;
+    assertTrue(el !== document.body, 'focus must not fall to <body> when #prev-card disables itself');
+    assertEq(el && el.id, 'next-card', 'focus should land on the nearest focusable sibling, #next-card');
+  });
+
+  await test('focus restoration: #prev disabling itself on question-view navigation still does not drop focus to <body> (it lands on the route h1 instead)', async () => {
+    // Same underlying worry as the flashcards case above — does a control
+    // disabling itself as a side effect of its own click drop focus to
+    // <body>? — but a DIFFERENT resolution here: unlike the flashcard
+    // index, the question index is part of main.js's routeKey (see
+    // src/router.js's comment: "stepping between questions is a real
+    // navigation axis"), so clicking #prev/#next is treated as a real
+    // navigation and unconditionally moves focus to the route's <h1> via
+    // moveFocusToRoute(), never reaching the captureFocus/restoreFocus /
+    // nearestFocusableSibling fallback path at all. Asserting that
+    // fallback path's target (#next) here would be wrong — it would
+    // encode a behavior the app doesn't have. What's actually being
+    // guarded is the same outcome the flashcards test guards: focus must
+    // not end up on <body>.
+    await bootApp('#/');
+    document.getElementById('start').click();
+    await new Promise(r => setTimeout(r, 5)); // question 1; #prev disabled
+
+    document.getElementById('next').click();
+    await new Promise(r => setTimeout(r, 5)); // question 2; #prev enabled
+
+    const app = document.getElementById('app');
+    const prev = document.getElementById('prev');
+    assertTrue(prev && !prev.disabled, 'sanity: #prev enabled on question 2');
+    prev.focus();
+    prev.click(); // back to question 1 -> #prev disables itself
+    await new Promise(r => setTimeout(r, 5));
+
+    const el = document.activeElement;
+    assertTrue(el !== document.body, 'focus must not fall to <body> when #prev disables itself');
+    assertTrue(app.contains(el), 'focus should land inside #app');
+    assertEq(el.tagName, 'H1', 'question-view navigation always moves focus to the route h1, even when triggered by a control that disables itself');
+  });
+
+  // Collects heading tags in document order and reports whether the
+  // outline ever jumps more than one level deeper at once (e.g. h1 -> h3
+  // with no h2 between). Doesn't check for *shallower* jumps (h3 -> h1 is
+  // fine — that's just starting a new section) since that's not what
+  // "skipped level" means for WCAG 1.3.1 / 2.4.6 purposes.
+  function headingOutlineHasNoSkips(root) {
+    const levels = [...root.querySelectorAll('h1,h2,h3,h4,h5,h6')].map(h => Number(h.tagName[1]));
+    let prev = 0;
+    for (const lvl of levels) {
+      if (lvl > prev + 1) return false;
+      prev = lvl;
+    }
+    return true;
+  }
+
+  await test('renderDisabilities detail view ({view:"list"}) has exactly one visible h1 and no skipped heading levels', async () => {
+    const dom = makeDom();
+    const { renderDisabilities } = await loadView('src/views/disabilities.js');
+    renderDisabilities({
+      app: dom.window.document.getElementById('app'),
+      state: { ...fakeState, disabilities: { view: 'list', category: 'visual' } },
+      data: {
+        DISABILITIES: {
+          categories: [{ id: 'visual', label: 'Visual', emoji: '👁️', color: '#0af', summary: 'Vision-related disabilities.' }],
+          items: [{
+            category: 'visual', id: 'low-vision', name: 'Low vision', emoji: '👓',
+            description: 'Reduced visual acuity even with correction.',
+            keyFacts: ['Affects reading and navigation.'],
+            a11ySolutions: ['Support text resizing and high contrast.'],
+            prevalence: '2B+ globally',
+          }],
+        },
+      },
+      provenance: {},
+      missed: fakeMissed,
+      actions: fakeActions,
+    });
+    const doc = dom.window.document;
+    const h1s = doc.querySelectorAll('h1');
+    assertEq(h1s.length, 1, 'expected exactly one h1 on the disabilities detail view');
+    assertEq(h1s[0].classList.contains('sr-only'), false, 'the route-focus target h1 must be visible, not sr-only');
+    assertTrue(headingOutlineHasNoSkips(doc), 'heading outline must not skip a level (h1 -> h2 -> h3)');
+  });
+
+  await test('renderLegal detail view ({view:"list"}) has exactly one visible h1 and no skipped heading levels', async () => {
+    const dom = makeDom();
+    const { renderLegal } = await loadView('src/views/legal.js');
+    renderLegal({
+      app: dom.window.document.getElementById('app'),
+      state: { ...fakeState, legal: { view: 'list', category: 'us' } },
+      data: {
+        LEGAL: {
+          jurisdictions: [{ id: 'us', label: 'United States', emoji: '🇺🇸', color: '#036', summary: 'US disability law.' }],
+          items: [{
+            id: 'ada', jurisdiction: 'us', name: 'Americans with Disabilities Act', year: '1990', type: 'Statute',
+            summary: 'Civil rights law prohibiting discrimination based on disability.',
+            keyFacts: ['Covers employment, public accommodations, and telecommunications.'],
+            cpacc: true,
+          }],
+        },
+      },
+      provenance: {},
+      missed: fakeMissed,
+      actions: fakeActions,
+    });
+    const doc = dom.window.document;
+    const h1s = doc.querySelectorAll('h1');
+    assertEq(h1s.length, 1, 'expected exactly one h1 on the legal detail view');
+    assertEq(h1s[0].classList.contains('sr-only'), false, 'the route-focus target h1 must be visible, not sr-only');
+    assertTrue(headingOutlineHasNoSkips(doc), 'heading outline must not skip a level (h1 -> h2 -> h3)');
+  });
+
+  await test('document.title differs between #/disabilities and #/disabilities/<id>', async () => {
+    // titleFor() is internal to main.js (not exported), so it's exercised
+    // through the booted app rather than tested in isolation.
+    await bootApp('#/');
+    document.getElementById('start-disabilities').click();
+    await new Promise(r => setTimeout(r, 5));
+    assertEq(location.hash, '#/disabilities', 'sanity: on the disabilities grid');
+    const gridTitle = document.title;
+
+    const catBtn = document.querySelector('[data-cat]');
+    assertTrue(catBtn, 'no category card to click');
+    const catLabel = catBtn.querySelector('.cat-label')?.textContent || '';
+    catBtn.click();
+    await new Promise(r => setTimeout(r, 5));
+    assertTrue(location.hash.startsWith('#/disabilities/'), 'sanity: on a disabilities detail route');
+    const detailTitle = document.title;
+
+    assertTrue(gridTitle !== detailTitle, `#/disabilities and its detail route must have different titles, got "${gridTitle}" for both`);
+    assertTrue(detailTitle.includes(catLabel), 'detail title should name the specific category, not just repeat the grid title');
+  });
+
+  await test('#route-status live region exists as a sibling of #app, is role=status, and receives text from announce()', async () => {
+    await bootApp('#/');
+    const app = document.getElementById('app');
+    const routeStatus = document.getElementById('route-status');
+    assertTrue(routeStatus, 'no #route-status element');
+    // Must survive app.innerHTML rewrites, which it can only do by living
+    // outside the element that gets rewritten.
+    assertEq(app.contains(routeStatus), false, '#route-status must be a sibling of #app, not a descendant');
+    assertEq(routeStatus.getAttribute('role'), 'status');
+    assertEq(routeStatus.getAttribute('aria-live'), 'polite');
+
+    // Drive an actual announce() call: submitting an answer announces the
+    // verdict through #route-status (see src/views/question.js /
+    // src/main.js's announce()).
+    document.getElementById('start').click();
+    await new Promise(r => setTimeout(r, 5));
+    const radio = document.querySelector('input[name="choice"]');
+    assertTrue(radio, 'no answer radio to pick');
+    radio.click();
+    const submitBtn = document.getElementById('submit-answer');
+    assertTrue(submitBtn && !submitBtn.disabled, 'sanity: submit-answer enabled after picking a choice');
+    submitBtn.click();
+
+    // announce() debounces through a 75ms setTimeout — wait longer than that.
+    await new Promise(r => setTimeout(r, 150));
+    assertTrue(routeStatus.textContent.length > 0, 'announce() should eventually write text into #route-status');
+  });
+
+  // ---- Part 3 (task doc): styles/app.css ----
+  //
+  // jsdom does not do layout or cascade resolution, so a test that parses
+  // CSS text and claims to verify a computed style, a contrast ratio, or
+  // that a selector actually wins the cascade would be theatre. The one
+  // check below is honestly scoped: it is a text-presence guard against
+  // accidental deletion of the prefers-reduced-motion block, nothing more.
+  // Everything else new in app.css this round (:focus:not(:focus-visible),
+  // .cell[aria-current], .cite .linkish, ::placeholder, .msg-role) is
+  // exercised indirectly by the DOM tests above (e.g. the jump-grid test
+  // checks .cell markup; the chat-label tests check .msg-role markup) but
+  // is not — and should not be — asserted on as CSS.
+  await test('styles/app.css text-presence guard: still declares a prefers-reduced-motion block (cheap deletion guard only)', () => {
+    const css = fs.readFileSync(path.join(HERE, '..', 'styles', 'app.css'), 'utf8');
+    assertTrue(css.includes('prefers-reduced-motion'), 'app.css should still declare a prefers-reduced-motion media query');
   });
 }

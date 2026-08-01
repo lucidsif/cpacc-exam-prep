@@ -105,9 +105,9 @@ Click any badge in the app to see the full provenance card (source, model, gener
 
 The table above covers the app's *content*. The **code** — including the accessibility implementation — was also largely written by Claude: most commits carry a `Co-Authored-By: Claude` trailer, which you can count yourself with `git log --format='%b' | grep -c 'Co-Authored-By: Claude'`.
 
-That is worth stating bluntly rather than burying, because a pre-publication audit found AI-written accessibility code in this repo claiming conformance it did not have, repeating a factually wrong premise about `disabled` in seven places, shipping a focus-indicator fix that covered one of five cases while documenting it as complete, and dropping keyboard focus to `<body>` on every route. Both test suites were green through all of it.
+That is worth stating bluntly rather than burying. A pre-publication audit found AI-written accessibility code in this repo claiming conformance it did not have, and repeating a factually wrong premise about `disabled` in seven places. It also found a focus-indicator fix that covered one of five cases while being documented as complete, and keyboard focus dropping to `<body>` on every route. Both test suites were green through all of it.
 
-The author set the standards and did some informal keyboard checking; per-commit human review was not performed, which is how those defects reached `main`. What caught them was adversarial review plus measurement in real browsers — and measurement contradicted static analysis in *both* directions, inventing one defect that did not exist and understating another.
+The author set the standards and did some informal keyboard checking. Per-commit human review was not performed, which is how those defects reached `main`. What caught them was adversarial review plus measurement in real browsers. Measurement contradicted static analysis in *both* directions: it invented one defect that did not exist, and understated another.
 
 **The long version:** [`AI_TRANSPARENCY.md`](AI_TRANSPARENCY.md), specifically [How the app itself was built](AI_TRANSPARENCY.md#how-the-app-itself-was-built). Read it. Especially if you're skeptical — that's the audience it's written for.
 
@@ -147,22 +147,22 @@ The actual CPACC exam is **100 multiple-choice questions in 2 hours** (~72 sec/q
 
 Targets **WCAG 2.2 AA**. Notable contracts (enforced by `tests/views.test.js`):
 
-- Semantic HTML before ARIA (`<button>`, real `<input>`, `<h1>`–`<h6>`, `<main>`)
-- Skip link → `<main tabindex="-1">` for keyboard users
-- Browser Back/Forward, and every click-driven navigation, move focus to the destination route's own `<h1>` and update `document.title`; in-place re-renders (chat send, card flip, a toggle) preserve focus and caret position instead
-- Skip link intercepts its own click so it can't be misread as an unknown route and bounce you back to home mid-test
-- One H1 per view, H2 sub-headings, no skipped levels
-- Visible focus indicator on every focusable element (3px amber): native `:focus-visible` (with a same-effect fallback for engines lacking it) covers ordinary keyboard focus; a dedicated CSS class guarantees the identical ring, unconditionally, on every focus move the app makes by script — route navigation plus five other targets — regardless of whether `:focus-visible` matches. See [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for the measured mechanism
-- Color contrast: text ≥ 4.5:1, UI components ≥ 3:1 — audited across every pair in the app, see [`ACCESSIBILITY.md`](ACCESSIBILITY.md)
-- Color never the sole channel (confidence pills pair color + shape + text; chat speaker identity, the jump grid, and the current-question cell all have a non-color cue too)
-- Answer choices are native radio inputs in a `<fieldset>`; visible hint adapts to touch vs keyboard via `(pointer: coarse)`; revealed choices sit in a genuinely-`disabled` fieldset, not a lying `aria-disabled`
-- Announcements (verdict, chat replies/errors) go through one of two persistent, static live regions that survive DOM rewrites — `#route-status` (polite) or `#route-alert` (assertive), picked by `announce()` rather than mutated per call
-- Decorative emoji `aria-hidden="true"`
-- `prefers-reduced-motion: reduce` honored for scroll behavior
-- AI provenance disclosure uses native `<details>`/`<summary>` (zero JS, mobile-friendly, implicit `aria-expanded`)
-- AI-info dialog is a native `<dialog>` with focus return on close
+- Semantic HTML before ARIA (`<button>`, real `<input>`, `<h1>`–`<h6>`, `<main>`).
+- Skip link → `<main tabindex="-1">` for keyboard users.
+- Browser Back/Forward, and every click-driven navigation, move focus to the destination route's own `<h1>` and update `document.title`. In-place re-renders (chat send, card flip, a toggle) preserve focus and caret position instead.
+- Skip link intercepts its own click, so it can't be misread as an unknown route and bounce you back to home mid-test.
+- One H1 per view, H2 sub-headings, no skipped levels.
+- Visible focus indicator on every focusable element (3px amber). Native `:focus-visible` covers ordinary keyboard focus, with a same-effect fallback for engines lacking it. A dedicated CSS class guarantees the identical ring, unconditionally, on every focus move the app makes by script — route navigation plus five other targets — regardless of whether `:focus-visible` matches. See [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for the measured mechanism.
+- Color contrast: text ≥ 4.5:1, UI components ≥ 3:1 — audited across every pair in the app, see [`ACCESSIBILITY.md`](ACCESSIBILITY.md).
+- Color never the sole channel. Confidence pills pair color + shape + text; chat speaker identity, the jump grid, and the current-question cell all have a non-color cue too.
+- Answer choices are native radio inputs in a `<fieldset>`. The visible hint adapts to touch vs keyboard via `(pointer: coarse)`. Revealed choices sit in a genuinely-`disabled` fieldset, not a lying `aria-disabled`.
+- Announcements (verdict, chat replies/errors) go through one of two persistent, static live regions that survive DOM rewrites: `#route-status` (polite) or `#route-alert` (assertive). `announce()` picks the region, rather than mutating one per call.
+- Decorative emoji `aria-hidden="true"`.
+- `prefers-reduced-motion: reduce` honored for scroll behavior.
+- AI provenance disclosure uses native `<details>`/`<summary>` (zero JS, mobile-friendly, implicit `aria-expanded`).
+- AI-info dialog is a native `<dialog>` with focus return on close.
 
-Beyond the jsdom contracts above, an end-to-end suite (`npm run test:e2e`, Playwright) drives the app in real Chromium, Firefox, and WebKit — real layout, real computed styles, real focus rings, real Tab order, and automated `axe-core` scans against a real accessibility tree, none of which jsdom can check. See [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for what it found, including two documented WebKit-specific behavioural differences, and for what's still open (manual screen reader testing of the current version is the biggest gap and remains undone).
+Beyond the jsdom contracts above, an end-to-end suite (`npm run test:e2e`, Playwright) drives the app in real Chromium, Firefox, and WebKit. That gives real layout, real computed styles, real focus rings, real Tab order, and automated `axe-core` scans against a real accessibility tree — none of which jsdom can check. See [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for what it found, including two documented WebKit-specific behavioural differences. It also covers what is still open: manual screen reader testing of the current version is the biggest gap, and remains undone.
 
 Every UI change in this repo went through accessibility-lead review before merging. See [`CONTRIBUTING.md`](CONTRIBUTING.md#accessibility-expectations) if you want to contribute.
 
@@ -274,7 +274,7 @@ There's also an end-to-end suite for what jsdom structurally can't check:
 npm run test:e2e   # Playwright — real Chromium, Firefox, and WebKit
 ```
 
-130 tests across 5 projects — chromium, firefox, webkit, a 320px mobile viewport, and a chat-enabled project — covering real layout, computed styles, focus rings, Tab order, scroll position, horizontal-overflow (reflow) checks, and automated `axe-core` accessibility scans against a real accessibility tree. See [`tests/README.md`](tests/README.md#end-to-end-tests-e2e) for the jsdom/e2e division of labour, and [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for what it found.
+130 tests across 5 projects: chromium, firefox, webkit, a 320px mobile viewport, and a chat-enabled project. They cover real layout, computed styles, focus rings, Tab order, scroll position, horizontal-overflow (reflow) checks, and automated `axe-core` accessibility scans against a real accessibility tree. See [`tests/README.md`](tests/README.md#end-to-end-tests-e2e) for the jsdom/e2e division of labour, and [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for what it found.
 
 ---
 

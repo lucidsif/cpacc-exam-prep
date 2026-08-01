@@ -266,4 +266,80 @@ export async function run({ test, assertTrue, assertEq }) {
     input.onkeydown({ key: 'Enter', isComposing: false });
     assertEq(chatSends, 1, 'sanity: a genuine Enter (not composing) should still send');
   });
+
+  // ---- anchor bars need the same group semantics as the jump grids ----
+  //
+  // question.js's and results.js's jump grids carry role="group" +
+  // aria-label on their container so a screen reader announces them as a
+  // named group of 20-ish sibling buttons, not an unlabelled flat list.
+  // disabilities.js's and legal.js's anchor bars are the same shape (up to
+  // 26 sibling <button class="anchor">s in a bare <div>) and previously had
+  // none of that. This pins both now carry it, matching the jump grids'
+  // existing pattern instead of being the odd one out.
+
+  await test('disabilities.js anchor bar carries role="group" + a non-empty aria-label, matching the jump grid pattern', async () => {
+    makeDom();
+    const { renderDisabilities } = await loadView('src/views/disabilities.js');
+    const data = { DISABILITIES: {
+      categories: [{ id: 'testcat', label: 'Test Category', emoji: '🧪', color: '#000' }],
+      items: [
+        { id: 'item1', category: 'testcat', emoji: '🧪', name: 'Item One', prevalence: '', description: '', keyFacts: [], a11ySolutions: [] },
+        { id: 'item2', category: 'testcat', emoji: '🧪', name: 'Item Two', prevalence: '', description: '', keyFacts: [], a11ySolutions: [] },
+      ],
+    }};
+    const state = baseState({ view: 'disabilities', disabilities: { view: 'list', category: 'testcat' } });
+    const { actions } = spyActions();
+    renderDisabilities({ app: document.getElementById('app'), state, data, actions, provenance: null });
+
+    const anchorList = document.querySelector('.anchor-list');
+    assertTrue(anchorList, '.anchor-list missing');
+    assertEq(anchorList.getAttribute('role'), 'group', 'anchor bar should carry role="group" like the jump grids');
+    const label = anchorList.getAttribute('aria-label');
+    assertTrue(!!label && label.includes('Test Category'), 'anchor bar aria-label should be non-empty and name the category');
+  });
+
+  await test('legal.js anchor bar carries role="group" + a non-empty aria-label, matching the jump grid pattern', async () => {
+    makeDom();
+    const { renderLegal } = await loadView('src/views/legal.js');
+    const data = { LEGAL: {
+      jurisdictions: [{ id: 'testjur', label: 'Test Jurisdiction', emoji: '⚖️', color: '#000' }],
+      items: [
+        { id: 'item1', jurisdiction: 'testjur', name: 'Item One', year: '2000', type: 'Statute', cpacc: true, summary: '', keyFacts: [] },
+        { id: 'item2', jurisdiction: 'testjur', name: 'Item Two', year: '2001', type: 'Statute', cpacc: true, summary: '', keyFacts: [] },
+      ],
+    }};
+    const state = baseState({ view: 'legal', legal: { view: 'list', category: 'testjur' } });
+    const { actions } = spyActions();
+    renderLegal({ app: document.getElementById('app'), state, data, actions, provenance: null });
+
+    const anchorList = document.querySelector('.anchor-list');
+    assertTrue(anchorList, '.anchor-list missing');
+    assertEq(anchorList.getAttribute('role'), 'group', 'anchor bar should carry role="group" like the jump grids');
+    const label = anchorList.getAttribute('aria-label');
+    assertTrue(!!label && label.includes('Test Jurisdiction'), 'anchor bar aria-label should be non-empty and name the jurisdiction');
+  });
+
+  // ---- "About AI in this app" must not repeat across simultaneously-open
+  // chat panels, same as the toggle/send/input/log fix above (D4) ----
+
+  await test('results.js disambiguates the "About AI in this app" button per open chat panel', async () => {
+    makeDom();
+    const { renderResults } = await loadView('src/views/results.js');
+    const q1 = fakeQuestion(1);
+    const q2 = fakeQuestion(2);
+    const state = baseState({
+      view: 'results', questions: [q1, q2], submitted: true, chatEnabled: true,
+      chats: { 1: { open: true, history: [], draft: '' }, 2: { open: true, history: [], draft: '' } },
+    });
+    const { actions } = spyActions();
+    renderResults({ app: document.getElementById('app'), state, missed: fakeMissed, actions, provenanceForQuestion: () => null });
+
+    const aiBtn1 = document.querySelector('#chat-panel-1 [data-open-ai-info]');
+    const aiBtn2 = document.querySelector('#chat-panel-2 [data-open-ai-info]');
+    assertTrue(aiBtn1, 'Q1 chat panel should render an "About AI in this app" button');
+    assertTrue(aiBtn2, 'Q2 chat panel should render an "About AI in this app" button');
+    assertTrue(aiBtn1.textContent !== aiBtn2.textContent, '"About AI in this app" buttons must not share one accessible name across open panels');
+    assertTrue(aiBtn1.textContent.includes('Question 1'), 'Q1\'s "About AI in this app" name should identify question 1');
+    assertTrue(aiBtn2.textContent.includes('Question 2'), 'Q2\'s "About AI in this app" name should identify question 2');
+  });
 }

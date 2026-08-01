@@ -8,8 +8,19 @@
 // styles/app.css:
 //   :focus:not(:focus-visible) { outline: none; }
 //   :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
-//   .route-focus { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+//   .route-focus:focus { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 // --focus-ring is #ffd479, i.e. rgb(255, 212, 121).
+//
+// The `:focus` compound on that last rule is load-bearing, not decorative:
+// `.route-focus:focus` has specificity (0,2,0), tying the
+// `:focus:not(:focus-visible)` suppressor above it. Source order then
+// decides the tie, and `.route-focus:focus` is declared after the
+// suppressor, so it wins. The bare `.route-focus` class alone is (0,1,0) —
+// it LOSES that tie, and the suppressor's `outline: none` is what a cold
+// mouse-only session actually matches, silently painting nothing. Writing
+// this rule as the bare class (`.route-focus { ... }`) is exactly the
+// regression this file exists to catch; see styles/app.css's comment above
+// that rule for the same explanation in context.
 //
 // Whether a script-focused element matches :focus-visible is a heuristic
 // each rendering engine implements on its own — there is no single spec
@@ -146,8 +157,42 @@ test.describe('focus ring on programmatic focus — WITHOUT prior keyboard inter
     await expect(h1).toHaveClass(/route-focus/);
 
     const ring = await focusRingOf(h1);
+    // This is the assertion that actually proves the fix did the work: the
+    // "WITH prior keyboard interaction" block above asserts
+    // matchesFocusVisible === true (:96, :116) precisely because the ring
+    // there comes from the browser's own :focus-visible heuristic matching.
+    // Without also asserting the opposite here, this test could not tell
+    // "the .route-focus fix rendered the ring" apart from "the engine's
+    // heuristic happened to match :focus-visible on this script focus
+    // anyway, and .route-focus contributed nothing" — both would leave
+    // every assertion below green. A cold, mouse-only session has
+    // established no keyboard modality, so :focus-visible must NOT match
+    // here; if it does, something upstream of this test changed (e.g. a
+    // browser widening its heuristic) and the test's premise needs
+    // revisiting, not silent acceptance.
+    expect(ring.matchesFocusVisible).toBe(false);
     expect(ring.outlineStyle).toBe('solid');
     expect(ring.outlineWidth).toBe('3px');
     expect(ring.outlineColor).toBe(FOCUS_RING);
+  });
+
+  test('the route-focus class is removed again once focus moves on (blur), not left permanently', async ({ page }) => {
+    // Same cold, mouse-only session as the sibling test above — no
+    // keyboard.press() anywhere before the click.
+    await page.goto('/');
+    await page.locator('#start').click();
+
+    const h1 = page.locator('h1');
+    await expect(h1).toHaveClass(/route-focus/);
+
+    // moveFocusToRoute() (src/main.js) registers the class-removal listener
+    // with `{ once: true }` on blur — nothing asserts it actually fires. A
+    // class that's added but never removed would still make every
+    // assertion above pass while leaving a permanent ring on every route's
+    // <h1> forever after the first navigation. Move focus to another real,
+    // on-screen focusable element (a genuine blur, not h1.evaluate(el =>
+    // el.blur())) and confirm the class is gone.
+    await page.locator('#next').focus();
+    await expect(h1).not.toHaveClass(/route-focus/);
   });
 });

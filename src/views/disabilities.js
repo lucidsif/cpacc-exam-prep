@@ -1,6 +1,6 @@
 // src/views/disabilities.js — human-disabilities reference (category grid + detail list).
 
-import { escapeHtml, scrollIntoViewMotionSafe } from '../dom.js';
+import { escapeHtml, scrollIntoViewMotionSafe, focusWithVisibleRing } from '../dom.js';
 import { renderProvenanceBadge } from '../provenance.js';
 
 // Per-category top-line stat pills (curated from the source notes).
@@ -98,7 +98,7 @@ export function renderDisabilities(ctx) {
           <p class="cat-summary">${escapeHtml(cat.summary || '')}</p>
           ${stats ? `<div class="stat-row">${stats}</div>` : ''}
         </div>
-        <div class="dis-anchor-bar"><div class="anchor-list">${anchors}</div></div>
+        <div class="dis-anchor-bar"><div class="anchor-list" role="group" aria-label="${escapeHtml(cat.label)} conditions navigation">${anchors}</div></div>
         ${inline}
       `;
   document.getElementById('back-cats').onclick = () => { state.disabilities = { view: 'categories' }; state.view = 'disabilities'; actions.render(); };
@@ -109,7 +109,10 @@ export function renderDisabilities(ctx) {
         scrollIntoViewMotionSafe(target);
         // Move focus to the scrolled-to item so keyboard/SR users actually land there (WCAG 2.4.3).
         target.setAttribute('tabindex', '-1');
-        target.focus({ preventScroll: true });
+        // focusWithVisibleRing (not a plain target.focus()): same script-driven
+        // focus move as moveFocusToRoute() (main.js), so it needs the same
+        // .route-focus ring for pointer-only/AT users.
+        focusWithVisibleRing(target, { preventScroll: true });
       }
     };
   });

@@ -1,6 +1,6 @@
 // src/views/legal.js — history/laws/standards reference (jurisdiction grid + detail list).
 
-import { escapeHtml, scrollIntoViewMotionSafe } from '../dom.js';
+import { escapeHtml, scrollIntoViewMotionSafe, focusWithVisibleRing } from '../dom.js';
 import { renderProvenanceBadge } from '../provenance.js';
 
 /** Pick an emoji for a legal item based on its `type` field. */
@@ -100,7 +100,7 @@ export function renderLegal(ctx) {
           </div>
           <p class="cat-summary">${escapeHtml(cat.summary || '')}</p>
         </div>
-        <div class="dis-anchor-bar"><div class="anchor-list">${anchors}</div></div>
+        <div class="dis-anchor-bar"><div class="anchor-list" role="group" aria-label="${escapeHtml(cat.label)} items navigation">${anchors}</div></div>
         ${inline}
       `;
   document.getElementById('back-jurs').onclick = () => { state.legal = { view: 'categories' }; state.view = 'legal'; actions.render(); };
@@ -111,7 +111,10 @@ export function renderLegal(ctx) {
         scrollIntoViewMotionSafe(target);
         // Move focus to the scrolled-to item so keyboard/SR users actually land there (WCAG 2.4.3).
         target.setAttribute('tabindex', '-1');
-        target.focus({ preventScroll: true });
+        // focusWithVisibleRing (not a plain target.focus()): same script-driven
+        // focus move as moveFocusToRoute() (main.js), so it needs the same
+        // .route-focus ring for pointer-only/AT users.
+        focusWithVisibleRing(target, { preventScroll: true });
       }
     };
   });

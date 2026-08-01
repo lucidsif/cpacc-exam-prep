@@ -1,6 +1,6 @@
 // src/views/results.js — final results page with per-question review + chats.
 
-import { escapeHtml, scrollIntoViewMotionSafe } from '../dom.js';
+import { escapeHtml, scrollIntoViewMotionSafe, focusWithVisibleRing } from '../dom.js';
 import { domainLabel, scoreTest } from '../scoring.js';
 import { TEST_SIZE } from '../sampling.js';
 import { renderChatFragment } from './chat.js';
@@ -75,7 +75,7 @@ export function renderResults(ctx) {
                  same approach as renderProvenanceBadge's itemLabel. -->
             <button type="button" class="toggle linkish" data-toggle="${q.id}" aria-expanded="${!!chatOpen}" aria-controls="chat-panel-${q.id}"><span aria-hidden="true">${chatOpen ? '▾' : '▸'}</span> ${chatOpen ? 'Hide chat' : 'Discuss this question with the AI tutor'}<span class="sr-only"> — ${itemLabel}</span></button>
           </div>
-          <div id="chat-panel-${q.id}">${chatOpen ? renderChatFragment(q, state.chats[q.id], itemLabel) : ''}</div>` : ''}
+          <div id="chat-panel-${q.id}" data-item-label="${escapeHtml(itemLabel)}">${chatOpen ? renderChatFragment(q, state.chats[q.id], itemLabel) : ''}</div>` : ''}
         </div>`;
   }).join('');
 
@@ -126,6 +126,23 @@ export function renderResults(ctx) {
   // with nothing to show (see router.js's `results` restorability check).
   document.getElementById('back').onclick = () => { state.questions = []; state.submitted = false; state.view = 'home'; actions.render(); };
 
+  // renderChatFragment (chat.js) includes provenance.js's static "About AI
+  // in this app" button once per open chat panel. With several panels open
+  // at once that button's accessible name repeats identically across all of
+  // them — the same problem the .toggle buttons above solve with an
+  // sr-only itemLabel suffix. chat.js owns the call that renders this
+  // button and doesn't accept an itemLabel to thread through, so it's
+  // disambiguated here instead, after the fact, using the itemLabel this
+  // file already stashed on the chat panel's own data-item-label attribute.
+  document.querySelectorAll('[id^="chat-panel-"] [data-open-ai-info]').forEach(btn => {
+    const label = btn.closest('[data-item-label]')?.dataset.itemLabel;
+    if (!label) return;
+    const suffix = document.createElement('span');
+    suffix.className = 'sr-only';
+    suffix.textContent = ` — ${label}`;
+    btn.appendChild(suffix);
+  });
+
   document.querySelectorAll('[data-jump]').forEach(cell => {
     cell.onclick = () => {
       const el = document.getElementById('result-q-' + cell.dataset.jump);
@@ -134,7 +151,10 @@ export function renderResults(ctx) {
       // Scrolling alone doesn't move a screen reader's reading position —
       // only focus does. The panel isn't natively focusable, so make it so.
       el.setAttribute('tabindex', '-1');
-      el.focus({ preventScroll: true });
+      // focusWithVisibleRing (not a plain el.focus()): same script-driven
+      // focus move as moveFocusToRoute() (main.js), so it needs the same
+      // .route-focus ring for pointer-only/AT users.
+      focusWithVisibleRing(el, { preventScroll: true });
     };
   });
 

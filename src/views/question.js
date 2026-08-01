@@ -1,6 +1,6 @@
 // src/views/question.js — single-question view with submit-answer flow.
 
-import { escapeHtml } from '../dom.js';
+import { escapeHtml, focusWithVisibleRing } from '../dom.js';
 import { domainLabel } from '../scoring.js';
 import { renderProvenanceBadge } from '../provenance.js';
 
@@ -234,7 +234,11 @@ export function renderQuestion(ctx) {
       requestAnimationFrame(() => {
         if (state.view !== 'test' || state.index !== qIndex || state.questions[state.index]?.id !== qid) return;
         const v = document.getElementById('verdict');
-        if (v) v.focus();
+        // focusWithVisibleRing (not a plain v.focus()): this is a script-driven
+        // focus move outside route navigation, so it needs the same
+        // .route-focus treatment moveFocusToRoute() (main.js) applies on
+        // navigation, or pointer-only/AT users get no visible ring at all.
+        if (v) focusWithVisibleRing(v);
       });
     };
   }

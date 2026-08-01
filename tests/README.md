@@ -18,7 +18,27 @@ This is a jsdom suite — there's no real browser, no layout engine, no cascade 
 - **Actual screen reader announcement.** Tests assert the *markup contract* that should produce a correct announcement (`role`, `aria-live`, `aria-label`, accessible-name sourcing, live-region timing) — not what NVDA/JAWS/VoiceOver actually say.
 - **Real focus-ring visibility.** `:focus:not(:focus-visible)` / `:focus-visible` in `app.css` are style rules with no jsdom-testable effect; nothing here confirms a focus ring is actually visible or meets the 3:1 non-text contrast requirement.
 
-Those four things need a real browser and, for the screen-reader case, real assistive technology — see the accessibility checklist and manual test guidance linked from the project's top-level `README.md`/`CONTRIBUTING.md` instead.
+Those four things need a real browser and, for the screen-reader case, real assistive technology — see the accessibility checklist and manual test guidance linked from the project's top-level `README.md`/`CONTRIBUTING.md` instead. Three of the four (computed styles/contrast, focus-ring visibility, and — partially — screen-reader-relevant markup via a real accessibility tree) are now covered by the end-to-end suite described below; screen-reader announcement itself still is not, and needs a human with AT, not a script.
+
+## End-to-end tests (e2e/)
+
+```bash
+npm run test:e2e            # Playwright — real Chromium, Firefox, and WebKit
+```
+
+20 scenarios × 3 browsers = 60 tests, currently 60/60 passing, run four times with zero flake.
+
+The division of labour is the useful thing to remember: **jsdom (`tests/`, above) is for markup and wiring — is the right element there, does it have the right attribute, does the right function get called. Playwright (`e2e/`) is for everything jsdom cannot simulate: layout, paint, computed styles, focus rings, scroll position, real Tab-key order, and a real platform accessibility tree.** Neither one substitutes for the other, and neither one is a screen reader — the current version of this app has not been manually tested with NVDA, JAWS, or VoiceOver; see `ACCESSIBILITY.md`.
+
+| File | Covers |
+|---|---|
+| `e2e/smoke.spec.js` | Baseline: the app boots and the home route renders |
+| `e2e/navigation.spec.js` | Skip link vs. a real `popstate`; click-driven focus landing on `<h1>`; Back/Forward restoring heading, title, and scroll position; a control that disables itself on click not stranding focus on `<body>`; real sequential Tab order from page load — including WebKit's platform-default Tab scope (form fields only, confirmed against `Option+Tab`'s wider set) and WebKit not moving DOM focus onto a clicked `<button>` |
+| `e2e/focus-contract.spec.js` | Whether the focus ring actually paints on *programmatic* focus (the app moving focus to a route's `<h1>` by script, not by Tab) in each engine — the one open question in the accessibility statement that only a real browser's `:focus-visible` implementation could answer. Confirms `solid 3px rgb(255, 212, 121)` in Chromium, Firefox, and WebKit alike once the session has seen a real keypress, plus a documented control case showing no ring with zero prior keyboard interaction |
+| `e2e/motion-and-live-region.spec.js` | `prefers-reduced-motion` and live-region behaviour against real computed style and real timing, not jsdom's simulated versions of either |
+| `e2e/axe.spec.js` | Automated `axe-core` scans (`wcag2a`/`wcag2aa`/`wcag22aa`) against a real accessibility tree, across nine routes and all three engines — 27 scans, zero violations. Automated scanning catches a minority of accessibility issues by nature; treat zero violations as "nothing an automated scanner flagged," not as "manually verified" |
+
+`playwright.config.js` runs every spec against three browser projects (chromium, firefox, webkit) — see its own comments for why dropping a browser to make a run green is treated as a bug report, not a config change.
 
 ## Layers
 

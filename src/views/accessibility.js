@@ -26,7 +26,7 @@ export function renderAccessibility(ctx) {
 
   app.innerHTML = `
       <h1>Accessibility statement</h1>
-      <div class="sub">Last reviewed <time datetime="2026-07-31">31 July 2026</time>.</div>
+      <div class="sub">Last reviewed <time datetime="2026-08-01">1 August 2026</time>.</div>
       <p>This statement describes how accessible the CPACC Practice Test is, what has been tested, and what has not. It is written to be checked, not to reassure.</p>
 
       <h2>What this statement applies to</h2>
@@ -58,8 +58,7 @@ export function renderAccessibility(ctx) {
 
       <h3>Other open questions</h3>
       <ol>
-        <li><b>No Safari or Firefox testing at all.</b> Everything manual described in this statement was checked in Chromium. Safari and Firefox have not been exercised for anything — the focus-ring question below is one specific case of this, not the only one.</li>
-        <li><b>Focus ring on programmatic focus outside Chromium.</b> When you navigate, focus is moved to the heading by script rather than by pressing Tab. The focus indicator is confirmed visible in Chromium. Whether it renders in Safari and Firefox on a programmatic focus move has not been checked.</li>
+        <li><b>Browser testing beyond Chromium is automated, not manual.</b> An automated test suite (Playwright) now exercises Chromium, Firefox, and WebKit (Safari's engine) — including confirming that the focus ring on programmatic focus renders correctly in all three (see "How this app was evaluated"). That is a script driving a real browser, not a person using the app by hand, and none of the three engines has been tested with a screen reader.</li>
         <li><b>Zoom, reflow, and text spacing.</b> WCAG 1.4.4 (Resize Text), 1.4.10 (Reflow), and 1.4.12 (Text Spacing) have not been evaluated on any view.</li>
       </ol>
 
@@ -99,7 +98,9 @@ export function renderAccessibility(ctx) {
       <h2>How this app was evaluated</h2>
       <dl>
         <dt>Automated testing</dt>
-        <dd>Over 120 automated tests against a simulated DOM, including regression tests written specifically for the focus behaviour, the skip link, and the colour-only state indicators, so those bugs cannot come back unnoticed. A simulated DOM does not paint pixels or build a real accessibility tree, so these tests cannot tell you what a screen reader will say.</dd>
+        <dd>Two automated suites run on every change, well over 150 tests between them. A jsdom suite checks DOM structure and ARIA wiring against a simulated document, including regression tests written specifically for the focus behaviour, the skip link, and the colour-only state indicators, so those bugs cannot come back unnoticed — but a simulated document does not paint pixels, compute a real style, or build a real accessibility tree. A separate end-to-end suite (below) drives real browsers and covers exactly that gap.</dd>
+        <dt>Automated cross-browser testing</dt>
+        <dd>An end-to-end suite (Playwright) drives real Chromium, Firefox, and WebKit (Safari's engine) — 60 tests, run four times with zero flake. This is what confirmed the focus ring question above: on programmatic focus (the app moving focus to a heading by script, not by pressing Tab), all three engines paint a solid 3px amber outline once a real key has been pressed earlier in the session, via two independent navigation paths (a button and a link). The same suite ran automated accessibility scans (axe-core, covering the automated parts of WCAG 2.0, 2.1, and 2.2 at A and AA) across nine routes in all three engines — 27 checks, zero violations, with no rule suppressed or narrowed to force a pass. All of this is automated behavioural testing: a script driving a real browser, not a person using the app, and a real accessibility tree without a real screen reader reading it. Automated scanning also only catches a minority of accessibility issues by its nature; it is not a substitute for manual or assistive-technology testing. Two behavioural differences this testing found in WebKit are documented in "Known limitations beyond conformance" below.</dd>
         <dt>Manual keyboard testing, Chromium only</dt>
         <dd>The skip link keeps you on the current page mid-test, focus lands on the page heading after navigation, browser Back and Forward restore the correct heading and page title, focus survives controls that disable themselves, and deep links work.</dd>
         <dt>Colour contrast audit</dt>
@@ -117,6 +118,8 @@ export function renderAccessibility(ctx) {
         <li>The human disabilities reference goes beyond CPACC exam scope. This is intentional and labelled as such in the app.</li>
         <li>AI tutor responses are not pre-reviewed. This is by design and disclosed in the app above every chat transcript.</li>
         <li>Announcements are coalesced on a short timer: if two land within about 75 milliseconds of each other, only the later one is spoken. Because the chat transcripts themselves are silent, a reply that loses that race is not announced at all.</li>
+        <li>In WebKit (Safari's engine), the default Tab key only moves focus through form fields, skipping links and buttons entirely. This was confirmed to match real macOS Safari with "Full Keyboard Access" turned off. It is a platform default outside this app's control, not a defect in it — Safari users who turn on Full Keyboard Access, or press Option+Tab, get the same tab order every other browser gives by default.</li>
+        <li>In WebKit, clicking a button with a mouse does not move DOM focus onto that button the way Chromium and Firefox do. When a clicked control disables itself as part of handling that click, this app's focus-preservation logic reads WebKit's substitute focus location (the surrounding page landmark) instead of the button, so focus lands there rather than on the next logical control. This affects anyone clicking with a mouse or trackpad in Safari — including AT users who point rather than tab — and does not affect keyboard users on WebKit, since Tab/Enter activation focuses the control correctly there. Unlike the Tab-key default above, this is this app's own fallback reacting to a platform quirk, not an immovable platform limit, so a more targeted fix may be possible later; for now it is documented rather than engineered around.</li>
       </ul>
 
       <h2>Feedback</h2>

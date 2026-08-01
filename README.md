@@ -152,6 +152,8 @@ Targets **WCAG 2.2 AA**. Notable contracts (enforced by `tests/views.test.js`):
 - AI provenance disclosure uses native `<details>`/`<summary>` (zero JS, mobile-friendly, implicit `aria-expanded`)
 - AI-info dialog is a native `<dialog>` with focus return on close
 
+Beyond the jsdom contracts above, an end-to-end suite (`npm run test:e2e`, Playwright) drives the app in real Chromium, Firefox, and WebKit — real layout, real computed styles, real focus rings, real Tab order, and automated `axe-core` scans against a real accessibility tree, none of which jsdom can check. See [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for what it found, including two documented WebKit-specific behavioural differences, and for what's still open (manual screen reader testing of the current version is the biggest gap and remains undone).
+
 Every UI change in this repo went through accessibility-lead review before merging. See [`CONTRIBUTING.md`](CONTRIBUTING.md#accessibility-expectations) if you want to contribute.
 
 ---
@@ -164,11 +166,12 @@ The runtime is plain browser + plain Node + Cloudflare Workers runtime. No bundl
 node server.js   # works out of the box, no install
 ```
 
-The only dependency is `jsdom` for the test suite — and only if you want to run tests:
+The only dependencies are `jsdom`, `@playwright/test`, and `@axe-core/playwright` for the test suites — and only if you want to run tests:
 
 ```bash
-npm install      # dev dependency only
-npm test
+npm install      # dev dependencies only
+npm test         # jsdom suite
+npm run test:e2e # Playwright suite (real browsers)
 ```
 
 ---
@@ -218,12 +221,19 @@ test-maker/
 │   ├── storage.test.js        # Unit tests for missed-set persistence
 │   ├── llm.test.js            # Unit tests for provider resolution + wire formats
 │   └── views.test.js          # jsdom DOM tests for view accessibility contracts
+├── e2e/                        # Playwright: real Chromium/Firefox/WebKit
+│   ├── smoke.spec.js
+│   ├── navigation.spec.js     # Tab order, click-driven focus, Back/Forward
+│   ├── focus-contract.spec.js # Focus-ring-on-programmatic-focus, per engine
+│   ├── motion-and-live-region.spec.js
+│   └── axe.spec.js            # axe-core scans across every route
+├── playwright.config.js       # e2e config: 3 browser projects, retries in CI
 ├── ARCHITECTURE.md            # How the code fits together
 ├── AI_TRANSPARENCY.md         # Detailed AI provenance and limitations doc
 ├── DEPLOY.md                  # Cloudflare Pages + local Node deploy guides
 ├── CONTRIBUTING.md            # How to contribute (a11y expectations, PR checklist)
 ├── LICENSE                    # MIT
-└── package.json               # devDeps only (jsdom)
+└── package.json               # devDeps only (jsdom, Playwright, axe-core)
 ```
 
 ---
@@ -231,19 +241,27 @@ test-maker/
 ## Tests
 
 ```bash
-npm install      # one-time: pulls jsdom for the DOM tests
-npm test         # runs everything
+npm install      # one-time: pulls jsdom, Playwright, and axe-core
+npm test         # jsdom suite — runs everything, no browser needed
 ```
 
 Expect 131+ passing.
 
-The test suite is intentionally split into layers:
+The jsdom suite is intentionally split into layers:
 
 - **Data smoke** (inline) — every dataset is well-formed, IDs unique, provenance present
 - **Unit tests** — `sampling`, `scoring`, `storage` (mocked fetch + localStorage), `llm` (provider resolution + per-provider wire format), `router` (hash-path ↔ state round-tripping and fallbacks)
 - **DOM smoke** — `views` (jsdom) asserts the accessibility contracts of every view
 
 `tests/views.test.js` is the regression guard. If you change a view, every contract there must still hold.
+
+There's also an end-to-end suite for what jsdom structurally can't check:
+
+```bash
+npm run test:e2e   # Playwright — real Chromium, Firefox, and WebKit
+```
+
+20 scenarios × 3 browsers = 60 tests, covering real layout, computed styles, focus rings, Tab order, scroll position, and automated `axe-core` accessibility scans against a real accessibility tree. See [`tests/README.md`](tests/README.md#end-to-end-tests-e2e) for the jsdom/e2e division of labour, and [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for what it found.
 
 ---
 

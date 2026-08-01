@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added — Playwright end-to-end suite across chromium, firefox, and webkit (2026-08-01)
+
+- `e2e/` (Playwright): 20 scenarios run against real Chromium, Firefox, and WebKit — 60 tests total, four full runs with zero flake. Covers real layout, computed styles, Tab order, scroll position, and, via `@axe-core/playwright`, automated accessibility scans against a real accessibility tree — none of which the jsdom suite (`tests/`) can check
+- `e2e/focus-contract.spec.js` resolves the accessibility statement's previously-open question about whether the focus ring renders on programmatic focus outside Chromium: all three engines paint `solid 3px rgb(255, 212, 121)` once the session has seen one real keypress, via two independent navigation paths (a button and a link). A paired control test with no prior keypress confirms no ring in any of the three, ruling out "the ring is just always there" as an alternate explanation
+- `e2e/axe.spec.js` runs axe-core (`wcag2a`/`wcag2aa`/`wcag22aa` tags, matching the app's WCAG 2.2 AA target) across nine routes in all three engines — 27 scans, zero violations, no rule suppressed or narrowed
+- `e2e/navigation.spec.js` documents two real WebKit-only behavioural differences, neither engineered around: WebKit's default Tab key visits only form fields, skipping links and buttons (matches real macOS Safari with Full Keyboard Access off — a platform default, not an app defect); and WebKit does not move DOM focus onto a `<button>` on mouse click, so a control that disables itself on click leaves this app's focus-preservation logic landing on the `<main>` landmark instead of the intended sibling control — affects mouse/trackpad users on WebKit only, keyboard users there are unaffected
+- `src/views/accessibility.js`, `ACCESSIBILITY.md`, `README.md`, and `tests/README.md` updated to match: the "no Safari/Firefox testing at all" and "focus ring outside Chromium" open questions in the public statement are resolved or reworded, the new cross-browser and axe evidence is disclosed as automated behavioural testing (not manual, not assistive-technology testing), and both WebKit findings are documented in both the public statement and `ACCESSIBILITY.md`. The screen-reader gap — no AT testing of the current version — remains the statement's single most prominent disclosure and is unchanged by any of the above; Playwright cannot drive a screen reader
+
 ### Changed — repo hygiene ahead of first push (2026-07-31)
 
 First push makes all commits public and permanent, so this closes out the things that only matter once strangers can clone the repo.

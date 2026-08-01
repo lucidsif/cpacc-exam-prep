@@ -18,6 +18,8 @@ So every AI-generated piece of content in this app is labeled in the UI with a *
 
 The app contains three categorically different kinds of AI-touched content. Each has its own treatment.
 
+A note on the **Review** column in the tables below: it states what the author reports doing while authoring this content — item-by-item checks, spot-checks, stat verification. That is a claim about the author's own offline process. Nothing in this repository, the running app, or the git history can independently confirm it happened — there was no per-commit reviewer, and the audit described later in this document checked the *code*, not what a human did while writing the content. Read the Review column as the author's own account, not an audited fact.
+
 ### 1. AI-authored from a citable primary source — *high confidence*
 
 | Where | Source | Review |
@@ -25,7 +27,7 @@ The app contains three categorically different kinds of AI-touched content. Each
 | Main practice question bank (`data/questions.js`) | IAAP CPACC BoK (Oct 2023, v4.0) — every item has a `cite: "BoK p.X"` field | Item-by-item check against the cited page |
 | Laws & standards reference (`data/legal.js`) | Public records of laws, treaties, conventions, standards | Author verified year, jurisdiction, scope against authoritative sources |
 
-These items were written by Claude with the primary source available in context, and were reviewed against the citation. The badge is **green / High confidence**.
+These items were written by Claude with the primary source available in context. The author states each was checked against the citation before being included (see the note above). The badge is **green / High confidence**.
 
 **Caveat:** "High confidence" still means *AI-authored*. If you find a discrepancy between an item and the cited source, the source wins. Please [file an issue](#filing-a-correction).
 
@@ -72,7 +74,7 @@ git rev-list --count HEAD                                  # total commits
 | | |
 |---|---|
 | **The standards were set by the author** | The WCAG 2.2 AA target, the non-negotiables (semantic HTML before ARIA, one h1 per view, keyboard operability, no colour-only information, focus managed on every navigation), and the rule that this project's documentation never claims conformance it cannot evidence. AI worked inside those constraints. |
-| **Manual keyboard testing was done by the author** | By hand, in a real browser. **Screen reader testing is a different matter: the only screen reader ever used against this app is VoiceOver, on an older version, and NVDA and JAWS have never been used at all.** An earlier version of this table said all three had been used — that was false. It was caught by the author reading the published statement after deployment, not by any of the review described below, which is itself worth noting: the audit process documented here verified claims against *code*, and had no way to check a claim about what a human did offline. `ACCESSIBILITY.md` and the in-app statement both carry the corrected version prominently, because it is the single largest evidence gap in this project. |
+| **Manual keyboard testing was done by the author** | By hand, in a real browser — an account of the author's own process; nothing in this repository can independently confirm it took place, the same limit that applies to the screen reader claim next to it. **Screen reader testing is a different matter: the only screen reader ever used against this app is VoiceOver, on an older version, and NVDA and JAWS have never been used at all.** An earlier version of this table said all three had been used — that was false. It was caught by the author reading the published statement after deployment, not by any of the review described below, which is itself worth noting: the audit process documented here verified claims against *code*, and had no way to check a claim about what a human did offline. `ACCESSIBILITY.md` and the in-app statement both carry the corrected version prominently, because it is the single largest evidence gap in this project. |
 | **Per-commit human review was *not* performed** | The author did not read and approve every accessibility-affecting diff before it landed. This matters, and the consequences are documented below rather than hidden. |
 
 ### AI-written accessibility code failed here, repeatedly and specifically
@@ -166,7 +168,7 @@ If you find an item that's wrong:
 
 1. **Wrong answer in a practice question:** use the [Wrong answer issue template](.github/ISSUE_TEMPLATE/wrong-answer.yml).
 2. **Inaccurate stat / source / law detail:** open a bug issue and reference the data file + item id.
-3. **Misleading or harmful chat response:** open a bug issue with the prompt, the reply, and the `provider` / `model` reported by `/chat-status`. We can't change the model, but we can adjust the system prompt or flag the relevant question.
+3. **Misleading or harmful chat response:** open a bug issue with the prompt, the reply, and the `provider` / `model` reported by `/chat-status`. I can't change the model, but I can adjust the system prompt or flag the relevant question.
 
 Corrections are merged after a maintainer verifies against the cited authoritative source.
 

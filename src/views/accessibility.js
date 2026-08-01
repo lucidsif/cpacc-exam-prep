@@ -53,7 +53,7 @@ export function renderAccessibility(ctx) {
       <p>Partially conformant means some parts may not fully meet the standard, for two different reasons that this statement keeps separate rather than blurring together.</p>
       <p>First, at least one specific failure is known and, as of this writing, unfixed: nothing in this app exposes a busy or pending state to assistive technology while the AI tutor's reply is in flight — no <code>aria-busy</code>, no loading announcement, nothing (<code>aria-busy</code> appears nowhere in this codebase). A screen reader user who sends a chat message gets no indication that anything is happening until the reply or error is announced; a long or failed round trip is indistinguishable from a frozen page. See "Known limitations beyond conformance" below for this and every other known-and-not-fixed item, named rather than folded into vague language.</p>
       <p>Second, separately from that, the evidence needed to claim full conformance is incomplete even where no specific failure is known — several kinds of evidence are still missing, starting with manual screen reader testing of the current version. See "What has not been verified" below for the rest.</p>
-      <p>We do not claim the current version meets WCAG 2.2 Level AA. Large parts of it do, by the evidence in "How this app was evaluated" below, but not all of it, and this is not a rounding-error qualification.</p>
+      <p>I do not claim the current version meets WCAG 2.2 Level AA. Large parts of it do, by the evidence in "How this app was evaluated" below, but not all of it, and this is not a rounding-error qualification.</p>
 
       <h2>What has not been verified</h2>
       <p>This section is the most important part of this statement.</p>
@@ -153,7 +153,7 @@ export function renderAccessibility(ctx) {
       </ul>
 
       <h2>Feedback</h2>
-      <p>We want to hear about accessibility problems with this app. If something does not work for you, tell us what you were trying to do and what assistive technology or browser you were using.</p>
+      <p>I want to hear about accessibility problems with this app. If something does not work for you, tell me what you were trying to do and what assistive technology or browser you were using.</p>
       <p>This is a personal project maintained by one person, so no response time is promised. Accessibility reports are read and are prioritised ahead of other bugs.</p>
       ${feedbackContact}
 

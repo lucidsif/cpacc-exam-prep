@@ -24,8 +24,6 @@ The links above point at the issue template files in this repository, not at Git
 
 ## Response expectations
 
-- Accessibility bugs: triaged within a week, typically faster
-- Wrong-answer reports with a citation: usually fixed within a week
-- Code questions / general help: best-effort; please be patient
+There's no SLA and no promised response time (see "What this project is not" above). In practice, accessibility bugs and wrong-answer reports with a citation are prioritised ahead of general code questions, which are answered best-effort.
 
 If you're blocked and need help, please mention what you've already tried. That gets to a useful answer fastest.

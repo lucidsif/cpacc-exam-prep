@@ -88,7 +88,7 @@ node tests/run.js
 npm test
 ```
 
-Expect to see "151/151 passed" (or whatever the current count is). Every PR must keep tests green.
+Expect to see "157/157 passed" (or whatever the current count is). Every PR must keep tests green.
 
 There's also an end-to-end suite that a jsdom run can't cover — real layout, computed styles, focus rings, Tab order, and `axe-core` scans against a real accessibility tree:
 

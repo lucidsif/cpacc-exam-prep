@@ -20,7 +20,7 @@ Please include:
 - The impact you believe it has
 - Any suggested remediation
 
-You can expect an initial response within 7 days.
+This is a one-person project — there's no SLA and no promised response time, but security reports are prioritised ahead of other issues.
 
 ## Scope
 

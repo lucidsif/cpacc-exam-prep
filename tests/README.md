@@ -8,7 +8,7 @@ npm test            # or: node tests/run.js
 
 The runner discovers every `*.test.js` file in this directory and calls its exported `run({ test, assertTrue, assertEq })`. The legacy data smoke tests live inline at the top of `run.js`.
 
-Current count: **151/151 passing.**
+Current count: **157/157 passing.**
 
 ## What this suite deliberately does not cover
 
@@ -26,7 +26,7 @@ Those four things need a real browser and, for the screen-reader case, real assi
 npm run test:e2e            # Playwright — real Chromium, Firefox, and WebKit
 ```
 
-126 tests across 5 projects — chromium, firefox, webkit, a 320px mobile viewport, and a chat-enabled project — currently 126/126 passing.
+130 tests across 5 projects — chromium, firefox, webkit, a 320px mobile viewport, and a chat-enabled project — currently 130/130 passing.
 
 The division of labour is the useful thing to remember: **jsdom (`tests/`, above) is for markup and wiring — is the right element there, does it have the right attribute, does the right function get called. Playwright (`e2e/`) is for everything jsdom cannot simulate: layout, paint, computed styles, focus rings, scroll position, real Tab-key order, and a real platform accessibility tree.** Neither one substitutes for the other, and neither one is a screen reader — the current version of this app has not been manually tested with NVDA, JAWS, or VoiceOver; see `ACCESSIBILITY.md`.
 

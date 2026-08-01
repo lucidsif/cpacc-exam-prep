@@ -308,7 +308,7 @@ The runner discovers every `tests/*.test.js` and calls its exported `run({ test,
 | Unit tests | `sampling.test.js`, `scoring.test.js`, `storage.test.js`, `llm.test.js`, `router.test.js` |
 | DOM smoke tests (jsdom) | `views.test.js` — asserts every view's accessibility contracts, plus a full-app popstate-focus test |
 
-151+ tests as of writing; every PR should keep this green.
+157+ tests as of writing; every PR should keep this green.
 
 ```mermaid
 graph LR
@@ -356,7 +356,7 @@ Everything above is jsdom — no real layout, no computed styles, no real focus 
 npm run test:e2e   # real Chromium, Firefox, and WebKit
 ```
 
-7 spec files, 126 tests across 5 projects (chromium, firefox, webkit, a 320px mobile viewport, and a chat-enabled project):
+7 spec files, 130 tests across 5 projects (chromium, firefox, webkit, a 320px mobile viewport, and a chat-enabled project):
 
 | File | Covers |
 |---|---|

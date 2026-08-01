@@ -1,14 +1,25 @@
 # Cloudflare Pages config (used by `wrangler pages dev` for local testing).
 #
-# Production deploy is driven by the Cloudflare dashboard:
-#   - Connect this repo
-#   - Build command: (leave empty — no build step)
-#   - Build output directory: /
+# `npm run deploy` / `npm run dev:cf` don't read `pages_build_output_dir`
+# below for production deploys — they call `wrangler pages deploy dist` (or
+# `pages dev dist`) directly with the curated dist/ folder staged by
+# scripts/build-dist.sh. This file's `pages_build_output_dir = "."` only
+# governs a bare `wrangler pages dev` run from the repo root without going
+# through `npm run dev:cf` first; "." there means the whole repo, not
+# dist/, and does not match what actually gets deployed. See DEPLOY.md for
+# the discrepancy between this and the dashboard's Connect-to-Git flow,
+# which has the same "." vs dist/ mismatch if its build output directory
+# is left blank.
 #
-# Required environment variable for chat:
-#   ANTHROPIC_API_KEY — set as an encrypted Pages secret in the dashboard.
+# Required environment variable for chat (provider-agnostic; see
+# functions/_lib/llm.js and DEPLOY.md):
+#   LLM_PROVIDER — "anthropic" | "openai" | "local"; auto-detected if unset.
+#   LLM_API_KEY  — set as an encrypted Pages secret in the dashboard.
+#                  Falls back to ANTHROPIC_API_KEY / OPENAI_API_KEY.
 # Optional:
-#   ANTHROPIC_MODEL   — defaults to claude-sonnet-4-6.
+#   LLM_MODEL      — defaults to a per-provider model (see DEPLOY.md).
+#   LLM_BASE_URL   — endpoint override.
+#   LLM_MAX_TOKENS — answer-budget override.
 
 name = "cpacc-test-maker"
 compatibility_date = "2024-10-01"

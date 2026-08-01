@@ -121,6 +121,14 @@ export function renderChatProvenanceBanner() {
 export function renderAiInfoDialog() {
   return `
     <dialog id="ai-info-dialog" class="ai-dialog" aria-labelledby="ai-info-title">
+      <!-- This <article> looks like unnecessary wrapping, but it is load-bearing:
+           <dialog> is not in the <header> element's list of ancestors that
+           suppress its implicit banner landmark role, so a bare
+           <dialog><header>...</header></dialog> would give this dialog a
+           second 'banner' landmark on top of the page's real one. <article>
+           IS on that exclusion list, so nesting <header> inside it keeps this
+           a plain section instead. Do not remove this wrapper on its own —
+           if it goes, the <header> below needs to change too (e.g. a <div>). -->
       <article>
         <header class="row" style="justify-content:space-between;align-items:flex-start">
           <h2 id="ai-info-title" style="margin:0">About AI in this app</h2>

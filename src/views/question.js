@@ -2,7 +2,7 @@
 
 import { escapeHtml } from '../dom.js';
 import { domainLabel } from '../scoring.js';
-import { renderProvenanceBadge, renderChatProvenanceBanner, CHAT_PROVENANCE } from '../provenance.js';
+import { renderProvenanceBadge } from '../provenance.js';
 
 /**
  * Render the current question and wire its handlers.
@@ -42,11 +42,18 @@ export function renderQuestion(ctx) {
     // control's name) and re-checked the radio when clicked. Render it as
     // a sibling of the label instead and wire it up via aria-describedby.
     const hasWhy = revealed && (letter === q.answer || letter === committed);
-    const describedBy = hasWhy ? ` aria-describedby="why-${letter}"` : '';
     // Defect 1: native `disabled` (applied via the enclosing <fieldset>,
-    // see below) removes revealed choices from the accessibility tree's
-    // interactive state, which also drops the "which one did I pick"
-    // signal. Restore it as visually-hidden text on the affected choice(s).
+    // see below) does NOT strip a revealed radio's role, accessible name,
+    // or checked state from the accessibility tree — per HTML-AAM,
+    // `disabled` maps only to the disabled state, and `checked` is still
+    // emitted on the input below, which is proof the node stays in the
+    // tree. What `disabled` actually removes is focusability: once a
+    // fieldset (or the radio itself) is disabled, Tab, NVDA/JAWS focus
+    // mode, and JAWS's F quick-nav can no longer reach it, so a keyboard
+    // user tabbing through controls loses the "which one did I pick"
+    // signal even though a browse-mode/virtual-cursor read of the page
+    // would still find it. Restore it as visually-hidden text on the
+    // affected choice(s) so it's available regardless of navigation mode.
     let stateText = '';
     if (revealed) {
       const isYours = letter === committed;
@@ -55,13 +62,23 @@ export function renderQuestion(ctx) {
       else if (isYours) stateText = 'Your answer.';
       else if (isCorrect) stateText = 'Correct answer.';
     }
+    const describedByIds = [hasWhy && `why-${letter}`, stateText && `state-${letter}`].filter(Boolean);
+    const describedBy = describedByIds.length ? ` aria-describedby="${describedByIds.join(' ')}"` : '';
     const whyHtml = hasWhy
       ? `<div class="why" id="why-${letter}"><b>${letter === q.answer ? 'Correct' : 'Why not'}:</b> ${escapeHtml(q.why[letter])}</div>`
       : '';
+    // The stateText span used to live inside <label>, which put it in the
+    // radio's accessible NAME rather than its state — choice A's name
+    // became "A. Perceivable Your answer. Correct.", a control name that
+    // mutates with application state (fails WCAG 4.1.2/2.5.3). Giving the
+    // radio an explicit aria-labelledby pointing only at the letter+text
+    // span re-associates the name to just that content; stateText stays a
+    // sibling inside the label (so it's still reached by anyone reading
+    // the choice) but is no longer part of what makes up the name.
     return `
         <label class="choice ${cls}">
-          <input type="radio" name="choice" value="${letter}" ${isSel ? 'checked' : ''}${describedBy} />
-          <b>${letter}.</b> ${escapeHtml(q.choices[letter])}${stateText ? ` <span class="sr-only">${stateText}</span>` : ''}
+          <input type="radio" name="choice" value="${letter}" ${isSel ? 'checked' : ''}${describedBy} aria-labelledby="choice-label-${letter}" />
+          <span id="choice-label-${letter}"><b>${letter}.</b> ${escapeHtml(q.choices[letter])}</span>${stateText ? ` <span class="sr-only" id="state-${letter}">${stateText}</span>` : ''}
         </label>${whyHtml}`;
   }).join('');
 
@@ -73,6 +90,19 @@ export function renderQuestion(ctx) {
     : '';
 
   const canSubmitAnswer = !revealed && !!pending;
+  // #submit-help is only ever reachable while this button carries native
+  // `disabled` — a real `disabled` control is unfocusable (Tab, NVDA/JAWS
+  // focus mode, and JAWS's F quick-nav all skip it), so its
+  // aria-describedby can never be read via focus. Swapping this to
+  // aria-disabled would fix that (the onclick guard below already no-ops
+  // with nothing pending, so a click would do nothing different), but
+  // tests/views.test.js pins a real `disabled` attribute here — the same
+  // choice the fieldset above makes deliberately, for the same reason: a
+  // fake aria-disabled leaves the control focusable/actionable to
+  // assistive tech despite looking disabled, which is a worse failure mode
+  // than a hint that's only reachable by browse-mode reading rather than
+  // by Tab. Left as native `disabled`; the hint text is still perceivable
+  // to a virtual-cursor read of the page, just not focus-associated.
   const submitAnswerAttrs = canSubmitAnswer
     ? `aria-describedby="kbd-hint"`
     : `disabled aria-describedby="${revealed ? 'kbd-hint' : 'submit-help'}"`;
@@ -88,6 +118,21 @@ export function renderQuestion(ctx) {
         ${renderProvenanceBadge(prov, `Question ${state.index + 1}`)}
         <p class="qtext">${escapeHtml(q.q)}</p>
         <div id="kbd-hint" class="cite" style="display:block;margin-bottom:8px">Select an answer, then choose <b>Submit answer</b>.${!revealed ? '<span class="kbd-only"> Use arrow keys to move between choices.</span>' : ''}</div>
+        <!--
+          Once revealed, every radio's aria-describedby="why-X" (set above,
+          in the choicesHtml loop) is inherited-unfocusable via this
+          fieldset's native disabled attribute — so that description can
+          never be read via focus either. Same tradeoff as #submit-help
+          below: this fieldset stays genuinely disabled on purpose (see
+          tests/views.test.js's "genuinely inert via <fieldset disabled>"
+          test and its own comment about the old per-radio aria-disabled
+          leaving choices focusable/actionable to assistive tech after the
+          answer was locked in) — that correctness matters more than
+          restoring focus-reachability to the rationale text, which remains
+          perceivable via an ordinary browse-mode read of the page either
+          way (the .why block and the state-X sr-only span are both plain,
+          non-hidden siblings in reading order).
+        -->
         <fieldset id="choices" style="border:0;margin:0;padding:0;min-width:0" aria-describedby="kbd-hint"${revealed ? ' disabled' : ''}>
           <legend class="sr-only">Answer choices for question ${state.index + 1}: ${escapeHtml(q.q)}</legend>
           ${choicesHtml}
@@ -123,6 +168,15 @@ export function renderQuestion(ctx) {
         btn.disabled = false;
         btn.setAttribute('aria-describedby', 'kbd-hint');
       }
+      // Picking a choice deliberately doesn't trigger a full render (see the
+      // comment above this forEach), so #submit-help — a plain node, not
+      // reactive to anything — would otherwise sit in the DOM forever after
+      // this point, telling a browse-mode user to "select a choice" long
+      // after they've done exactly that. Nothing else points at it once
+      // submit-answer's aria-describedby above moves to kbd-hint, so remove
+      // it outright rather than leave it an orphaned, stale description.
+      const help = document.getElementById('submit-help');
+      if (help) help.remove();
       document.querySelectorAll('#choices .choice').forEach((lbl, i) => {
         const letter = ["A","B","C","D"][i];
         lbl.classList.toggle('selected', letter === e.target.value);
@@ -147,6 +201,25 @@ export function renderQuestion(ctx) {
       // creates it, so a live region on it would never announce (it has
       // to exist before its contents change). Announce through the
       // persistent #route-status region instead.
+      //
+      // This does mean the verdict is spoken twice in short succession: once
+      // here through #route-status, and again when focus below lands on
+      // #verdict (whose text says close to the same thing) — the same
+      // double-announcement class already eliminated for chat (see
+      // chat.js). It isn't collapsed to one path here because the two paths
+      // aren't actually redundant to remove: tests/views.test.js's
+      // "#route-status live region... receives text from announce()" test
+      // drives exactly this submit flow and pins that #route-status ends up
+      // non-empty, so dropping this call breaks a frozen assertion; and the
+      // focus move onto #verdict below is load-bearing on its own — once
+      // this button is removed by the re-render, main.js's own focus
+      // restoration has no id/data-attr left to find it by, so skipping the
+      // explicit v.focus() would drop focus to <body> instead, a worse bug
+      // than hearing the result twice. Fixing this properly means either
+      // main.js gaining a positional fallback that makes the explicit
+      // v.focus() below redundant, or this test being loosened to allow
+      // #route-status to legitimately stay silent on submit — both changes
+      // outside this file's ownership. Flagged rather than "fixed" here.
       actions.announce(choice === q.answer ? 'Correct.' : `Incorrect. The correct answer is ${q.answer}.`);
       // Defect 5: capture identity before the render so the rAF below can
       // tell whether it's still the render it thinks it is — if the user

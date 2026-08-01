@@ -38,7 +38,7 @@ This Code of Conduct applies within all community spaces, and also applies when 
 
 ## Enforcement
 
-Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers by opening a regular GitHub issue titled "CoC report — please contact" with no details. A maintainer will reach out privately.
+Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the project maintainers by opening a regular GitHub issue titled "CoC report — please contact" with no details, if this repository has a public remote. If it doesn't (or that channel isn't reachable for you), email **tawsif@perenniala11y.com** instead. Either way, a maintainer will reach out privately.
 
 All complaints will be reviewed and investigated promptly and fairly.
 

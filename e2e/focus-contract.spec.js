@@ -8,13 +8,21 @@
 // styles/app.css:
 //   :focus:not(:focus-visible) { outline: none; }
 //   :focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
+//   .route-focus { outline: 3px solid var(--focus-ring); outline-offset: 2px; }
 // --focus-ring is #ffd479, i.e. rgb(255, 212, 121).
 //
 // Whether a script-focused element matches :focus-visible is a heuristic
 // each rendering engine implements on its own — there is no single spec
 // algorithm all three follow identically, and jsdom (tests/, `npm test`)
 // has no notion of focus modality or computed style at all, so this is
-// something only a real browser can answer.
+// something only a real browser can answer for the "WITH prior keyboard
+// interaction" block below. The "WITHOUT" block no longer depends on that
+// heuristic at all: moveFocusToRoute() (src/main.js) applies a
+// `route-focus` class to whatever it focuses by script, and that class
+// paints the ring unconditionally — fixing the case a pointer-only/AT
+// user (switch device, eye-tracking, sip-and-puff, magnifier) hits on
+// every single navigation, since they never press a key to establish
+// keyboard modality first.
 //
 // CRITICAL METHODOLOGY NOTE — read before changing anything below:
 // A freshly-launched Playwright page has never received a real input
@@ -30,9 +38,10 @@
 // that false negative — it would look like a real cross-engine bug but is
 // actually a test-harness artifact. Every "the ring should render" test
 // below does a real keypress before navigating, for exactly this reason.
-// The "no prior keyboard interaction" tests are kept too, on purpose, as a
-// documented control for what a cold mouse-only session does — not an
-// oversight, and not something to delete because it "looks redundant".
+// The "no prior keyboard interaction" test is kept too, on purpose — now
+// as the fix verification for the cold mouse-only session, not a
+// documented defect control — not an oversight, and not something to
+// delete because it "looks redundant" next to the block above.
 //
 // Both describe blocks run identically on all three configured engines
 // (see playwright.config.js's `projects` list) — nothing here is
@@ -111,24 +120,34 @@ test.describe('focus ring on programmatic focus — WITH prior keyboard interact
   });
 });
 
-test.describe('focus ring on programmatic focus — WITHOUT prior keyboard interaction (documented control)', () => {
-  test('a mouse-only session, with zero prior key events, does not paint the ring on the script-focused <h1>', async ({ page }) => {
+test.describe('focus ring on programmatic focus — WITHOUT prior keyboard interaction (fix verification)', () => {
+  test('a mouse-only session, with zero prior key events, still paints the ring on the script-focused <h1>', async ({ page }) => {
     await page.goto('/');
     // Deliberately no keyboard.press() anywhere above this line: this page
     // has not received a single real input event of any kind before the
-    // click below. This is exactly the "no focus modality established yet"
-    // scenario described in the module doc comment. It is kept as an
-    // explicit, asserted control, not just a curiosity — a future change
+    // click below — the "no focus modality established yet" scenario
+    // described in the module doc comment above. Before the fix, a
+    // script-focused element in this exact state matched neither browser
+    // default focus styling nor :focus-visible, so pointer-only/AT users
+    // (switch device, eye-tracking, sip-and-puff, screen magnifier) who
+    // never press a key got no visible indicator at all after any
+    // navigation. moveFocusToRoute() (src/main.js) now adds a `route-focus`
+    // class to whatever it focuses (removed on blur), and
+    // styles/app.css's `.route-focus` rule paints the same 3px amber ring
+    // unconditionally — independent of the :focus-visible heuristic this
+    // describe block's sibling above depends on. This test is kept, not
+    // deleted, as the explicit regression check for that: a future change
     // that makes this diverge from the "WITH keyboard interaction" tests
-    // above is the signal that the modality explanation has stopped being
-    // true and needs re-investigating, not deleting this block.
+    // above is the signal the fix broke, not something to quietly drop.
     await page.locator('#start').click();
 
     const h1 = page.locator('h1');
     await expect(h1).toHaveText('Question 1 of 20');
+    await expect(h1).toHaveClass(/route-focus/);
 
     const ring = await focusRingOf(h1);
-    expect(ring.matchesFocusVisible).toBe(false);
-    expect(ring.outlineStyle).toBe('none');
+    expect(ring.outlineStyle).toBe('solid');
+    expect(ring.outlineWidth).toBe('3px');
+    expect(ring.outlineColor).toBe(FOCUS_RING);
   });
 });

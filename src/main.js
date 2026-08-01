@@ -25,7 +25,7 @@ import { renderAiInfoDialog, installAiInfoDialog } from './provenance.js';
 import { createState, resetState } from './state.js';
 import { createMissedStore } from './storage.js';
 import { fetchChatStatus, sendHomeMessage, sendQuestionMessage } from './chat.js';
-import { sampleQuestions, sampleMissedQuestions } from './sampling.js';
+import { sampleQuestions, sampleMissedQuestions, shuffle } from './sampling.js';
 import { pathFor, applyPath } from './router.js';
 
 import { renderHome }         from './views/home.js';
@@ -41,6 +41,7 @@ import { renderAccessibility } from './views/accessibility.js';
 const app = document.getElementById('app');
 const homeBtn = document.getElementById('home-btn');
 const routeStatus = document.getElementById('route-status');
+const routeAlert = document.getElementById('route-alert');
 const state = createState();
 const missed = createMissedStore();
 const data = { CPACC_BANK, BEAR_BANK, BEAR_FLASHCARDS, DISABILITIES, LEGAL };
@@ -94,39 +95,83 @@ function titleFor(state) {
   }
 }
 
-// Pending announce() timer, so overlapping calls coalesce on purpose (see
-// below) instead of by accident.
-let announceTimer = null;
+// Delay between clearing a region and writing the new message into it (see
+// makeRegionAnnouncer below). Angular CDK's LiveAnnouncer uses 100ms for
+// this exact clear-then-set pattern; matched here rather than the 75ms
+// this used to be, for no stronger reason than "a widely-used
+// implementation of the same technique settled on that number."
+const SET_DELAY_MS = 100;
 
-// Writes `msg` into the persistent #route-status live region (a sibling of
-// <main>, so it survives app.innerHTML rewrites). Clearing before setting
-// is required so announcing the same string twice in a row still fires —
-// aria-live only speaks on a text change, not on assignment.
-//
-// A short setTimeout (not requestAnimationFrame) is what makes that clear
-// actually land as its own observed mutation: rAF runs before the next
-// paint, so the clear and the set can both land in the same accessibility-
-// tree update, and a repeated message (e.g. pressing Back twice through
-// two dead history entries) goes unheard. Any pending timer is cleared
-// first so a second announce() before the first has fired replaces it
-// (last message wins) instead of the first one silently vanishing.
-//
-// `assertive: true` switches the shared region's priority for this call.
-// It isn't restored afterward on a timer of its own — instead every call
-// sets aria-live fresh for itself, so the next ordinary (polite) announce()
-// puts it back with no extra state to track or race. sendChat/sendHomeChat
-// pass this for a failed reply: the user is actively waiting on it, so
-// hearing the failure is worth risking interruption of some unrelated
-// queued polite announcement, which would be the rarer case anyway.
+// How long a message sits in its region before auto-clearing. Not
+// something verifiable without real assistive tech: long enough that a
+// typical reply has actually been spoken before the region goes quiet
+// again, short enough that it doesn't sit there indefinitely. See the
+// comment on announce() below for what "indefinitely" was breaking.
+const CLEAR_AFTER_MS = 3000;
+
+// Builds an announce function bound to one static live region, with its
+// own independent clear/set/clear-again timers. #route-status (polite) and
+// #route-alert (assertive) each get one of these — see announce() below for
+// why two regions exist instead of one region whose aria-live is mutated.
+function makeRegionAnnouncer(region) {
+  let setTimer = null;
+  let clearTimer = null;
+  return function announceTo(msg) {
+    if (!region) return;
+    if (setTimer !== null) clearTimeout(setTimer);
+    if (clearTimer !== null) clearTimeout(clearTimer);
+    // Clearing before setting is required so announcing the same string
+    // twice in a row still fires: several assistive technologies diff a
+    // live region's accessible text before deciding whether to speak it,
+    // so writing the identical string twice in a row (e.g. pressing Back
+    // twice through two dead history entries) can go unannounced the
+    // second time even though the underlying text node was genuinely
+    // replaced both times. Clearing first, then setting again on the next
+    // tick, guarantees the text actually differs immediately beforehand.
+    //
+    // A short setTimeout (not requestAnimationFrame) is what makes that
+    // clear land as its own observed mutation: rAF runs before the next
+    // paint, so the clear and the set could both land in the same
+    // accessibility-tree update, and a repeated message would still go
+    // unheard. The clear step itself is never announced on its own: the
+    // default aria-relevant is "additions text", so a live region only
+    // speaks text that was ADDED, not text removed — emptying textContent
+    // doesn't qualify, only the set that follows does.
+    region.textContent = '';
+    setTimer = setTimeout(() => {
+      region.textContent = msg;
+      setTimer = null;
+      // Auto-clear well after the message would have been read, so it
+      // doesn't sit here permanently. Both regions are siblings of <main>
+      // (index.html), outside every landmark — without this, a
+      // virtual-cursor user reading to the end of the document would hit
+      // an unlabelled, unexplained duplicate of the last announcement.
+      clearTimer = setTimeout(() => {
+        region.textContent = '';
+        clearTimer = null;
+      }, CLEAR_AFTER_MS);
+    }, SET_DELAY_MS);
+  };
+}
+
+const announceToStatus = makeRegionAnnouncer(routeStatus);
+const announceToAlert = makeRegionAnnouncer(routeAlert);
+
+// Announces `msg` through one of two persistent live regions (both
+// siblings of <main>, so they survive app.innerHTML rewrites): #route-status
+// (role="status", always polite) or #route-alert (role="alert", always
+// assertive). These are two SEPARATE static elements rather than one
+// element whose aria-live gets flipped per call, because nothing obliges
+// assistive tech to re-read a region's politeness after it's already
+// registered with the accessibility tree — and role="status" combined with
+// aria-live="assertive" is self-contradictory the instant it happens.
+// announce() just picks which already-correctly-configured region to write
+// into. sendChat/sendHomeChat pass `assertive: true` for a failed reply:
+// the user is actively waiting on it, so hearing the failure is worth
+// risking interruption of some unrelated queued polite announcement, which
+// would be the rarer case anyway.
 function announce(msg, { assertive = false } = {}) {
-  if (!routeStatus) return;
-  if (announceTimer !== null) clearTimeout(announceTimer);
-  routeStatus.setAttribute('aria-live', assertive ? 'assertive' : 'polite');
-  routeStatus.textContent = '';
-  announceTimer = setTimeout(() => {
-    routeStatus.textContent = msg;
-    announceTimer = null;
-  }, 75);
+  (assertive ? announceToAlert : announceToStatus)(msg);
 }
 
 // -------- actions --------------------------------------------------------
@@ -161,12 +206,9 @@ function startTest(mode) {
 }
 
 function startFlashcards() {
-  // Lazy import to avoid a top-level circular concern; shuffle is small.
-  import('./sampling.js').then(({ shuffle }) => {
-    state.flashcards = { cards: shuffle(BEAR_FLASHCARDS || []), index: 0, flipped: false };
-    state.view = 'flashcards';
-    render();
-  });
+  state.flashcards = { cards: shuffle(BEAR_FLASHCARDS || []), index: 0, flipped: false };
+  state.view = 'flashcards';
+  render();
 }
 
 function openDisabilities() {
@@ -281,13 +323,58 @@ function routeKey(state) {
 // to a jump cell).
 const RESTORABLE_DATA_ATTRS = ['data-send', 'data-input', 'data-toggle', 'data-cat', 'data-jur', 'data-anchor', 'data-jump', 'data-i'];
 
+// Not every focusable control this app renders carries an id or one of
+// RESTORABLE_DATA_ATTRS — answer radios (plain `<input type="radio"
+// name="choice">`), every provenance `<summary>` (src/provenance.js),
+// `[data-open-ai-info]` buttons, and the plain `<a href="#/...">` links
+// inside home.js/accessibility.js all have neither. Attribute-matching
+// would need one more entry every time a new unlabelled control shows up,
+// forever. Instead, capture *where* the element sits — its chain of child
+// indices from #app down — and walk that chain back after the re-render.
+// This is the fallback tier (tried only once id/dataAttr both miss in
+// restoreFocus below), validated by tagName before being trusted, so a
+// re-render that genuinely changes the tree shape at that position falls
+// through to "not found" rather than focusing the wrong kind of control.
+function elementPath(el) {
+  if (el === app || !app.contains(el)) return null;
+  const path = [];
+  let node = el;
+  while (node !== app) {
+    const parent = node.parentElement;
+    if (!parent) return null;
+    path.unshift(Array.prototype.indexOf.call(parent.children, node));
+    node = parent;
+  }
+  return path;
+}
+
+// Walks a path recorded by elementPath() back to a live element after
+// app.innerHTML has been replaced. Bails (returns null) the moment a step
+// doesn't resolve — a missing parent or an out-of-range index means the
+// tree changed shape at that point, and the caller re-validates tagName on
+// top of this anyway before trusting the result.
+function elementAtPath(path) {
+  if (!path) return null;
+  let node = app;
+  for (const idx of path) {
+    node = node.children[idx];
+    if (!node) return null;
+  }
+  return node;
+}
+
 // Records enough about document.activeElement to re-find it (by id, then
-// by one of RESTORABLE_DATA_ATTRS) after app.innerHTML is replaced. Returns
-// null if nothing worth restoring is focused.
+// by one of RESTORABLE_DATA_ATTRS, then by elementPath's positional chain)
+// after app.innerHTML is replaced. Returns null if nothing worth restoring
+// is focused.
 function captureFocus() {
   const el = document.activeElement;
   if (!el || el === document.body || el === document.documentElement) return null;
-  const info = { id: el.id || null, dataAttr: null, dataValue: null, selectionStart: null, selectionEnd: null };
+  const info = {
+    id: el.id || null, dataAttr: null, dataValue: null,
+    path: elementPath(el), tagName: el.tagName,
+    selectionStart: null, selectionEnd: null,
+  };
   for (const attr of RESTORABLE_DATA_ATTRS) {
     if (el.hasAttribute(attr)) { info.dataAttr = attr; info.dataValue = el.getAttribute(attr); break; }
   }
@@ -371,8 +458,18 @@ const escapeAttr = (v) => (typeof CSS !== 'undefined' && CSS.escape ? CSS.escape
 // <main> as a side effect.
 function restoreFocus(info) {
   if (!info) return;
-  const el = (info.id && document.getElementById(info.id))
+  let el = (info.id && document.getElementById(info.id))
     || (info.dataAttr && document.querySelector(`[${info.dataAttr}="${escapeAttr(info.dataValue)}"]`));
+  if (!el) {
+    // Neither id nor a RESTORABLE_DATA_ATTRS match — try the positional
+    // fallback (see elementPath/elementAtPath above). tagName is checked
+    // because "found something at that position" isn't the same claim as
+    // "found the same control"; a mismatch means the re-render changed the
+    // tree shape there, which is exactly the case this fallback should NOT
+    // paper over.
+    const positional = elementAtPath(info.path);
+    if (positional && positional.tagName === info.tagName) el = positional;
+  }
   if (!el) return;
 
   if (isFocusable(el)) {
@@ -413,9 +510,22 @@ function restoreFocus(info) {
 // <main> itself — then explicitly scrolls to top. Doing both explicitly
 // (rather than letting scroll follow focus) keeps focus and scroll
 // deterministic instead of racing the browser's own handling.
+//
+// `|| app` is a defensive fallback, not a reachable branch today — every
+// view renders exactly one h1 (verified across all 25 view-states) — kept
+// so a future view that forgets its own h1 falls back to <main> instead of
+// this call throwing on `null.setAttribute`.
 function moveFocusToRoute() {
   const target = app.querySelector('h1') || app;
   target.setAttribute('tabindex', '-1');
+  // app.css suppresses the outline on any `:focus` that isn't
+  // `:focus-visible`, which otherwise leaves script-driven focus with no
+  // visible indicator at all — and every navigation in this app moves
+  // focus by script. `.route-focus` (styled in app.css) restores one for
+  // exactly this case; removed on blur so it doesn't linger once the user
+  // moves on under their own steam.
+  target.classList.add('route-focus');
+  target.addEventListener('blur', () => target.classList.remove('route-focus'), { once: true });
   target.focus({ preventScroll: true });
   window.scrollTo(0, 0);
 }
@@ -553,8 +663,20 @@ if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
 // already fallen back to home in state if the hash wasn't restorable
 // (nothing is sampled yet on a fresh load, so #/test/n or #/results
 // never restore here — see src/router.js).
-applyPath(location.hash, state, routeIds);
+const restoredAtBoot = applyPath(location.hash, state, routeIds);
 history.replaceState(null, '', pathFor(state));
+if (!restoredAtBoot) {
+  // Same situation the popstate handler below announces, and for the same
+  // reason: a stale or hand-typed deep link (#/bogus, or an unknown
+  // #/disabilities/<id>) silently landed on a fallback view with no
+  // explanation. The popstate path already covers this for in-session
+  // navigation; leaving boot asymmetric meant the very first landing on a
+  // dead link — arguably the most likely time to hit one — was the one
+  // case that stayed silent. This fires before the first render() call
+  // below, so the announcement is already queued by the time the page
+  // becomes interactive rather than arriving as a surprise afterward.
+  announce(`That page isn't available — showing ${titleFor(state)}.`);
+}
 
 // Seed the route key from the resolved boot state so the very first paint
 // below is treated as "in place" rather than a navigation — cold load

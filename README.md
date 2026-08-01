@@ -14,7 +14,7 @@ A study tool for the **IAAP Certified Professional in Accessibility Core Compete
 - Bear-notes-derived practice + flashcards (if you, like the author, take notes in Bear)
 - Missed-question focused review
 - 71-condition human disabilities reference with prevalence + accessibility solutions
-- 51-item history / laws / standards reference
+- 53-item history / laws / standards reference in CPACC scope (61 total in the underlying dataset — see [`data/README.md`](data/README.md))
 - Optional AI chat tutor (per-question and free-form), backed by Anthropic, OpenAI, or a local model you run yourself
 - **Every AI-touched piece of content carries an [IBM-style provenance badge](AI_TRANSPARENCY.md) with confidence + sources + limitations.**
 
@@ -37,6 +37,8 @@ A study tool for the **IAAP Certified Professional in Accessibility Core Compete
 ---
 
 ## Run it locally
+
+**Prerequisite:** Node.js ≥ 18 (CI runs Node 20; `jsdom` 24 requires ≥ 18, and the LLM helper's use of `AbortSignal.timeout` requires ≥ 16.14).
 
 Two deploy modes (full instructions in [`DEPLOY.md`](DEPLOY.md)):
 
@@ -81,7 +83,7 @@ Without a configured provider, everything works *except* the chat tutor.
 
 The author's deploy lives at **https://cpacc-test-maker.pages.dev** (chat currently disabled).
 
-For your own deploy, see [`DEPLOY.md`](DEPLOY.md#option-a-cloudflare-pages-recommended-for-public-hosting). Once set up, `npm run deploy` stages, tests, and ships in one command.
+For your own deploy, see [`DEPLOY.md`](DEPLOY.md#option-a--cloudflare-pages-recommended-for-public-hosting). Once set up, `npm run deploy` stages, tests, and ships in one command.
 
 ---
 
@@ -112,7 +114,7 @@ Click any badge in the app to see the full provenance card (source, model, gener
 | Missed-question practice | Focused review; missed list persists per-browser (and cross-device on the LAN deploy) |
 | Bear-notes flashcards | 50 dense study cards distilled from notes |
 | Human disabilities reference | 71 conditions × 9 categories, prevalence + accessibility solutions |
-| History / laws / standards | 51 CPACC-relevant items × 7 jurisdictions, plus a timeline view |
+| History / laws / standards | 53 CPACC-relevant items × 7 jurisdictions shown in the app (61 total in `data/legal.js`; 8 are kept in the dataset but excluded from rendering), plus a timeline view |
 | Per-question chat tutor | Click "Discuss this question with the AI tutor" — gets question + BoK rationale as context |
 | Home-page chat tutor | Free-form CPACC chat |
 | Accessibility | Targets WCAG 2.2 AA, partially conformant; see the in-app [Accessibility statement](https://cpacc-test-maker.pages.dev/#/accessibility) and [Accessibility](#accessibility) below |
@@ -146,7 +148,7 @@ Targets **WCAG 2.2 AA**. Notable contracts (enforced by `tests/views.test.js`):
 - Color contrast: text ≥ 4.5:1, UI components ≥ 3:1 — audited across every pair in the app, see [`ACCESSIBILITY.md`](ACCESSIBILITY.md)
 - Color never the sole channel (confidence pills pair color + shape + text; chat speaker identity, the jump grid, and the current-question cell all have a non-color cue too)
 - Answer choices are native radio inputs in a `<fieldset>`; visible hint adapts to touch vs keyboard via `(pointer: coarse)`; revealed choices sit in a genuinely-`disabled` fieldset, not a lying `aria-disabled`
-- Announcements (verdict, chat replies/errors) go through a single persistent live region (`#route-status`) that survives DOM rewrites
+- Announcements (verdict, chat replies/errors) go through one of two persistent, static live regions that survive DOM rewrites — `#route-status` (polite) or `#route-alert` (assertive), picked by `announce()` rather than mutated per call
 - Decorative emoji `aria-hidden="true"`
 - `prefers-reduced-motion: reduce` honored for scroll behavior
 - AI provenance disclosure uses native `<details>`/`<summary>` (zero JS, mobile-friendly, implicit `aria-expanded`)
@@ -213,13 +215,14 @@ test-maker/
 │   ├── bear-questions.js      # Bear-derived bank + BEAR_BANK_PROVENANCE
 │   ├── bear-flashcards.js     # Flashcards + BEAR_FLASHCARDS_PROVENANCE
 │   ├── disabilities.js        # 71 conditions × 9 categories + DISABILITIES_PROVENANCE
-│   └── legal.js               # 60 laws/standards × 7 jurisdictions + LEGAL_PROVENANCE
+│   └── legal.js               # 61 laws/standards × 7 jurisdictions (53 rendered, see cpacc filter in src/views/legal.js) + LEGAL_PROVENANCE
 ├── tests/
 │   ├── run.js                 # Runner — discovers + executes every *.test.js
 │   ├── sampling.test.js       # Unit tests for sampling logic
 │   ├── scoring.test.js        # Unit tests for scoring
 │   ├── storage.test.js        # Unit tests for missed-set persistence
 │   ├── llm.test.js            # Unit tests for provider resolution + wire formats
+│   ├── router.test.js         # Unit tests for the hash-path <-> state router
 │   └── views.test.js          # jsdom DOM tests for view accessibility contracts
 ├── e2e/                        # Playwright: real Chromium/Firefox/WebKit
 │   ├── smoke.spec.js

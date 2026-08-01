@@ -805,7 +805,7 @@ export async function run({ test, assertTrue, assertEq }) {
     // file exists to prevent, just at the boundary instead of the middle.
     await bootApp('#/');
     document.getElementById('start-flashcards').click();
-    await new Promise(r => setTimeout(r, 30)); // startFlashcards lazy-imports sampling.js
+    await new Promise(r => setTimeout(r, 30)); // let render()'s history.pushState/route sync settle
     assertEq(location.hash, '#/flashcards', 'sanity: flashcards started');
 
     document.getElementById('next-card').click();
@@ -1082,7 +1082,7 @@ export async function run({ test, assertTrue, assertEq }) {
     assertTrue(submitBtn && !submitBtn.disabled, 'sanity: submit-answer enabled after picking a choice');
     submitBtn.click();
 
-    // announce() debounces through a 75ms setTimeout — wait longer than that.
+    // announce() debounces through a 100ms setTimeout — wait longer than that.
     await new Promise(r => setTimeout(r, 150));
     assertTrue(routeStatus.textContent.length > 0, 'announce() should eventually write text into #route-status');
   });
@@ -1133,7 +1133,7 @@ export async function run({ test, assertTrue, assertEq }) {
       input.value = 'What does POUR mean?';
       document.getElementById('home-send').click();
 
-      // announce() debounces through a 75ms setTimeout (see main.js) on top
+      // announce() debounces through a 100ms setTimeout (see main.js) on top
       // of the stubbed fetch's own microtask — wait past both.
       await new Promise(r => setTimeout(r, 150));
       const routeStatus = document.getElementById('route-status');
@@ -1144,7 +1144,12 @@ export async function run({ test, assertTrue, assertEq }) {
     }
   });
 
-  await test('sendHomeChat: a failed reply is announced through #route-status with aria-live="assertive" (the assertive path had zero prior coverage)', async () => {
+  await test('sendHomeChat: a failed reply is announced through #route-alert (role="alert", aria-live="assertive") — the assertive path had zero prior coverage', async () => {
+    // #route-status and #route-alert are now two separate STATIC regions
+    // (see src/main.js's announce()) rather than one region whose
+    // aria-live is flipped per call — a failed/assertive announcement goes
+    // to #route-alert only, never touching #route-status's politeness or
+    // content.
     const restore = stubFetch([
       ['/chat-status', () => ({ ok: true, json: async () => ({ enabled: true }) })],
       ['/chat-general', () => ({ ok: false, status: 500, json: async () => ({ error: 'server exploded' }) })],
@@ -1157,10 +1162,18 @@ export async function run({ test, assertTrue, assertEq }) {
       input.value = 'What does POUR mean?';
       document.getElementById('home-send').click();
 
+      // announce() debounces through a 100ms setTimeout (see main.js) on
+      // top of the stubbed fetch's own microtask — wait past both.
       await new Promise(r => setTimeout(r, 150));
+      const routeAlert = document.getElementById('route-alert');
+      assertTrue(routeAlert, 'no #route-alert element');
+      assertEq(routeAlert.getAttribute('role'), 'alert', '#route-alert must carry role="alert"');
+      assertEq(routeAlert.getAttribute('aria-live'), 'assertive', '#route-alert must be assertive — the user is actively waiting on this reply');
+      assertTrue(routeAlert.textContent.includes('server exploded'), 'the chat error text must reach #route-alert');
+
       const routeStatus = document.getElementById('route-status');
-      assertTrue(routeStatus.textContent.includes('server exploded'), 'the chat error text must also reach #route-status');
-      assertEq(routeStatus.getAttribute('aria-live'), 'assertive', 'a failed reply must switch #route-status to assertive — the user is actively waiting on it');
+      assertEq(routeStatus.getAttribute('aria-live'), 'polite', '#route-status must stay polite — a failed reply must not mutate its politeness');
+      assertTrue(!routeStatus.textContent.includes('server exploded'), 'the error text must not also land in the polite #route-status region');
     } finally {
       restore();
     }
@@ -1317,6 +1330,115 @@ export async function run({ test, assertTrue, assertEq }) {
     }
   });
 
+  // Regression coverage for the positional-index fallback added to
+  // captureFocus/restoreFocus (elementPath/elementAtPath in src/main.js).
+  // Before that fallback, `if (!el) return;` in restoreFocus couldn't tell
+  // "this control was removed" apart from "this control never had an id or
+  // a RESTORABLE_DATA_ATTRS to begin with" — and answer radios and
+  // provenance <summary> elements are two of the five control classes that
+  // fall in the latter bucket. Both tests below reuse the same deferred
+  // /chat-status re-render trigger as the jump-grid test above.
+  await test('focus restoration: an in-place re-render on the test view preserves focus on an answer radio (no id, no RESTORABLE_DATA_ATTRS — exercises the positional-index fallback, not the id/data-attr fast path)', async () => {
+    let resolveChatStatus;
+    const chatStatusGate = new Promise(r => { resolveChatStatus = r; });
+    const restore = stubFetch([
+      ['/chat-status', async () => { await chatStatusGate; return { ok: true, json: async () => ({ enabled: false }) }; }],
+      ['/missed', () => ({ ok: true, json: async () => ({ ids: [] }) })],
+    ]);
+    try {
+      await bootApp('#/');
+      document.getElementById('start').click();
+      await new Promise(r => setTimeout(r, 5));
+
+      const radio = document.querySelector('input[name="choice"][value="B"]');
+      assertTrue(radio, 'sanity: choice B radio exists on question 1');
+      radio.focus();
+      assertEq(document.activeElement, radio, 'sanity: the radio is focused');
+
+      // Resolve the deferred /chat-status probe now — main.js's real
+      // `fetchChatStatus().then(enabled => { state.chatEnabled = enabled; render(); })`
+      // fires a genuine in-place re-render (chatEnabled isn't part of
+      // routeKey) while a plain radio has focus.
+      resolveChatStatus();
+      await new Promise(r => setTimeout(r, 20));
+
+      const newRadio = document.querySelector('input[name="choice"][value="B"]');
+      assertTrue(newRadio, 'sanity: choice B radio should still exist after the in-place re-render');
+      assertTrue(newRadio !== radio, 'sanity: the re-render actually replaced the node rather than reusing it');
+      assertEq(document.activeElement, newRadio, 'focus should be restored to the re-found radio via the positional-index fallback, not dropped to <body>');
+    } finally {
+      restore();
+    }
+  });
+
+  await test('focus restoration: an in-place re-render on the results page preserves focus on a provenance <summary> (no id, no RESTORABLE_DATA_ATTRS — same positional-index fallback as the answer-radio case above)', async () => {
+    let resolveChatStatus;
+    const chatStatusGate = new Promise(r => { resolveChatStatus = r; });
+    const restore = stubFetch([
+      ['/chat-status', async () => { await chatStatusGate; return { ok: true, json: async () => ({ enabled: false }) }; }],
+      ['/missed', () => ({ ok: true, json: async () => ({ ids: [] }) })],
+    ]);
+    try {
+      await bootApp('#/');
+      document.getElementById('start').click();
+      await new Promise(r => setTimeout(r, 5));
+      for (let i = 0; i < 19; i++) document.getElementById('next').click();
+      await new Promise(r => setTimeout(r, 10));
+      assertEq(location.hash, '#/test/20', 'sanity: on the last question');
+
+      const submitAll = document.getElementById('submit-all');
+      assertTrue(submitAll, 'sanity: submit-all visible on the last question');
+      submitAll.click();
+      await new Promise(r => setTimeout(r, 10));
+      assertEq(location.hash, '#/results', 'sanity: reached results');
+
+      const summary = document.querySelector('.provenance summary');
+      assertTrue(summary, 'sanity: at least one provenance <summary> exists on results');
+      summary.focus();
+      assertEq(document.activeElement, summary, 'sanity: the provenance summary is focused');
+
+      resolveChatStatus();
+      await new Promise(r => setTimeout(r, 20));
+
+      const newSummary = document.querySelector('.provenance summary');
+      assertTrue(newSummary, 'sanity: a provenance <summary> should still exist after the in-place re-render');
+      assertTrue(newSummary !== summary, 'sanity: the re-render actually replaced the node rather than reusing it');
+      assertEq(document.activeElement, newSummary, 'focus should be restored to the re-found <summary> via the positional-index fallback, not dropped to <body>');
+    } finally {
+      restore();
+    }
+  });
+
+  await test("announce(): #route-status auto-clears itself well after the message would have been read, so a full assistant reply doesn't sit permanently in a live region outside every landmark (src/main.js's CLEAR_AFTER_MS)", async () => {
+    // Reuses the same actions.startTest('missed') direct-call trick as the
+    // empty-pool guard test below (practiceBtn is disabled, so a real
+    // click() would never dispatch) purely as a cheap, no-fetch-stubbing
+    // way to drive a real announce() call and inspect #route-status
+    // afterward.
+    const restore = stubFetch([
+      ['/chat-status', () => ({ ok: true, json: async () => ({ enabled: false }) })],
+      ['/missed', () => ({ ok: true, json: async () => ({ ids: [] }) })],
+    ]);
+    try {
+      await bootApp('#/');
+      const practiceBtn = document.getElementById('practice-missed');
+      assertTrue(practiceBtn && practiceBtn.disabled, 'sanity: #practice-missed is disabled with an empty missed set');
+
+      practiceBtn.onclick();
+      await new Promise(r => setTimeout(r, 150)); // past the 100ms set-delay
+
+      const routeStatus = document.getElementById('route-status');
+      assertTrue(routeStatus.textContent.includes('No missed questions to practice'), 'sanity: the message landed in #route-status');
+
+      // Wait past CLEAR_AFTER_MS (src/main.js) on top of the set-delay
+      // already waited above.
+      await new Promise(r => setTimeout(r, 3100));
+      assertEq(routeStatus.textContent, '', '#route-status must auto-clear once the announcement has had time to be read, not sit there permanently as an unlabelled duplicate outside every landmark');
+    } finally {
+      restore();
+    }
+  });
+
   // "Also" item: nearestFocusableSibling widens parent -> .panel -> #app.
   // The existing flashcards Prev/Next test only exercises the first (parent)
   // step. This covers the harder case: an entire cluster (home's
@@ -1416,7 +1538,7 @@ export async function run({ test, assertTrue, assertEq }) {
       assertTrue(practiceBtn.disabled, 'sanity: #practice-missed is disabled with an empty missed set (home.js\'s own guard, not what this test targets)');
 
       practiceBtn.onclick();
-      await new Promise(r => setTimeout(r, 150)); // past announce()'s 75ms debounce
+      await new Promise(r => setTimeout(r, 150)); // past announce()'s 100ms debounce
 
       assertEq(location.hash, '#/', 'startTest must not push #/test/1 when the sampled pool is empty');
       assertTrue(!document.getElementById('choices'), 'no #choices fieldset should mount — the app must not enter the test view');

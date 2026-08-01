@@ -39,8 +39,8 @@ export function renderLegal(ctx) {
     const cards = d.jurisdictions.filter(c => visible.some(i => i.jurisdiction === c.id)).map(c => {
       const count = visible.filter(i => i.jurisdiction === c.id).length;
       return `
-          <button type="button" class="cat-card" data-jur="${c.id}" style="border-top: 3px solid ${c.color}">
-            <span class="cat-emoji" aria-hidden="true">${c.emoji}</span>
+          <button type="button" class="cat-card" data-jur="${c.id}" style="border-top: 3px solid ${escapeHtml(c.color)}">
+            <span class="cat-emoji" aria-hidden="true">${escapeHtml(c.emoji)}</span>
             <span class="cat-label">${escapeHtml(c.label)}</span>
             <span class="cat-count">${count} ${count === 1 ? 'item' : 'items'}</span>
           </button>`;
@@ -63,7 +63,13 @@ export function renderLegal(ctx) {
   if (cat.id === 'timeline') {
     items = items.slice().sort((a, b) => parseInt(a.year, 10) - parseInt(b.year, 10));
   }
-  const anchors = items.map(i => `<button type="button" class="anchor" data-anchor="${i.id}">${escapeHtml(i.year)} · ${escapeHtml(i.name.split(/[—(]/)[0].trim().slice(0, 32))}</button>`).join('');
+  // Full name, not a truncated prefix — a fixed .slice(0, 32) used to cut
+  // these mid-word with no ellipsis (e.g. "...ADA Title II web"), affecting
+  // 10 of 26 timeline anchors and 6 of 7 UN ones. disabilities.js's
+  // equivalent anchor list (:61) renders the full item name; matching that
+  // here keeps every anchor's accessible name complete. Any visual
+  // shortening belongs in CSS (text-overflow etc.), not in the name itself.
+  const anchors = items.map(i => `<button type="button" class="anchor" data-anchor="${i.id}">${escapeHtml(i.year)} · ${escapeHtml(i.name)}</button>`).join('');
   const inline = items.map(item => {
     const facts = (item.keyFacts || []).map(f => `<li>${escapeHtml(f)}</li>`).join('');
     return `
@@ -84,9 +90,9 @@ export function renderLegal(ctx) {
         <div class="row" style="margin-bottom:14px">
           <button class="secondary small" id="back-jurs"><span aria-hidden="true">←</span> All groups</button>
         </div>
-        <div class="cat-overview" style="border-top: 4px solid ${cat.color}">
+        <div class="cat-overview" style="border-top: 4px solid ${escapeHtml(cat.color)}">
           <div class="cat-hero">
-            <div class="cat-hero-emoji" aria-hidden="true">${cat.emoji}</div>
+            <div class="cat-hero-emoji" aria-hidden="true">${escapeHtml(cat.emoji)}</div>
             <div>
               <h1>${escapeHtml(cat.label)} — history, laws & standards</h1>
               <div class="sub" style="margin:4px 0 0">${items.length} item${items.length === 1 ? '' : 's'}${cat.id === 'timeline' ? ' · sorted by year' : ''}</div>

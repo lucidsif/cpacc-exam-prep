@@ -29,6 +29,14 @@ import { defineConfig, devices } from '@playwright/test';
 const PORT = 8787;
 const BASE_URL = `http://localhost:${PORT}`;
 
+// Second server, chat ENABLED: LLM_PROVIDER=local makes /chat-status
+// resolve `configured: true` with no API key needed (see functions/_lib/llm.js),
+// so state.chatEnabled is true here and only here. No spec run against this
+// server sends an actual chat message, so LLM_BASE_URL never needs to be a
+// real, reachable endpoint — it only has to be present.
+const CHAT_PORT = 8788;
+const CHAT_BASE_URL = `http://localhost:${CHAT_PORT}`;
+
 export default defineConfig({
   testDir: './e2e',
 
@@ -59,22 +67,44 @@ export default defineConfig({
   },
 
   projects: [
-    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
-    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+    // axe-chat.spec.js needs chatEnabled true (the 'chat' project below);
+    // running it here too would just fail against a chat-disabled server,
+    // so every chat-disabled project ignores it.
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] }, testIgnore: /axe-chat\.spec\.js/ },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] }, testIgnore: /axe-chat\.spec\.js/ },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] }, testIgnore: /axe-chat\.spec\.js/ },
+    // 320px is the narrowest common phone width and the exact point
+    // styles/app.css's .grid (question-view jump nav / results overview)
+    // overflowed horizontally before its reflow fix — see e2e/reflow.spec.js.
+    // Runs the whole default suite at that width, same as the other
+    // projects, per this file's own "don't narrow coverage" philosophy above.
+    { name: 'mobile-320', use: { ...devices['Desktop Chrome'], viewport: { width: 320, height: 640 } }, testIgnore: /axe-chat\.spec\.js/ },
+    // Chat surface coverage (see the CHAT_PORT server below): scoped to
+    // just axe-chat.spec.js so the rest of the suite isn't pointlessly run
+    // twice against a second server that differs only in chatEnabled.
+    { name: 'chat', testMatch: /axe-chat\.spec\.js/, use: { ...devices['Desktop Chrome'], baseURL: CHAT_BASE_URL } },
   ],
 
   // Starts the same server a developer runs locally (`node server.js`), so
-  // `npm run test:e2e` is one command with no manual setup step. No LLM_*
-  // env vars are passed, so /chat-status resolves to "disabled" — fine for
-  // specs that don't exercise the chat feature; a spec that needs chat
-  // enabled should stub the network call rather than depend on a real
-  // provider key being present in the environment.
-  webServer: {
-    command: 'node server.js',
-    url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 30_000,
-    env: { PORT: String(PORT) },
-  },
+  // `npm run test:e2e` is one command with no manual setup step.
+  webServer: [
+    {
+      // No LLM_* env vars, so /chat-status resolves to "disabled" — this is
+      // the server every project above except 'chat' runs against.
+      command: 'node server.js',
+      url: BASE_URL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 30_000,
+      env: { PORT: String(PORT) },
+    },
+    {
+      // Chat ENABLED (see CHAT_PORT comment above) — only the 'chat'
+      // project points its baseURL here.
+      command: 'node server.js',
+      url: CHAT_BASE_URL,
+      reuseExistingServer: !process.env.CI,
+      timeout: 30_000,
+      env: { PORT: String(CHAT_PORT), LLM_PROVIDER: 'local', LLM_BASE_URL: 'http://127.0.0.1:65535' },
+    },
+  ],
 });

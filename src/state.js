@@ -14,8 +14,8 @@
 //   revealed       — map of qid → true once user submitted that answer
 //   index          — current question index in the test
 //   submitted      — true once the user submitted the entire test
-//   chats          — per-question discussion chats (id → {open,history})
-//   homeChat       — free-form tutor chat on the home page
+//   chats          — per-question discussion chats (id → {open,history,draft})
+//   homeChat       — free-form tutor chat on the home page ({history,draft})
 //   chatEnabled    — true/false once /chat-status resolves at startup; null
 //                    means "not yet probed" (treated as falsy by views)
 //   flashcards     — flashcards session ({cards,index,flipped}) when active
@@ -26,6 +26,15 @@
 // navigating back to home doesn't require destroying `questions` — an
 // in-progress test survives in memory and Forward can resume it
 // (see src/router.js).
+//
+// `draft` (on homeChat and on each chats[id] entry) holds text the user has
+// typed but not yet sent. Every chat input renders with no value attribute
+// at all previously, so any in-place re-render (a chat reply landing, a
+// sibling chat toggle, the chatEnabled/missed-set boot probes) silently
+// wiped out whatever was mid-typed — the view had nowhere to read it back
+// from. Backing it here means a re-render can restore exactly what was
+// there; views set it on `oninput` and clear it right before handing off to
+// the actual send action.
 
 export function createState() {
   return {
@@ -38,7 +47,7 @@ export function createState() {
     index: 0,
     submitted: false,
     chats: {},
-    homeChat: { history: [] },
+    homeChat: { history: [], draft: '' },
     chatEnabled: null,
     flashcards: null,
     disabilities: null,

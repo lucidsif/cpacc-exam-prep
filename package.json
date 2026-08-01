@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "CPACC Body of Knowledge practice tests, flashcards, and references.",
   "license": "MIT",
+  "engines": { "node": ">=18" },
   "scripts": {
     "start": "node server.js",
     "test": "node tests/run.js",
@@ -11,7 +12,7 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
     "build": "bash scripts/build-dist.sh",
-    "deploy": "npm test && npm run build && wrangler pages deploy dist --project-name=cpacc-test-maker --commit-dirty=true --branch=main",
+    "deploy": "npm test && npm run test:e2e && npm run build && wrangler pages deploy dist --project-name=cpacc-test-maker --commit-dirty=true --branch=main",
     "deploy:preview": "npm run build && wrangler pages deploy dist --project-name=cpacc-test-maker --commit-dirty=true",
     "dev:cf": "npm run build && wrangler pages dev dist"
   },

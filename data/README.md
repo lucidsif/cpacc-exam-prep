@@ -7,6 +7,12 @@ Every file in this directory exports:
 
 The smoke tests in `tests/run.js` enforce both shapes — adding a new file means adding it to the test loader and providing both exports.
 
+## Relationship to IAAP's copyrighted material
+
+`questions.js` (96 items) and `bear-questions.js` are grounded in the IAAP CPACC Body of Knowledge (BoK) — a copyrighted IAAP publication that is deliberately **not** redistributed with this repository (see `.gitignore`'s `/*.pdf` rule and the citation comment at the top of `questions.js`). Every item in this repository is the author's own original paraphrase, question, and assessment of a BoK *concept* — written from scratch, not copied, quoted, or lightly reworded from the BoK's text — and cited back to a BoK page number for verification, not as a substitute for owning the source.
+
+This repository's MIT license covers that original paraphrase and the surrounding code. It does **not**, and cannot, extend to the underlying IAAP Body of Knowledge itself: the BoK's own text, structure, and any content reproduced or closely derived from it remain IAAP's copyrighted material under IAAP's own terms, regardless of what license this repository declares. If you're evaluating this project's licensing before reuse or redistribution, treat `data/questions.js`, `data/bear-questions.js`, and the citation comments throughout as "original work citing a copyrighted source," not as "a redistribution of that source under MIT." See `LICENSE` for the pointer back to this note, and `README.md`'s closing disclaimer ("Not affiliated with or endorsed by IAAP") for the trademark side of the same relationship.
+
 ## File index
 
 | File | Exports | Bucket |

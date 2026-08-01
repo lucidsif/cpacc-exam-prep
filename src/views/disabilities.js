@@ -35,8 +35,8 @@ export function renderDisabilities(ctx) {
     const cards = d.categories.map(c => {
       const count = d.items.filter(i => i.category === c.id).length;
       return `
-          <button type="button" class="cat-card" data-cat="${c.id}" style="border-top: 3px solid ${c.color}">
-            <span class="cat-emoji" aria-hidden="true">${c.emoji}</span>
+          <button type="button" class="cat-card" data-cat="${c.id}" style="border-top: 3px solid ${escapeHtml(c.color)}">
+            <span class="cat-emoji" aria-hidden="true">${escapeHtml(c.emoji)}</span>
             <span class="cat-label">${escapeHtml(c.label)}</span>
             <span class="cat-count">${count} ${count === 1 ? 'condition' : 'conditions'}</span>
           </button>`;
@@ -58,7 +58,7 @@ export function renderDisabilities(ctx) {
   const cat = d.categories.find(c => c.id === state.disabilities.category);
   const items = d.items.filter(i => i.category === cat.id);
   const stats = (CATEGORY_STATS[cat.id] || []).map(s => `<span class="stat-pill">${escapeHtml(s)}</span>`).join('');
-  const anchors = items.map(i => `<button type="button" class="anchor" data-anchor="${i.id}"><span aria-hidden="true">${i.emoji}</span> ${escapeHtml(i.name)}</button>`).join('');
+  const anchors = items.map(i => `<button type="button" class="anchor" data-anchor="${i.id}"><span aria-hidden="true">${escapeHtml(i.emoji)}</span> ${escapeHtml(i.name)}</button>`).join('');
   const inline = items.map(item => {
     const facts = (item.keyFacts || []).map(f => `<li>${escapeHtml(f)}</li>`).join('');
     const solutions = (item.a11ySolutions || []).map(s => `<li>${escapeHtml(s)}</li>`).join('');
@@ -87,9 +87,9 @@ export function renderDisabilities(ctx) {
         <div class="row" style="margin-bottom:14px">
           <button class="secondary small" id="back-cats"><span aria-hidden="true">←</span> All categories</button>
         </div>
-        <div class="cat-overview" style="border-top: 4px solid ${cat.color}">
+        <div class="cat-overview" style="border-top: 4px solid ${escapeHtml(cat.color)}">
           <div class="cat-hero">
-            <div class="cat-hero-emoji" aria-hidden="true">${cat.emoji}</div>
+            <div class="cat-hero-emoji" aria-hidden="true">${escapeHtml(cat.emoji)}</div>
             <div>
               <h1>${escapeHtml(cat.label)} — human disabilities</h1>
               <div class="sub" style="margin:4px 0 0">${items.length} condition${items.length === 1 ? '' : 's'}</div>

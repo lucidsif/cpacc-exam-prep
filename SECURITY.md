@@ -9,8 +9,9 @@ This project is a single-version personal study tool. Security fixes land on `ma
 If you discover a security issue:
 
 1. **Do not** open a public GitHub issue with exploit details.
-2. **Open a private security advisory** via the repository's **Security → Advisories → New draft security advisory** button on GitHub.
-3. If you can't access the advisory flow, open a regular issue titled `[security] please contact` with no details, and a maintainer will reach out.
+2. **Open a private security advisory** via the repository's **Security → Advisories → New draft security advisory** button on GitHub, if this repository has a public remote and that flow is available to you.
+3. If you can't access the advisory flow (including if this repository isn't published anywhere yet), open a regular issue titled `[security] please contact` with no details, and a maintainer will reach out.
+4. If neither of the above is reachable, email **tawsif@perenniala11y.com** directly with the same information — this works regardless of the repository's publication state.
 
 Please include:
 

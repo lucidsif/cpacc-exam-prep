@@ -63,7 +63,26 @@ export function renderFlashcards(ctx) {
   }
   document.getElementById('card').onclick = flip;
   document.getElementById('flip-card').onclick = (e) => { e.stopPropagation(); flip(); };
-  document.getElementById('prev-card').onclick = () => { if (fc.index > 0) { fc.index--; fc.flipped = false; actions.render(); } };
-  document.getElementById('next-card').onclick = () => { if (fc.index < fc.cards.length - 1) { fc.index++; fc.flipped = false; actions.render(); } };
-  document.getElementById('shuffle-cards').onclick = () => { fc.cards = shuffle(fc.cards); fc.index = 0; fc.flipped = false; actions.render(); };
+
+  // routeKey() (src/main.js) is keyed on the TEST question index, not the
+  // flashcard index — a flashcard is a different card at the same route, so
+  // Prev/Next/Shuffle are in-place re-renders exactly like flip() above:
+  // same button, same name, same page title. flip() already announces its
+  // own state change; this was the one card-change path that didn't (WCAG
+  // 4.1.3) — announce the new card the same way flip() announces a face.
+  function announceCard() {
+    const c = fc.cards[fc.index];
+    actions.announce(`Card ${fc.index + 1} of ${fc.cards.length}. Front of card. ${c.front}`);
+  }
+  document.getElementById('prev-card').onclick = () => {
+    if (fc.index > 0) { fc.index--; fc.flipped = false; announceCard(); actions.render(); }
+  };
+  document.getElementById('next-card').onclick = () => {
+    if (fc.index < fc.cards.length - 1) { fc.index++; fc.flipped = false; announceCard(); actions.render(); }
+  };
+  document.getElementById('shuffle-cards').onclick = () => {
+    fc.cards = shuffle(fc.cards); fc.index = 0; fc.flipped = false;
+    actions.announce(`Shuffled. Card 1 of ${fc.cards.length}. Front of card. ${fc.cards[0].front}`);
+    actions.render();
+  };
 }

@@ -37,6 +37,8 @@ First push makes all commits public and permanent, so this closes out the things
 - Finishing a missed-question practice run with everything correct cleanly empties the missed set, so results still offered "Practice 0 missed again." Clicking it sampled an empty pool, entered the test view with zero questions, and `question.js` dereferenced `undefined`. Guarded at both layers: `results.js` disables `#retake` with an `aria-describedby` explanation when there's nothing left to retake, and `startTest` samples into a local variable first and bails with an `announce()` rather than touching state
 - Chat transcripts (`role="log"`) now carry an explicit `aria-live="off"` alongside it. `role="log"` implies a polite live region on its own, so leaving the attribute off had silently kept that implicit behavior rather than removed it, while replies were also announced through `#route-status` — the pairing risked a double announcement. Explicit `off` makes `#route-status` the single, deterministic announcement path
 
+**Amended 2026-08-01:** "the single, deterministic announcement path" was true when written. `#route-status` has since been joined by a second static region, `#route-alert` (`role="alert"`, assertive), so announcements now route to one of *two* deterministic paths by politeness rather than one — see the render/announce architecture entry below and `ARCHITECTURE.md`/`ACCESSIBILITY.md` for the current shape. The double-announcement problem this bullet fixed is unaffected by that change.
+
 ### Fixed — residual focus-restoration gaps from adversarial review (2026-07-31)
 
 Follow-up to the focus-contract repair below, from an adversarial final-gate review that found the headline bug still surviving at boundaries the first pass missed.
@@ -44,7 +46,7 @@ Follow-up to the focus-contract repair below, from an adversarial final-gate rev
 - `nearestFocusableSibling` only searched a disabled control's immediate parent, so a control cluster that disables as a unit could still strand focus on `<body>` — e.g. home's `#practice-missed` and `#clear-missed`, which share a `.row` and both disable together the instant the missed list empties. The search now widens progressively — parent → nearest `.panel` → `#app` — bounded there so it can't wander to the skip link or home button outside `<main>`; if even `#app` has nothing focusable, it falls back to the route's own heading instead of leaving focus on the removed node
 - `data-jump` was missing from `RESTORABLE_DATA_ATTRS`, so the results page's jump-grid cells were invisible to `captureFocus()` and lost focus on any in-place re-render (e.g. a chat reply landing while the user had tabbed to a jump cell)
 - `isFocusable()` now checks `:disabled` instead of `el.disabled`. `el.disabled` only reflects a control's own attribute, so a radio inside a `<fieldset disabled>` (how revealed answer choices render) reported `false` even though `.focus()` on it is a silent no-op; `:disabled` matches the real inherited state, including the spec's `<legend>` exception a hand-rolled `closest('fieldset[disabled]')` check would get wrong
-- Three regression tripwires added for fixes from the focus-contract repair below that this review found could be reverted with the suite staying fully green — the same blindness that let the original bugs ship: chat replies reaching `#route-status` on both the success and assertive-error paths, `aria-current` on the current jump-grid cell (which doubles as its only visual indicator via `.cell[aria-current]`), and focus/caret restoration driven through the app's own real async startup probes rather than test-side focus poking
+- Three regression tripwires added for fixes from the focus-contract repair below that this review found could be reverted with the suite staying fully green — the same blindness that let the original bugs ship: chat replies reaching `#route-status` on both the success and assertive-error paths (as of this writing; see the 2026-08-01 amendment above — the assertive path now reaches the separate `#route-alert` region instead), `aria-current` on the current jump-grid cell (which doubles as its only visual indicator via `.cell[aria-current]`), and focus/caret restoration driven through the app's own real async startup probes rather than test-side focus poking
 
 ### Fixed — accessibility: focus, skip link, flashcard content, colour-only signals (2026-07-31)
 
@@ -58,7 +60,7 @@ Follow-up to the focus-contract repair below, from an adversarial final-gate rev
 
 - The AI-confidence `<summary>` on every provenance card no longer overrides its own visible label with `aria-label` — that hid the confidence level from screen readers and failed WCAG 2.5.3 (Label in Name) for speech-input users. The visible text is now the accessible name; a disambiguating item label is appended via `.sr-only`
 - The disabilities and legal reference detail routes (`#/disabilities/<id>`, `#/legal/<id>`) gained a real, visible `<h1>` — they previously had none, so nothing meaningful ever received focus on navigation into them
-- Revealed answer choices are genuinely inert. They previously used `aria-disabled="true"` while remaining natively focusable and operable — a lying disabled state. They're now inside a `<fieldset disabled>`, which is truthfully non-interactive; the "your answer" / "correct answer" state that native `disabled` strips from the accessibility tree is restored as visually-hidden text on the affected choice(s)
+- Revealed answer choices are genuinely inert. They previously used `aria-disabled="true"` while remaining natively focusable and operable — a lying disabled state. They're now inside a `<fieldset disabled>`, which is truthfully non-interactive. Native `disabled` doesn't strip a radio's role, name, or `checked` state from the accessibility tree (per HTML-AAM) — what it removes is *focusability*, so Tab, NVDA focus mode, and JAWS forms mode/quick-nav can no longer reach the control at all. The "your answer" / "correct answer" state is restored as visually-hidden text on the affected choice(s) anyway, so it's conveyed through ordinary reading order rather than depending on focus reaching a control that's no longer tabbable
 - Chat replies and errors are now announced through the app's persistent `#route-status` region. Both transcripts (`role="log"`) had no reliable live-region mechanism for content appended mid-session — see the Known limitations note in `ACCESSIBILITY.md` about the resulting double-announcement risk
 - `router.js`'s `#/results` restorability check now requires a non-empty question set, not just `submitted` — previously Back after "Back to start" could restore a results page reading "0 / 0 (0%)"
 
@@ -76,6 +78,8 @@ A full contrast audit computed every text and non-text colour pair in the app. *
 - `render(opts)` in `src/main.js` — no-arg calls auto-detect navigation vs. in-place re-render via a route key; `render({ focus: '#selector' })` targets a specific element explicitly (used by the flashcard flip control and the results per-question chat toggle)
 - `captureFocus()` / `restoreFocus()` — re-find the previously-focused control by `id` or a `data-*` attribute after `app.innerHTML` is replaced, and restore text-input caret position. Falls back to the nearest focusable sibling when the original control became `disabled` by the same re-render
 - `announce(msg, { assertive })` — writes to `#route-status`, a persistent `role="status"` region that's a sibling of `<main>` (survives `innerHTML` rewrites). Coalesces rapid calls with a 75ms `setTimeout` rather than `requestAnimationFrame` — see the in-code comment for why rAF drops a repeated identical message
+
+**Amended 2026-08-01:** this description matched the code as of 2026-07-31. Since then, `#route-status` gained a sibling region, `#route-alert` (`role="alert"`, assertive) — `announce({ assertive })` now picks between the two static regions instead of writing only to `#route-status` — and the coalescing delay changed from 75ms to 100ms. See `ARCHITECTURE.md` and `ACCESSIBILITY.md` for the current mechanism, including the corrected explanation of *why* the clear-then-set pattern works (it's `aria-relevant`'s `"additions text"` default, not "aria-live only speaks on a change").
 
 ### Notes
 
@@ -180,6 +184,8 @@ First open-source release. The app went from a single 858-line `index.html` to a
 - Border color hits ≥3:1 contrast (`--border: #708098`)
 - `ACCESSIBILITY.md` statement listing the conformance target, audit history, known limitations, and reporting flow
 
+**Amended 2026-08-01:** two claims in this entry didn't hold up. "WCAG 2.2 AA conformance across all views" was corrected to "targets WCAG 2.2 AA, partially conformant" — see the 2026-07-31 entry above, `README.md`, and `ACCESSIBILITY.md`. "Radio groups use the WAI-ARIA roving-tabindex pattern" was never accurate: this codebase has always used native `<input type="radio">` elements grouped in a `<fieldset>`/`<legend>`, relying on the browser's native radio-group Tab/Arrow-key behavior — there is no roving-tabindex pattern here and never was (see `src/README.md`, `CONTRIBUTING.md`). Left the original bullets above as written rather than editing them in place, so this entry still reflects what was actually claimed at the time.
+
 ### Added — architecture
 
 - Modular ES-module codebase under `src/` and `data/` (replaced a 700-line inline IIFE)
@@ -219,5 +225,4 @@ First open-source release. The app went from a single 858-line `index.html` to a
 - Issue templates: bug, accessibility, wrong-answer
 - Pull request template
 
-[Unreleased]: https://github.com/USER/REPO/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/USER/REPO/releases/tag/v0.1.0
+Note: this repository has no git remote and no `v0.1.0` tag yet, so the `[Unreleased]`/`[0.1.0]` headers above are plain text, not links. Compare/release links will be added here once the project is pushed and tagged.

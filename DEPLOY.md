@@ -17,6 +17,8 @@ A static site + serverless Functions for the chat proxy. Free tier covers small 
    - **Root directory:** *(leave blank)*
 4. Click **Save and Deploy**. The first deploy will succeed with chat disabled.
 
+⚠️ **This dashboard flow and the CLI flow below ship different sites.** With **Build output directory: `/`** and no build command, Cloudflare publishes the entire repository as-is — `tests/`, every `.md` doc, and anything else committed, not just what the app needs at runtime. The CLI flow (`npm run deploy`, below) stages a curated `dist/` via `scripts/build-dist.sh` first, which excludes tests, docs, and other non-runtime files. If you use the dashboard's Connect-to-Git flow and want the same curated output, set **Build command** to `npm run build` and **Build output directory** to `dist` instead of leaving them blank.
+
 ### Enabling the chat tutor
 
 Chat is **off by default** on Cloudflare. To enable it:
@@ -47,7 +49,7 @@ If `LLM_PROVIDER` is unset it is auto-detected: `LLM_BASE_URL` set → `local`, 
 | Practice tests, flashcards, references | ✅ All work |
 | Chat tutor (per-question + home) | ✅ With env var set |
 | Missed-question list | ✅ Per-browser (localStorage) |
-| **Cross-device missed sync** | ❌ Not supported (would need Workers KV — see issue tracker) |
+| **Cross-device missed sync** | ❌ Not supported (would need Workers KV or similar; not implemented) |
 
 ### Deploying from the CLI (recommended)
 
@@ -175,7 +177,7 @@ Notes:
 
 |  | Cloudflare Pages | Local Node server |
 |---|---|---|
-| Hosting cost | Free tier (≥500 builds/mo) | Your laptop's electricity |
+| Hosting cost | Free tier (≤500 builds/mo cap) | Your laptop's electricity |
 | Public access | Yes (HTTPS via CF edge) | LAN only |
 | Cross-device missed sync | No | Yes |
 | Chat tutor | Yes (env-var gated) | Yes (env-var gated) |

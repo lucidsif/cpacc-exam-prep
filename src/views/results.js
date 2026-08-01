@@ -33,13 +33,26 @@ export function renderResults(ctx) {
 
   const details = state.questions.map((q, i) => {
     const picked = state.answers[q.id];
+    const itemLabel = `Question ${i + 1}`;
     const choices = ["A","B","C","D"].map(letter => {
       let cls = '';
       if (letter === q.answer) cls = 'correct';
       else if (letter === picked) cls = 'incorrect';
+      // WCAG 1.4.1: cls above is a colour-only cue (border/background hue,
+      // see styles/app.css .choice.correct/.incorrect) with no text
+      // equivalent — the "Correct:"/"Why not:" prefix just below renders
+      // for all four choices, so it carries no signal about which one was
+      // actually picked. Mirrors the sr-only state text question.js already
+      // uses for the live view's revealed choices.
+      const isYours = letter === picked;
+      const isCorrectLetter = letter === q.answer;
+      let stateText = '';
+      if (isYours && isCorrectLetter) stateText = 'Your answer. Correct.';
+      else if (isYours) stateText = 'Your answer.';
+      else if (isCorrectLetter) stateText = 'Correct answer.';
       return `
           <div class="choice ${cls}">
-            <b>${letter}.</b> ${escapeHtml(q.choices[letter])}
+            <b>${letter}.</b> ${escapeHtml(q.choices[letter])}${stateText ? ` <span class="sr-only">${stateText}</span>` : ''}
             <div class="why"><b>${letter === q.answer ? 'Correct' : 'Why not'}:</b> ${escapeHtml(q.why[letter])}</div>
           </div>`;
     }).join('');
@@ -48,16 +61,21 @@ export function renderResults(ctx) {
     return `
         <div class="panel" data-qid="${q.id}" id="result-q-${i}">
           <h2 class="qmeta">Q${i+1} · ${domainLabel(q.domain)} · ${q.type} · your answer: ${picked || '—'} · correct: ${q.answer}</h2>
-          ${renderProvenanceBadge(prov, `Question ${i + 1}`)}
+          ${renderProvenanceBadge(prov, itemLabel)}
           <p class="qtext">${escapeHtml(q.q)}</p>
           ${choices}
           ${q.cite ? `<div class="cite">Source: ${escapeHtml(q.cite)}</div>` : ''}
           ${q.flag ? `<div class="flag"><b><span aria-hidden="true">⚑</span> Confidence note:</b> ${escapeHtml(q.flag)}</div>` : ''}
           ${state.chatEnabled ? `
           <div class="row" style="margin-top:10px">
-            <button type="button" class="toggle linkish" data-toggle="${q.id}" aria-expanded="${!!chatOpen}" aria-controls="chat-panel-${q.id}"><span aria-hidden="true">${chatOpen ? '▾' : '▸'}</span> ${chatOpen ? 'Hide chat' : 'Discuss this question with the AI tutor'}</button>
+            <!-- Every one of these 20 toggles otherwise shares the same two
+                 accessible names ("Discuss this question with the AI tutor" /
+                 "Hide chat") — a screen reader's elements list becomes 20
+                 indistinguishable entries. The sr-only suffix disambiguates,
+                 same approach as renderProvenanceBadge's itemLabel. -->
+            <button type="button" class="toggle linkish" data-toggle="${q.id}" aria-expanded="${!!chatOpen}" aria-controls="chat-panel-${q.id}"><span aria-hidden="true">${chatOpen ? '▾' : '▸'}</span> ${chatOpen ? 'Hide chat' : 'Discuss this question with the AI tutor'}<span class="sr-only"> — ${itemLabel}</span></button>
           </div>
-          <div id="chat-panel-${q.id}">${chatOpen ? renderChatFragment(q, state.chats[q.id]) : ''}</div>` : ''}
+          <div id="chat-panel-${q.id}">${chatOpen ? renderChatFragment(q, state.chats[q.id], itemLabel) : ''}</div>` : ''}
         </div>`;
   }).join('');
 
@@ -123,7 +141,7 @@ export function renderResults(ctx) {
   document.querySelectorAll('[data-toggle]').forEach(el => {
     el.onclick = () => {
       const id = Number(el.dataset.toggle);
-      state.chats[id] = state.chats[id] || { open: false, history: [] };
+      state.chats[id] = state.chats[id] || { open: false, history: [], draft: '' };
       state.chats[id].open = !state.chats[id].open;
       // Explicit focus target (not just bare render()): this is an in-place
       // re-render so no-arg render() would already restore focus via the
@@ -134,9 +152,32 @@ export function renderResults(ctx) {
     };
   });
   document.querySelectorAll('[data-send]').forEach(el => {
-    el.onclick = () => actions.sendChat(Number(el.dataset.send));
+    // sendChat (main.js) reads this input's live DOM value directly and
+    // clears that DOM node, with no idea state.chats[id].draft exists — so
+    // the draft (what actually survives a re-render, see chat.js/state.js)
+    // has to be cleared here or the next render would put the just-sent
+    // text right back in the box.
+    el.onclick = () => {
+      const id = Number(el.dataset.send);
+      if (state.chats[id]) state.chats[id].draft = '';
+      actions.sendChat(id);
+    };
   });
   document.querySelectorAll('[data-input]').forEach(el => {
-    el.onkeydown = (e) => { if (e.key === 'Enter') actions.sendChat(Number(el.dataset.input)); };
+    el.oninput = (e) => {
+      const id = Number(el.dataset.input);
+      state.chats[id] = state.chats[id] || { open: true, history: [], draft: '' };
+      state.chats[id].draft = e.target.value;
+    };
+    el.onkeydown = (e) => {
+      // isComposing guards an in-progress IME candidate (CJK input): that
+      // Enter confirms the candidate, it isn't a request to send, and
+      // without this a typed Japanese/Chinese/Korean message gets cut off
+      // and sent on its first confirming keystroke.
+      if (e.key !== 'Enter' || e.isComposing) return;
+      const id = Number(el.dataset.input);
+      if (state.chats[id]) state.chats[id].draft = '';
+      actions.sendChat(id);
+    };
   });
 }

@@ -14,6 +14,8 @@ This project is a personal study tool that was open-sourced because others might
 | **Question about the AI provenance / labels** | Read [`AI_TRANSPARENCY.md`](AI_TRANSPARENCY.md) — most questions are answered there |
 | **Deploy question** | See [`DEPLOY.md`](DEPLOY.md). If that doesn't cover it, open an issue. |
 
+The links above point at the issue template files in this repository, not at GitHub's issue-creation flow (a real "open a bug issue" link, like `github.com/OWNER/REPO/issues/new?template=bug.yml`, needs a public remote to resolve). If this repository has no public remote yet, or you otherwise can't open a GitHub issue, email **tawsif@perenniala11y.com** for any of the above instead.
+
 ## What this project is not
 
 - **Not a commercial product.** There is no SLA. Issues are answered when the author has time.

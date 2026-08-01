@@ -17,6 +17,7 @@ rm -rf "$DIST"
 mkdir -p "$DIST"
 
 cp "$ROOT/index.html"          "$DIST/"
+cp "$ROOT/_headers"            "$DIST/"
 cp -R "$ROOT/styles"           "$DIST/"
 cp -R "$ROOT/src"              "$DIST/"
 cp -R "$ROOT/data"             "$DIST/"

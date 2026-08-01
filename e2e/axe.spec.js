@@ -108,3 +108,88 @@ test('accessibility statement (#/accessibility) has zero automated accessibility
   const results = await runAxe(page);
   expect(results.violations, describeViolations(results.violations)).toEqual([]);
 });
+
+// Second scan, tagged `best-practice` — a DIFFERENT axe-core tag from the
+// wcag2a/wcag2aa/wcag22aa scan above. heading-order, page-has-heading-one,
+// empty-heading, landmark-one-main, landmark-unique, and region are all
+// tagged `best-practice`, not any wcag2*/wcag22aa tag, so the scan above
+// never runs them — even though the app's own accessibility statement and
+// README lean on exactly these properties (one <h1> per page, unique
+// landmarks) as tested claims. This scan is what actually backs that.
+const BEST_PRACTICE_TAGS = ['best-practice'];
+
+async function runBestPracticeAxe(page) {
+  return new AxeBuilder({ page }).withTags(BEST_PRACTICE_TAGS).analyze();
+}
+
+test.describe('best-practice axe rules (heading order, landmarks) — not covered by the scan above', () => {
+  test('home (#/) has zero best-practice violations', async ({ page }) => {
+    await page.goto('/');
+    const results = await runBestPracticeAxe(page);
+    expect(results.violations, describeViolations(results.violations)).toEqual([]);
+  });
+
+  test('a test question (#/test/1) has zero best-practice violations', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#start').click();
+    await expect(page.locator('h1')).toHaveText('Question 1 of 20');
+    const results = await runBestPracticeAxe(page);
+    expect(results.violations, describeViolations(results.violations)).toEqual([]);
+  });
+
+  test('results (#/results) has zero best-practice violations', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#start').click();
+    await expect(page.locator('h1')).toHaveText('Question 1 of 20');
+    await page.locator('[data-i="19"]').click();
+    await expect(page.locator('h1')).toHaveText('Question 20 of 20');
+    page.once('dialog', d => d.accept());
+    await page.locator('#submit-all').click();
+    await expect(page.locator('h1')).toHaveText('Results');
+    const results = await runBestPracticeAxe(page);
+    expect(results.violations, describeViolations(results.violations)).toEqual([]);
+  });
+
+  test('flashcards (#/flashcards) has zero best-practice violations', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('#start-flashcards').click();
+    await expect(page.locator('h1')).toHaveText('Bear notes flashcards');
+    const results = await runBestPracticeAxe(page);
+    expect(results.violations, describeViolations(results.violations)).toEqual([]);
+  });
+
+  test('disabilities category grid (#/disabilities) has zero best-practice violations', async ({ page }) => {
+    await page.goto('/#/disabilities');
+    await expect(page.locator('h1')).toBeVisible();
+    const results = await runBestPracticeAxe(page);
+    expect(results.violations, describeViolations(results.violations)).toEqual([]);
+  });
+
+  test('a disabilities category list (#/disabilities/visual) has zero best-practice violations', async ({ page }) => {
+    await page.goto('/#/disabilities/visual');
+    await expect(page.locator('h1')).toBeVisible();
+    const results = await runBestPracticeAxe(page);
+    expect(results.violations, describeViolations(results.violations)).toEqual([]);
+  });
+
+  test('legal jurisdiction grid (#/legal) has zero best-practice violations', async ({ page }) => {
+    await page.goto('/#/legal');
+    await expect(page.locator('h1')).toBeVisible();
+    const results = await runBestPracticeAxe(page);
+    expect(results.violations, describeViolations(results.violations)).toEqual([]);
+  });
+
+  test('a legal jurisdiction list (#/legal/usa) has zero best-practice violations', async ({ page }) => {
+    await page.goto('/#/legal/usa');
+    await expect(page.locator('h1')).toBeVisible();
+    const results = await runBestPracticeAxe(page);
+    expect(results.violations, describeViolations(results.violations)).toEqual([]);
+  });
+
+  test('accessibility statement (#/accessibility) has zero best-practice violations', async ({ page }) => {
+    await page.goto('/#/accessibility');
+    await expect(page.locator('h1')).toHaveText('Accessibility statement');
+    const results = await runBestPracticeAxe(page);
+    expect(results.violations, describeViolations(results.violations)).toEqual([]);
+  });
+});

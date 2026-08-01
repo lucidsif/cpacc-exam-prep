@@ -56,6 +56,48 @@ Every chat response shows a permanent **amber banner** at the top of the transcr
 
 This is the bucket most likely to surprise you. Any of these models can produce plausible-sounding but incorrect statements (hallucinations), particularly on edge cases or recent regulatory changes. Quality also varies by which provider and model the operator picked: a small local model is generally weaker on CPACC specifics than a frontier cloud model. The badge is **gray / Variable confidence** because each response is unique.
 
+## How the app itself was built
+
+Everything above is about *content* — the questions, the references, the chat. This section is about the **code**, including the accessibility implementation. If you are an accessibility professional deciding whether to take this project seriously, this is probably the section you actually came for.
+
+**A large share of this codebase was written by Claude, including accessibility-critical code.** `git log` records `Co-Authored-By: Claude` on 35 of 43 commits. You do not have to take that on faith — run `git log --format='%b' | grep -c 'Co-Authored-By: Claude'` yourself.
+
+### What was human and what was not
+
+| | |
+|---|---|
+| **The standards were set by the author** | The WCAG 2.2 AA target, the non-negotiables (semantic HTML before ARIA, one h1 per view, keyboard operability, no colour-only information, focus managed on every navigation), and the rule that this project's documentation never claims conformance it cannot evidence. AI worked inside those constraints. |
+| **Manual keyboard testing was done by the author** | By hand, in a real browser. Screen reader testing with NVDA, JAWS and VoiceOver was also done by the author — but on an **older version of the app**, and it has not been redone since the current accessibility work landed. `ACCESSIBILITY.md` and the in-app statement both say so prominently, because it is the single largest evidence gap in this project. |
+| **Per-commit human review was *not* performed** | The author did not read and approve every accessibility-affecting diff before it landed. This matters, and the consequences are documented below rather than hidden. |
+
+### AI-written accessibility code failed here, repeatedly and specifically
+
+This is the part most projects leave out. The skeptical position — that LLMs produce plausible-looking accessibility code that is subtly wrong, and confident documentation to match — is **supported by this repository's own history**. A pre-publication audit on 1 August 2026 found, among other things:
+
+- **Documentation claiming WCAG 2.2 AA conformance** that the project's own accessibility statement explicitly disclaims, in `CONTRIBUTING.md`. It had already been corrected once in `README.md`; the sweep missed a file.
+- **A confidently-stated, factually wrong premise** — that native `disabled` removes a node from the accessibility tree — repeated in **seven** places, including a source comment sitting two lines above code that emits `checked` on that same element, disproving itself. (What `disabled` actually removes is focusability.)
+- **A focus-indicator fix that covered one of five cases while being documented as complete.** Programmatic focus painted no visible ring for pointer-only assistive technology users; the fix was applied to route navigation and the statement was written as though the whole defect class was closed. Four other script-driven focus moves were still broken, measured, in all three browser engines.
+- **A CSS rule that never applied at all.** The provenance "About AI in this app" trigger was meant to be accent-coloured and bold; a competing selector won on specificity, so it rendered visually identical to the surrounding body text — a WCAG 1.4.1 failure that automated scanning structurally could not catch, because axe's `link-in-text-block` rule only fires on `<a>` and this is a `<button>`.
+- **`restoreFocus()` silently dropping focus to `<body>` on every route.** `.focus()` is a specification-mandated no-op — not an error — on an element outside the focusable area. The route heading's `tabindex="-1"` was applied imperatively and erased by the next `innerHTML` write, so the focus-restoration machinery called `focus()`, had it silently do nothing, and returned satisfied. This was the precise bug that machinery was built to prevent.
+- **A reflow failure at 320px** on the two most-used screens, and a sticky navigation bar that reached **158% of viewport height**, covering the heading it had just scrolled to in 14 of 16 measured cases.
+
+**Both automated test suites were green through every one of these.**
+
+### What caught them, and what that implies
+
+The defects above were found by adversarial multi-agent review — independent passes that were told to try to refute findings rather than confirm them — followed by **measurement in real browsers**. That distinction turned out to matter more than anything else:
+
+- Static analysis reported the chat toggle buttons as a WCAG 2.5.8 target-size failure at ~20px. Measured, they were **24.8px — passing**. A phantom defect.
+- Static analysis reported the provenance link at 1.74:1 contrast. Measured, it was **1:1** — the identical colour as the surrounding text. Worse than reported.
+
+Reading the source produced a wrong answer roughly as often as a right one, in both directions. Any claim in this repository about something that *renders* — a focus ring, a target size, a contrast ratio, an overflow — should be assumed to rest on measurement, and if it does not, that is a defect in the claim.
+
+### What you should conclude
+
+Not "AI built this and it is fine." A fairer reading is: **AI is genuinely unreliable at accessibility work, this project demonstrates that concretely, and the controls exist because of it.** The provenance badges, the deliberately self-critical accessibility statement, the refusal to claim conformance, the prominent screen-reader gap, and the audit trail in `CHANGELOG.md` are all responses to a known weakness rather than decoration around a solved problem.
+
+The strongest thing this project can offer a skeptic is not an assurance. It is that every claim above is checkable: read the commits, run the suites, measure the app yourself, and file an issue when you find something wrong. Some of what you find will be wrong — that is the honest expectation, not a disclaimer.
+
 ## What the app is *not*
 
 - **Not authorized or endorsed by IAAP.** This is an independent study aid.

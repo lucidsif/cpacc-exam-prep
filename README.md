@@ -101,7 +101,15 @@ For your own deploy, see [`DEPLOY.md`](DEPLOY.md#option-a--cloudflare-pages-reco
 
 Click any badge in the app to see the full provenance card (source, model, generated date, human review, confidence, limitations). The home-page footer has an **"About AI in this app"** link that opens the page-level explainer.
 
-**The long version:** [`AI_TRANSPARENCY.md`](AI_TRANSPARENCY.md). Read it. Especially if you're skeptical — that's the audience it's written for.
+### The code was AI-written too, and it got accessibility wrong
+
+The table above covers the app's *content*. The **code** — including the accessibility implementation — was also largely written by Claude: `git log` carries `Co-Authored-By: Claude` on 35 of 43 commits.
+
+That is worth stating bluntly rather than burying, because a pre-publication audit found AI-written accessibility code in this repo claiming conformance it did not have, repeating a factually wrong premise about `disabled` in seven places, shipping a focus-indicator fix that covered one of five cases while documenting it as complete, and dropping keyboard focus to `<body>` on every route. Both test suites were green through all of it.
+
+The author set the standards and did the manual keyboard testing; per-commit human review was not performed, which is how those defects reached `main`. What caught them was adversarial review plus measurement in real browsers — and measurement contradicted static analysis in *both* directions, inventing one defect that did not exist and understating another.
+
+**The long version:** [`AI_TRANSPARENCY.md`](AI_TRANSPARENCY.md), specifically [How the app itself was built](AI_TRANSPARENCY.md#how-the-app-itself-was-built). Read it. Especially if you're skeptical — that's the audience it's written for.
 
 ---
 

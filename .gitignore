@@ -14,7 +14,18 @@ node_modules/
 
 # Backups created when patching external files (e.g., Bear DB)
 *.backup-*
-package-lock.json
 
 # Cloudflare Pages deploy staging
 dist/
+
+# Wrangler local session/cache state (written by `wrangler pages dev`)
+.wrangler/
+
+# Copyrighted reference material — not ours to redistribute.
+# CPACC_BoK.pdf (the IAAP Body of Knowledge PDF) lives on the author's disk
+# at the repo root for local reference when writing/verifying question
+# citations, but its license doesn't permit redistribution, so it must
+# never be committed. Ignoring any root-level PDF, not just this filename,
+# because future reference material (other IAAP/vendor docs) would carry
+# the same copyright restriction.
+/*.pdf

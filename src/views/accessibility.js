@@ -7,10 +7,10 @@
 
 import { escapeHtml } from '../dom.js';
 
-// TODO(author): email is live. GitHub issues is the intended second channel
-// but the repo has no remote yet and isn't public, so there's no URL to
-// publish. Once it's pushed and public, add a second <p> below pointing at
-// the issues URL (e.g. https://github.com/<owner>/<repo>/issues).
+// TODO(author): email is the working feedback channel. GitHub issues is the
+// intended second channel, but the repo/owner name isn't finalized yet, so
+// there's no URL to publish. Once the repo exists, add a second <p> below
+// pointing at its issues URL (e.g. https://github.com/<owner>/<repo>/issues).
 const FEEDBACK_CONTACT = 'tawsif@perenniala11y.com';
 
 /**

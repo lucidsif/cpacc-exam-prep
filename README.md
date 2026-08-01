@@ -68,7 +68,7 @@ The server prints both URLs on startup:
 ```
 CPACC test app running:
   Local:  http://localhost:8787
-  LAN:    http://192.168.1.42:8787   (open this on your phone — same Wi-Fi)
+  LAN:    http://192.168.1.100:8787  (open this on your phone — same Wi-Fi)
 ```
 
 Open `Local:` on your laptop and `LAN:` on your phone — both share the same missed-questions list via a server-side `data.json`.

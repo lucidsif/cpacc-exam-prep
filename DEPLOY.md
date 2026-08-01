@@ -129,7 +129,7 @@ The server prints both URLs:
 ```
 CPACC test app running:
   Local:  http://localhost:8787
-  LAN:    http://192.168.1.42:8787   (open this on your phone — same Wi-Fi)
+  LAN:    http://192.168.1.100:8787  (open this on your phone — same Wi-Fi)
 ```
 
 Open the LAN URL on your phone. Both devices read and write the same `data.json` (gitignored). Missed questions sync between them.

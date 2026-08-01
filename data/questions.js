@@ -1,5 +1,7 @@
 // CPACC practice question bank — grounded in IAAP CPACC Body of Knowledge (October 2023, v4.0).
-// Page numbers in `cite` refer to the BoK PDF (CPACC_BoK.pdf in this folder).
+// Page numbers in `cite` refer to the IAAP CPACC Body of Knowledge (BoK) PDF, copyrighted
+// IAAP material not redistributed with this repo (see .gitignore) — obtain it directly from
+// IAAP (International Association of Accessibility Professionals), the CPACC certifying body.
 //
 // Each item:
 //   id, domain (1|2|3), type ("recall"|"application"|"analysis"),

@@ -107,7 +107,7 @@ The table above covers the app's *content*. The **code** — including the acces
 
 That is worth stating bluntly rather than burying, because a pre-publication audit found AI-written accessibility code in this repo claiming conformance it did not have, repeating a factually wrong premise about `disabled` in seven places, shipping a focus-indicator fix that covered one of five cases while documenting it as complete, and dropping keyboard focus to `<body>` on every route. Both test suites were green through all of it.
 
-The author set the standards and did the manual keyboard testing; per-commit human review was not performed, which is how those defects reached `main`. What caught them was adversarial review plus measurement in real browsers — and measurement contradicted static analysis in *both* directions, inventing one defect that did not exist and understating another.
+The author set the standards and did some informal keyboard checking; per-commit human review was not performed, which is how those defects reached `main`. What caught them was adversarial review plus measurement in real browsers — and measurement contradicted static analysis in *both* directions, inventing one defect that did not exist and understating another.
 
 **The long version:** [`AI_TRANSPARENCY.md`](AI_TRANSPARENCY.md), specifically [How the app itself was built](AI_TRANSPARENCY.md#how-the-app-itself-was-built). Read it. Especially if you're skeptical — that's the audience it's written for.
 

@@ -102,6 +102,24 @@ async function bootApp(hash = '#/') {
   return dom;
 }
 
+// Stubs globalThis.fetch for exactly one test, matching requests by simple
+// substring (checked in array order — put more specific paths like
+// '/chat-status' before broader ones like '/chat' so they don't shadow each
+// other). Returns a restore function; callers MUST call it in a `finally`
+// so a later test (in this file or one that runs after it — the whole
+// suite shares one process) doesn't see a stubbed fetch.
+function stubFetch(handlers) {
+  const original = globalThis.fetch;
+  globalThis.fetch = async (input, opts) => {
+    const url = String(input);
+    for (const [match, handler] of handlers) {
+      if (url.includes(match)) return handler(opts);
+    }
+    return { ok: false, status: 404, json: async () => ({}) };
+  };
+  return () => { globalThis.fetch = original; };
+}
+
 export async function run({ test, assertTrue, assertEq }) {
   await test('index.html shell has skip link, home button, and main with tabindex -1', () => {
     const html = fs.readFileSync(path.join(HERE, '..', 'index.html'), 'utf8');
@@ -661,6 +679,35 @@ export async function run({ test, assertTrue, assertEq }) {
     assertTrue(!unansweredCell.getAttribute('aria-label').includes('·'), 'aria-label must not contain the glyph');
   });
 
+  await test('renderJumpGrid: exactly one cell carries aria-current="true" — the cell for state.index — and it moves when the index changes (WCAG 1.4.1: this attribute is also the ONLY visual indicator, via .cell[aria-current] in app.css)', async () => {
+    const threeQuestions = [fakeQuestion, { ...fakeQuestion, id: 2, q: 'What is Y?' }, { ...fakeQuestion, id: 3, q: 'What is Z?' }];
+    const { renderQuestion } = await loadView('src/views/question.js');
+
+    const domA = makeDom();
+    renderQuestion({
+      app: domA.window.document.getElementById('app'),
+      state: { ...fakeState, questions: threeQuestions, index: 1 },
+      missed: fakeMissed,
+      actions: fakeActions,
+    });
+    const currentA = domA.window.document.querySelectorAll('#jump .cell[aria-current="true"]');
+    assertEq(currentA.length, 1, 'exactly one jump-grid cell should carry aria-current="true"');
+    assertEq(currentA[0].dataset.i, '1', 'the aria-current cell should be the one for state.index (1)');
+
+    // Re-render at a different index — aria-current must move with it, not
+    // stick to the first cell or disappear.
+    const domB = makeDom();
+    renderQuestion({
+      app: domB.window.document.getElementById('app'),
+      state: { ...fakeState, questions: threeQuestions, index: 2 },
+      missed: fakeMissed,
+      actions: fakeActions,
+    });
+    const currentB = domB.window.document.querySelectorAll('#jump .cell[aria-current="true"]');
+    assertEq(currentB.length, 1, 'exactly one jump-grid cell should carry aria-current="true" after the index changes');
+    assertEq(currentB[0].dataset.i, '2', 'the aria-current cell should follow state.index (now 2)');
+  });
+
   await test('regression guard: chat role and jump-grid answered state are distinguishable by something other than a class/color alone (WCAG 1.4.1)', async () => {
     // The original defect in both places was that `.msg.user` vs
     // `.msg.assistant` and `.cell.answered` vs `.cell` differed only by
@@ -945,5 +992,255 @@ export async function run({ test, assertTrue, assertEq }) {
   await test('styles/app.css text-presence guard: still declares a prefers-reduced-motion block (cheap deletion guard only)', () => {
     const css = fs.readFileSync(path.join(HERE, '..', 'styles', 'app.css'), 'utf8');
     assertTrue(css.includes('prefers-reduced-motion'), 'app.css should still declare a prefers-reduced-motion media query');
+  });
+
+  // ---- Part 4: adversarial-review tripwires -------------------------------
+  //
+  // Three fixes the suite could pass 113/113 with reverted (see the
+  // per-tripwire comments below), plus the harder nearestFocusableSibling
+  // case. Every fetch-stubbed test here restores globalThis.fetch in a
+  // `finally` (see stubFetch above) — the suite runs all files in one
+  // process, so a leaked stub would poison whatever runs next.
+
+  // Tripwire 1: sendHomeChat/sendChat in src/main.js announce a chat reply
+  // through #route-status — it's the ONLY way the reply reaches a screen
+  // reader, since the transcript is a pre-populated role="log" region (no
+  // aria-live can fire on content that was already there when the element
+  // was created). Deleting either `announce()` call leaves the suite green
+  // unless something drives the chat path itself, which nothing previously
+  // did — the existing #route-status test (~line 905) only exercises the
+  // answer-submit announce() call.
+  await test('sendHomeChat: a successful reply is announced through #route-status (WCAG 4.1.3) — the role=log transcript alone never fires for screen readers', async () => {
+    const restore = stubFetch([
+      ['/chat-status', () => ({ ok: true, json: async () => ({ enabled: true }) })],
+      ['/chat-general', () => ({ ok: true, json: async () => ({ reply: 'POUR stands for Perceivable, Operable, Understandable, Robust.' }) })],
+      ['/missed', () => ({ ok: true, json: async () => ({ ids: [] }) })],
+    ]);
+    try {
+      await bootApp('#/');
+      const input = document.getElementById('home-input');
+      assertTrue(input, 'sanity: #home-input should render once chatEnabled resolves true');
+      input.value = 'What does POUR mean?';
+      document.getElementById('home-send').click();
+
+      // announce() debounces through a 75ms setTimeout (see main.js) on top
+      // of the stubbed fetch's own microtask — wait past both.
+      await new Promise(r => setTimeout(r, 150));
+      const routeStatus = document.getElementById('route-status');
+      assertTrue(routeStatus.textContent.includes('POUR stands for'), 'the chat reply text must reach #route-status, or a screen reader user never hears it');
+      assertEq(routeStatus.getAttribute('aria-live'), 'polite', 'a successful reply should use the polite live region');
+    } finally {
+      restore();
+    }
+  });
+
+  await test('sendHomeChat: a failed reply is announced through #route-status with aria-live="assertive" (the assertive path had zero prior coverage)', async () => {
+    const restore = stubFetch([
+      ['/chat-status', () => ({ ok: true, json: async () => ({ enabled: true }) })],
+      ['/chat-general', () => ({ ok: false, status: 500, json: async () => ({ error: 'server exploded' }) })],
+      ['/missed', () => ({ ok: true, json: async () => ({ ids: [] }) })],
+    ]);
+    try {
+      await bootApp('#/');
+      const input = document.getElementById('home-input');
+      assertTrue(input, 'sanity: #home-input should render once chatEnabled resolves true');
+      input.value = 'What does POUR mean?';
+      document.getElementById('home-send').click();
+
+      await new Promise(r => setTimeout(r, 150));
+      const routeStatus = document.getElementById('route-status');
+      assertTrue(routeStatus.textContent.includes('server exploded'), 'the chat error text must also reach #route-status');
+      assertEq(routeStatus.getAttribute('aria-live'), 'assertive', 'a failed reply must switch #route-status to assertive — the user is actively waiting on it');
+    } finally {
+      restore();
+    }
+  });
+
+  await test('sendChat (per-question chat on the results page) also announces a successful reply through #route-status', async () => {
+    const restore = stubFetch([
+      ['/chat-status', () => ({ ok: true, json: async () => ({ enabled: true }) })],
+      ['/chat', () => ({ ok: true, json: async () => ({ reply: 'Great question — WCAG 1.4.1 is Use of Color.' }) })],
+      ['/missed', () => ({ ok: true, json: async () => ({ ids: [] }) })],
+    ]);
+    try {
+      await bootApp('#/');
+      document.getElementById('start').click();
+      await new Promise(r => setTimeout(r, 5));
+      // Jump straight to the last question so #submit-all is available
+      // without answering all TEST_SIZE (20) questions — reaching /results
+      // is what matters here, scoring doesn't.
+      for (let i = 0; i < 19; i++) document.getElementById('next').click();
+      await new Promise(r => setTimeout(r, 10));
+      assertEq(location.hash, '#/test/20', 'sanity: on the last question');
+
+      const submitAll = document.getElementById('submit-all');
+      assertTrue(submitAll, 'sanity: submit-all visible on the last question');
+      submitAll.click();
+      await new Promise(r => setTimeout(r, 10));
+      assertEq(location.hash, '#/results', 'sanity: reached results');
+
+      const toggle = document.querySelector('[data-toggle]');
+      assertTrue(toggle, 'sanity: a per-question chat toggle should render once chatEnabled resolves true');
+      toggle.click();
+      await new Promise(r => setTimeout(r, 5));
+
+      const qid = toggle.dataset.toggle;
+      const input = document.querySelector(`[data-input="${qid}"]`);
+      assertTrue(input, 'sanity: chat input for the toggled question should exist');
+      input.value = 'Why is B wrong?';
+      document.querySelector(`[data-send="${qid}"]`).click();
+
+      await new Promise(r => setTimeout(r, 150));
+      const routeStatus = document.getElementById('route-status');
+      assertTrue(routeStatus.textContent.includes('WCAG 1.4.1 is Use of Color'), 'the per-question chat reply must also reach #route-status');
+      assertEq(routeStatus.getAttribute('aria-live'), 'polite');
+    } finally {
+      restore();
+    }
+  });
+
+  // Tripwire 3: captureFocus/restoreFocus (src/main.js) re-find the
+  // focused control after an in-place re-render by `id` first, then by one
+  // of RESTORABLE_DATA_ATTRS, and replay selectionStart/selectionEnd for
+  // text inputs. None of the happy path had a test — deleting the
+  // setSelectionRange call, or the whole data-* matching branch, left the
+  // suite green.
+  await test('focus restoration: an in-place re-render preserves focus on #home-input by id and replays its captured caret offsets via setSelectionRange', async () => {
+    // #home-input's value isn't part of app state (see src/state.js — no
+    // draft-text field), so the freshly re-rendered input is always empty;
+    // restoreFocus's setSelectionRange call therefore has no *visible*
+    // effect on this control in the current app. What's genuinely testable
+    // — and what would break if that call (or its containing `if`) were
+    // deleted — is whether restoreFocus actually INVOKES setSelectionRange
+    // on the re-found element with the captured offsets. A prototype spy
+    // observes that call without needing the value to survive.
+    let resolveMissed;
+    const missedGate = new Promise(r => { resolveMissed = r; });
+    const restore = stubFetch([
+      ['/chat-status', () => ({ ok: true, json: async () => ({ enabled: true }) })],
+      ['/missed', async () => { await missedGate; return { ok: true, json: async () => ({ ids: [] }) }; }],
+    ]);
+    let spyInstalled = false;
+    let proto, original;
+    try {
+      await bootApp('#/');
+      const input = document.getElementById('home-input');
+      assertTrue(input, 'sanity: #home-input should render once chatEnabled resolves true');
+
+      proto = window.HTMLInputElement.prototype;
+      original = proto.setSelectionRange;
+      const calls = [];
+      proto.setSelectionRange = function (start, end) {
+        calls.push({ el: this, start, end });
+        return original.call(this, start, end);
+      };
+      spyInstalled = true;
+
+      input.value = 'what does pour sta';
+      input.focus();
+      input.setSelectionRange(5, 5); // caret mid-string — simulates a mid-edit user
+      assertEq(document.activeElement, input, 'sanity: #home-input is focused with a mid-edit caret');
+
+      // Resolve the deferred /missed probe now, well after boot. This
+      // fires main.js's real `missed.fetchFromServer().then(() => render())`
+      // — a genuine in-place re-render (routeKey is unchanged: still
+      // view=home) with no explicit opts.focus, exactly the delayed-probe
+      // scenario this app hits in production on a slow network.
+      resolveMissed();
+      await new Promise(r => setTimeout(r, 20));
+
+      const newInput = document.getElementById('home-input');
+      assertTrue(newInput, 'sanity: #home-input should still exist after the in-place re-render');
+      assertTrue(newInput !== input, 'sanity: the re-render actually replaced the node (innerHTML rewrite) rather than reusing it');
+      assertEq(document.activeElement, newInput, 'focus should be restored to the re-found #home-input by id, not dropped to <body>');
+
+      const call = calls.find(c => c.el === newInput);
+      assertTrue(call, 'restoreFocus should call setSelectionRange on the re-found input with the captured caret offsets');
+      assertEq(call.start, 5, 'captured selectionStart should be replayed');
+      assertEq(call.end, 5, 'captured selectionEnd should be replayed');
+    } finally {
+      if (spyInstalled) proto.setSelectionRange = original;
+      restore();
+    }
+  });
+
+  await test('focus restoration: an in-place re-render on the results page preserves focus on a jump-grid cell found by data-jump (RESTORABLE_DATA_ATTRS — data-jump was JUST added and had no coverage)', async () => {
+    let resolveChatStatus;
+    const chatStatusGate = new Promise(r => { resolveChatStatus = r; });
+    const restore = stubFetch([
+      ['/chat-status', async () => { await chatStatusGate; return { ok: true, json: async () => ({ enabled: false }) }; }],
+      ['/missed', () => ({ ok: true, json: async () => ({ ids: [] }) })],
+    ]);
+    try {
+      await bootApp('#/');
+      document.getElementById('start').click();
+      await new Promise(r => setTimeout(r, 5));
+      for (let i = 0; i < 19; i++) document.getElementById('next').click();
+      await new Promise(r => setTimeout(r, 10));
+      assertEq(location.hash, '#/test/20', 'sanity: on the last question');
+
+      const submitAll = document.getElementById('submit-all');
+      assertTrue(submitAll, 'sanity: submit-all visible on the last question');
+      submitAll.click();
+      await new Promise(r => setTimeout(r, 10));
+      assertEq(location.hash, '#/results', 'sanity: reached results');
+
+      const cell = document.querySelector('[data-jump="0"]');
+      assertTrue(cell, 'sanity: jump-grid cell 0 exists on the results page');
+      cell.focus();
+      assertEq(document.activeElement, cell, 'sanity: the jump-grid cell is focused');
+
+      // Resolve the deferred /chat-status probe now — main.js's real
+      // `fetchChatStatus().then(enabled => { state.chatEnabled = enabled; render(); })`
+      // fires a genuine in-place re-render (chatEnabled isn't part of
+      // routeKey) with no explicit opts.focus, well after the user has
+      // already navigated to and started interacting with results.
+      resolveChatStatus();
+      await new Promise(r => setTimeout(r, 20));
+
+      const newCell = document.querySelector('[data-jump="0"]');
+      assertTrue(newCell, 'sanity: the jump-grid cell should still exist after the in-place re-render');
+      assertTrue(newCell !== cell, 'sanity: the re-render actually replaced the node rather than reusing it');
+      assertEq(document.activeElement, newCell, 'focus should be restored to the re-found data-jump cell, not dropped to <body>');
+    } finally {
+      restore();
+    }
+  });
+
+  // "Also" item: nearestFocusableSibling widens parent -> .panel -> #app.
+  // The existing flashcards Prev/Next test only exercises the first (parent)
+  // step. This covers the harder case: an entire cluster (home's
+  // #practice-missed + #clear-missed) disabling together, so neither the
+  // immediate parent (.row) nor the .panel has anything left to hand focus
+  // to, and the search has to widen all the way to #app.
+  await test('focus restoration: clearing the missed list disables #practice-missed AND #clear-missed together — focus does not fall to <body> (nearestFocusableSibling widens past .row and .panel to #app)', async () => {
+    const restore = stubFetch([
+      ['/chat-status', () => ({ ok: true, json: async () => ({ enabled: false }) })],
+      ['/missed', (opts) => opts && opts.method === 'DELETE'
+        ? { ok: true, json: async () => ({}) }
+        : { ok: true, json: async () => ({ ids: [101] }) }],
+    ]);
+    try {
+      await bootApp('#/');
+      const practice = document.getElementById('practice-missed');
+      const clear = document.getElementById('clear-missed');
+      assertTrue(practice && !practice.disabled, 'sanity: #practice-missed enabled with a non-empty missed list');
+      assertTrue(clear && !clear.disabled, 'sanity: #clear-missed enabled with a non-empty missed list');
+
+      clear.focus();
+      clear.click(); // confirm() is stubbed true by bootApp
+      await new Promise(r => setTimeout(r, 10));
+
+      const practiceAfter = document.getElementById('practice-missed');
+      const clearAfter = document.getElementById('clear-missed');
+      assertTrue(practiceAfter.disabled, 'sanity: #practice-missed disables once the missed list is empty');
+      assertTrue(clearAfter.disabled, 'sanity: #clear-missed disables itself as a side effect of its own click');
+
+      const el = document.activeElement;
+      assertTrue(el !== document.body, 'focus must not fall to <body> when the whole missed-practice row disables at once');
+      assertTrue(document.getElementById('app').contains(el), 'focus should land on some other focusable control within the rendered route, not escape #app');
+    } finally {
+      restore();
+    }
   });
 }

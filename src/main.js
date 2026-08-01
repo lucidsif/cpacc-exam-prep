@@ -256,7 +256,15 @@ function routeKey(state) {
 // data-* attributes views use to mark controls that are safe to re-find
 // after a re-render but don't have a stable `id` (chat toggles, jump-grid
 // cells, category cards, ...). Checked in this order; first match wins.
-const RESTORABLE_DATA_ATTRS = ['data-send', 'data-input', 'data-toggle', 'data-cat', 'data-jur', 'data-anchor', 'data-i'];
+// Reconciled against every view by grepping src/views/*.js for data-*
+// attributes on interactive elements: home.js/question.js/disabilities.js/
+// legal.js/chat.js's controls are all covered above; results.js's own
+// per-question jump-grid cells use `data-jump` (question.js's jump grid is
+// a separate control set keyed by `data-i`, already listed) — that one was
+// missing and is the reason a results-page jump cell lost focus on any
+// in-place re-render (e.g. a chat reply landing while the user had tabbed
+// to a jump cell).
+const RESTORABLE_DATA_ATTRS = ['data-send', 'data-input', 'data-toggle', 'data-cat', 'data-jur', 'data-anchor', 'data-jump', 'data-i'];
 
 // Records enough about document.activeElement to re-find it (by id, then
 // by one of RESTORABLE_DATA_ATTRS) after app.innerHTML is replaced. Returns
@@ -278,8 +286,22 @@ function captureFocus() {
 // Whether `el` can actually receive focus — `.focus()` on a disabled or
 // aria-hidden element is a silent no-op, not an error, so callers have to
 // check first rather than find out by watching document.activeElement.
+//
+// `:disabled` (not `el.disabled`) is deliberate: `el.disabled` only reflects
+// the element's own attribute, so a radio inside `<fieldset disabled>` (how
+// revealed answer choices render in src/views/question.js) reports `false`
+// even though it's genuinely inert — `.focus()` on it is the same silent
+// no-op. `:disabled` matches the browser's real disabled state, including
+// that inheritance, and for free also honours the one exception the spec
+// carves out (a fieldset's first <legend> child stays enabled even inside a
+// disabled fieldset) — a hand-rolled `closest('fieldset[disabled]')` check
+// would get that case wrong. Verified against jsdom 24 (this project's test
+// runner) before relying on it: `:disabled` correctly reports true for a
+// fieldset-inherited radio and false for ordinary elements (button, a,
+// div[tabindex]) with no throw in any case, so it's safe to call
+// unconditionally here rather than needing a feature check.
 function isFocusable(el) {
-  return !!el && !el.disabled && el.getAttribute('aria-hidden') !== 'true';
+  return !!el && !el.matches(':disabled') && el.getAttribute('aria-hidden') !== 'true';
 }
 
 // Elements plausibly focusable via restoreFocus's fallback below. Just a
@@ -291,14 +313,28 @@ function isFocusable(el) {
 const FOCUSABLE_SELECTOR = 'button, a[href], input, select, textarea, [tabindex]';
 
 // Finds a focusable stand-in for `el` among its siblings when `el` itself
-// can't take focus (see restoreFocus). Searches the parent rather than the
-// whole document so e.g. Prev disabling doesn't jump focus to some
-// unrelated focusable element elsewhere on the page.
+// can't take focus (see restoreFocus). Searches progressively wider
+// containers — el's immediate parent, then its nearest `.panel` ancestor,
+// then the whole rendered route (`#app`) — stopping at the first level that
+// has a candidate. Most disables (Prev/Next, a lone chat toggle) resolve at
+// the parent already, so that's tried first and is normally where this
+// ends. The wider steps only matter when an entire control cluster shares
+// one disabled condition, e.g. home's missed-practice row where
+// #practice-missed and #clear-missed both go `disabled` together the moment
+// missed.clear() empties the list — the parent `.row` has nothing left to
+// offer, and neither does that `.panel` (it holds only that one row), so
+// only the `#app`-wide step finds anything. Bounded at `#app` (not
+// `document`) for the same reason the single-parent search used to be
+// bounded to the parent: this should land on something in the route the
+// user was just looking at, not jump to the skip link or the home button
+// that live outside <main>. If even `#app` has nothing, restoreFocus falls
+// back to moveFocusToRoute() instead of calling this again wider still.
 function nearestFocusableSibling(el) {
-  const container = el.parentElement;
-  if (!container) return null;
-  for (const candidate of container.querySelectorAll(FOCUSABLE_SELECTOR)) {
-    if (candidate !== el && isFocusable(candidate)) return candidate;
+  const containers = [el.parentElement, el.closest('.panel'), app].filter(Boolean);
+  for (const container of containers) {
+    for (const candidate of container.querySelectorAll(FOCUSABLE_SELECTOR)) {
+      if (candidate !== el && isFocusable(candidate)) return candidate;
+    }
   }
   return null;
 }
@@ -340,10 +376,22 @@ function restoreFocus(info) {
   // fix, just at the boundary instead of the middle. Land on the nearest
   // focusable control in the same cluster instead (Prev disables -> Next
   // takes focus) so the user stays in the neighborhood they were already
-  // in, rather than <body> or a jarring jump to the route's <h1>. If
-  // nothing nearby is focusable, leave focus alone rather than guessing.
+  // in, rather than <body> or a jarring jump to the route's <h1>.
   const fallback = nearestFocusableSibling(el);
-  if (fallback) fallback.focus();
+  if (fallback) { fallback.focus(); return; }
+
+  // nearestFocusableSibling widens all the way to `#app` and still found
+  // nothing — the whole cluster the user was in disabled itself at once,
+  // e.g. home's missed-practice row where #practice-missed and
+  // #clear-missed both go `disabled` the instant missed.clear() empties the
+  // list, leaving no live neighbor anywhere in the row, the panel, or the
+  // route to hand focus to. There's genuinely nowhere nearby left, so fall
+  // back to the route's landmark rather than leaving focus destroyed on the
+  // removed node — landing on the route's <h1> is a bigger jump than the
+  // sibling fallback above makes for, but it's a live, announced location,
+  // which is far better than the alternative: focus silently going to
+  // <body>, the exact bug this file exists to prevent.
+  moveFocusToRoute();
 }
 
 // Focuses the route's landmark — its <h1> if the view rendered one, else

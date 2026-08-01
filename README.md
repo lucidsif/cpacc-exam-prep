@@ -248,7 +248,7 @@ npm install      # one-time: pulls jsdom, Playwright, and axe-core
 npm test         # jsdom suite — runs everything, no browser needed
 ```
 
-Expect 131+ passing.
+Expect 151+ passing.
 
 The jsdom suite is intentionally split into layers:
 
@@ -264,7 +264,7 @@ There's also an end-to-end suite for what jsdom structurally can't check:
 npm run test:e2e   # Playwright — real Chromium, Firefox, and WebKit
 ```
 
-20 scenarios × 3 browsers = 60 tests, covering real layout, computed styles, focus rings, Tab order, scroll position, and automated `axe-core` accessibility scans against a real accessibility tree. See [`tests/README.md`](tests/README.md#end-to-end-tests-e2e) for the jsdom/e2e division of labour, and [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for what it found.
+126 tests across 5 projects — chromium, firefox, webkit, a 320px mobile viewport, and a chat-enabled project — covering real layout, computed styles, focus rings, Tab order, scroll position, horizontal-overflow (reflow) checks, and automated `axe-core` accessibility scans against a real accessibility tree. See [`tests/README.md`](tests/README.md#end-to-end-tests-e2e) for the jsdom/e2e division of labour, and [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for what it found.
 
 ---
 

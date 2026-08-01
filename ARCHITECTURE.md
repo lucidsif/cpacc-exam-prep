@@ -308,7 +308,7 @@ The runner discovers every `tests/*.test.js` and calls its exported `run({ test,
 | Unit tests | `sampling.test.js`, `scoring.test.js`, `storage.test.js`, `llm.test.js`, `router.test.js` |
 | DOM smoke tests (jsdom) | `views.test.js` — asserts every view's accessibility contracts, plus a full-app popstate-focus test |
 
-131+ tests as of writing; every PR should keep this green.
+151+ tests as of writing; every PR should keep this green.
 
 ```mermaid
 graph LR
@@ -356,7 +356,7 @@ Everything above is jsdom — no real layout, no computed styles, no real focus 
 npm run test:e2e   # real Chromium, Firefox, and WebKit
 ```
 
-5 spec files, 20 scenarios × 3 engines = 60 tests:
+7 spec files, 126 tests across 5 projects (chromium, firefox, webkit, a 320px mobile viewport, and a chat-enabled project):
 
 | File | Covers |
 |---|---|
@@ -364,7 +364,9 @@ npm run test:e2e   # real Chromium, Firefox, and WebKit
 | `navigation.spec.js` | Skip link vs. a real `popstate`; click-driven focus landing on `<h1>`; Back/Forward restoring heading, title, and scroll position; real sequential Tab order, including two documented WebKit-only behavioural differences |
 | `focus-contract.spec.js` | Whether the focus ring actually paints on programmatic focus, per engine |
 | `motion-and-live-region.spec.js` | `prefers-reduced-motion` and live-region behaviour against real computed style and timing |
-| `axe.spec.js` | Automated `axe-core` scans (`wcag2a`/`wcag2aa`/`wcag22aa` tags) across nine routes in all three engines |
+| `axe.spec.js` | Automated `axe-core` scans across nine routes in every browser project — both the WCAG-tagged ruleset (`wcag2a`/`wcag2aa`/`wcag22aa`) and axe's `best-practice` ruleset, which is what covers heading order and landmarks |
+| `axe-chat.spec.js` | `axe-core` scans of the chat surface, which the other scans never reach — the default server starts with no LLM provider, so `chatEnabled` is false and the transcripts, inputs, and toggles render as nothing |
+| `reflow.spec.js` | Asserts no horizontal overflow on the two grid-bearing routes, at the 320px viewport where the jump grid used to force sideways scrolling |
 
 CI (`.github/workflows/ci.yml`) runs this as a second, separate job (`e2e`) alongside the jsdom `test` job — separate because a Playwright browser install is several hundred MB and must never slow down or block the fast jsdom signal. See [`tests/README.md`](tests/README.md#end-to-end-tests-e2e) for the full jsdom/e2e division of labour and [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for what the suite found, including two WebKit-specific behavioural differences and the scope of what the axe scans do and don't cover.
 

@@ -8,7 +8,7 @@ npm test            # or: node tests/run.js
 
 The runner discovers every `*.test.js` file in this directory and calls its exported `run({ test, assertTrue, assertEq })`. The legacy data smoke tests live inline at the top of `run.js`.
 
-Current count: **131/131 passing.**
+Current count: **151/151 passing.**
 
 ## What this suite deliberately does not cover
 
@@ -26,7 +26,7 @@ Those four things need a real browser and, for the screen-reader case, real assi
 npm run test:e2e            # Playwright — real Chromium, Firefox, and WebKit
 ```
 
-20 scenarios × 3 browsers = 60 tests, currently 60/60 passing, run four times with zero flake.
+126 tests across 5 projects — chromium, firefox, webkit, a 320px mobile viewport, and a chat-enabled project — currently 126/126 passing.
 
 The division of labour is the useful thing to remember: **jsdom (`tests/`, above) is for markup and wiring — is the right element there, does it have the right attribute, does the right function get called. Playwright (`e2e/`) is for everything jsdom cannot simulate: layout, paint, computed styles, focus rings, scroll position, real Tab-key order, and a real platform accessibility tree.** Neither one substitutes for the other, and neither one is a screen reader — the current version of this app has not been manually tested with NVDA, JAWS, or VoiceOver; see `ACCESSIBILITY.md`.
 
@@ -36,7 +36,7 @@ The division of labour is the useful thing to remember: **jsdom (`tests/`, above
 | `e2e/navigation.spec.js` | Skip link vs. a real `popstate`; click-driven focus landing on `<h1>`; Back/Forward restoring heading, title, and scroll position; a control that disables itself on click not stranding focus on `<body>`; real sequential Tab order from page load — including WebKit's platform-default Tab scope (form fields only, confirmed against `Option+Tab`'s wider set) and WebKit not moving DOM focus onto a clicked `<button>` |
 | `e2e/focus-contract.spec.js` | Whether the focus ring actually paints on *programmatic* focus (the app moving focus to a route's `<h1>` by script, not by Tab) in each engine — the one open question in the accessibility statement that only a real browser's `:focus-visible` implementation could answer. Confirms `solid 3px rgb(255, 212, 121)` in Chromium, Firefox, and WebKit alike once the session has seen a real keypress, plus a documented control case showing no ring with zero prior keyboard interaction |
 | `e2e/motion-and-live-region.spec.js` | `prefers-reduced-motion` and live-region behaviour against real computed style and real timing, not jsdom's simulated versions of either |
-| `e2e/axe.spec.js` | Automated `axe-core` scans (`wcag2a`/`wcag2aa`/`wcag22aa`) against a real accessibility tree, across nine routes and all three engines — 27 scans, zero violations. Automated scanning catches a minority of accessibility issues by nature; treat zero violations as "nothing an automated scanner flagged," not as "manually verified" |
+| `e2e/axe.spec.js` | Automated `axe-core` scans against a real accessibility tree, across nine routes and every browser project — both the WCAG-tagged ruleset (`wcag2a`/`wcag2aa`/`wcag22aa`) and axe's `best-practice` ruleset, which is what actually covers heading order and landmarks. With `e2e/axe-chat.spec.js`'s two chat-surface scans, 74 scans total, zero violations. Automated scanning catches a minority of accessibility issues by nature; treat zero violations as "nothing an automated scanner flagged," not as "manually verified" |
 
 `playwright.config.js` runs every spec against three browser projects (chromium, firefox, webkit) — see its own comments for why dropping a browser to make a run green is treated as a bug report, not a config change.
 

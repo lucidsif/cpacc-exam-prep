@@ -6,6 +6,44 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed — pre-publication audit: accessibility defects, server hardening, and claims the code did not support (2026-08-01)
+
+A six-part audit — accessibility, front-end quality, security/privacy, and documentation accuracy — ahead of the first public push. The documentation findings mattered more than the code findings: a reader who catches one false claim stops trusting the rest, and this repo's whole pitch is a statement written to be checked.
+
+Accessibility defects, all reproduced before being fixed:
+
+- Unsent chat text was silently destroyed by any in-place re-render. Neither input rendered a `value` and no draft lived in state, so `app.innerHTML` discarded it — and the focus contract then restored the caret to offset 0 of the now-empty field, actively signalling that nothing was wrong. Two-click repro, no network needed. Drafts are now backed in `src/state.js`
+- Focus dropped to `<body>` for every control carrying neither an `id` nor one of `RESTORABLE_DATA_ATTRS` — the answer radios, all 20 provenance `<summary>` elements, the AI-info buttons, and plain links. `restoreFocus()` could not distinguish "removed by this render" from "never keyable". It now falls back to a positional index chain from `#app`, validated by `tagName`, which closes the class without anyone having to keep an attribute list in sync forever
+- Programmatic focus painted no visible ring. Since the app moves focus by script on *every* navigation, a pointer-only user — switch device, eye tracking, sip-and-puff, magnifier — was relocated to an invisible position and tabbed onward from somewhere they could not see. This had previously been assessed as expected `:focus-visible` behaviour rather than a defect; that assessment was wrong. Fixed via `.route-focus:focus`, written with the `:focus` attached because the bare class loses the specificity contest against `:focus:not(:focus-visible) { outline: none }` and silently does nothing
+- The `:focus-visible` fallback the statement claimed did not exist — the stylesheet had the suppressor half of the two-rule pattern with no base rule, which is CSS error recovery, not a fallback. The base rule now exists, `@supports`-narrowed
+- The jump grid forced horizontal scrolling: ten fixed columns needing 294px inside a ~234px container. It failed on an ordinary phone, not just at 400% zoom, on the two most-used screens. Now drops to five columns under 480px; measured 0px overflow at 320px and 375px
+- No `@media (forced-colors: active)` block existed at all, and the current-question indicator was a `box-shadow` — stripped in forced-colors mode, so the colour-independence fix evaporated for exactly the users most likely to need it
+- Flashcard Prev/Next/Shuffle replaced the card silently; the results page signalled the picked answer by colour alone; 20 controls shared each of four identical accessible names; Enter submitted mid-IME-composition, so CJK input could not complete a word; and the scrollable chat transcripts were unreachable by keyboard (axe `scrollable-region-focusable`, Level A)
+- The live region was split into two static regions — `#route-status` (polite) and `#route-alert` (assertive) — rather than mutating politeness on an already-registered region, which nothing obliges assistive tech to re-read. Coalescing moved 75ms → 100ms and both regions now auto-clear, so a full reply no longer sits permanently in a `<div>` outside every landmark
+
+Server and supply chain:
+
+- `server.js` served any readable file under root while binding `0.0.0.0`. `GET /.git/config`, `GET /data.json`, and — because a `.pdf` MIME type is registered — the copyrighted IAAP Body of Knowledge PDF were all downloadable by anyone on the same Wi-Fi. The gitignore discipline that keeps that PDF out of history did nothing at runtime. Now denied by path rule
+- A sibling-directory prefix bypass in the path check (`startsWith(ROOT)` with no separator), and unbounded request bodies with no cap on `history` or `userMessage` before forwarding to a paid API
+- Added a CSP and hardening headers, served locally and copied into `dist/`
+- Local dev and production were sending *structurally different* conversations to the LLM — one fabricated a user turn plus an assistant acknowledgement, the other embedded context in the system prompt, and the general-chat personas had drifted apart by a sentence. Extracted `functions/_lib/prompts.js` and added a test that greps all three callers so it cannot fork again
+
+Claims the code did not support:
+
+- `CONTRIBUTING.md` flatly claimed WCAG 2.2 AA conformance, contradicting the public statement's "partially conformant"; it also described a WAI-ARIA roving-tabindex pattern that has never existed in this codebase
+- The premise that native `disabled` removes a node from the accessibility tree is false — per HTML-AAM it keeps role, name, and `checked`; what it removes is *focusability*. It appeared in seven places, including a comment two lines above the code emitting `checked`
+- The WebKit findings were attributed to real macOS Safari; the evidence is Playwright's WebKit on Linux CI, which has no macOS keyboard settings to read. The `<main>`-landing behaviour was also presented as WebKit-specific when it occurs in all three engines
+- Heading and landmark structure was presented as axe-backed, but every rule that would back it is tagged `best-practice` in axe-core and was excluded by the tag filter. The entire chat surface had zero axe coverage because CI ran with no LLM provider configured
+- `USER/REPO` template placeholders sat at the bottom of this file; the legal reference count was stated three different wrong ways (it is 61 in the dataset, 53 rendered, across 7 jurisdictions)
+- `data/README.md` now addresses whether question text paraphrased from IAAP's copyrighted BoK is ours to MIT-license — the one publication-risk argument the repo had not answered
+
+Testing and release gate:
+
+- jsdom 131 → 151; end-to-end 60 → 126 across five projects, adding a 320px viewport project and a chat-enabled project. axe now also runs its `best-practice` ruleset — 74 scans total
+- `npm run deploy` now gates on the e2e suite; it previously shipped on jsdom alone, so a release could go out with every axe scan failing
+
+Known limitations are named in the statement rather than omitted: no `aria-busy`/pending state during chat round trips (and no timeout or `AbortController`, so a hung request is permanent silence), `<details open>` lost on re-render, a 60px `scroll-margin-top` against a measured ~389px sticky anchor bar on `#/legal/timeline`, and no screen reader testing of the current version.
+
 ### Added — Playwright end-to-end suite across chromium, firefox, and webkit (2026-08-01)
 
 - `e2e/` (Playwright): 20 scenarios run against real Chromium, Firefox, and WebKit — 60 tests total, four full runs with zero flake. Covers real layout, computed styles, Tab order, scroll position, and, via `@axe-core/playwright`, automated accessibility scans against a real accessibility tree — none of which the jsdom suite (`tests/`) can check
@@ -13,6 +51,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - `e2e/axe.spec.js` runs axe-core (`wcag2a`/`wcag2aa`/`wcag22aa` tags, matching the app's WCAG 2.2 AA target) across nine routes in all three engines — 27 scans, zero violations, no rule suppressed or narrowed
 - `e2e/navigation.spec.js` documents two real WebKit-only behavioural differences, neither engineered around: WebKit's default Tab key visits only form fields, skipping links and buttons (matches real macOS Safari with Full Keyboard Access off — a platform default, not an app defect); and WebKit does not move DOM focus onto a `<button>` on mouse click, so a control that disables itself on click leaves this app's focus-preservation logic landing on the `<main>` landmark instead of the intended sibling control — affects mouse/trackpad users on WebKit only, keyboard users there are unaffected
 - `src/views/accessibility.js`, `ACCESSIBILITY.md`, `README.md`, and `tests/README.md` updated to match: the "no Safari/Firefox testing at all" and "focus ring outside Chromium" open questions in the public statement are resolved or reworded, the new cross-browser and axe evidence is disclosed as automated behavioural testing (not manual, not assistive-technology testing), and both WebKit findings are documented in both the public statement and `ACCESSIBILITY.md`. The screen-reader gap — no AT testing of the current version — remains the statement's single most prominent disclosure and is unchanged by any of the above; Playwright cannot drive a screen reader
+
+**Amended 2026-08-01:** the counts and one finding above describe the suite as it stood when written; the audit entry at the top of this section superseded them the same day. The suite is now 126 tests across five projects (adding a 320px viewport and a chat-enabled project) with 74 axe scans including axe's `best-practice` ruleset — not 60 tests, 27 scans, and WCAG-tagged rules only. More importantly, the paired control test described above ("confirms no ring in any of the three, ruling out 'the ring is just always there'") has been **inverted**: the missing ring on programmatic focus was reclassified from expected `:focus-visible` behaviour to a real defect affecting pointer-only assistive-technology users, and `e2e/focus-contract.spec.js` now asserts the ring *does* render without prior keyboard interaction. The reasoning in the original bullet was sound for keyboard users and wrong for everyone who points.
 
 ### Changed — repo hygiene ahead of first push (2026-07-31)
 

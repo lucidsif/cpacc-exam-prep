@@ -152,7 +152,7 @@ Targets **WCAG 2.2 AA**. Notable contracts (enforced by `tests/views.test.js`):
 - Browser Back/Forward, and every click-driven navigation, move focus to the destination route's own `<h1>` and update `document.title`; in-place re-renders (chat send, card flip, a toggle) preserve focus and caret position instead
 - Skip link intercepts its own click so it can't be misread as an unknown route and bounce you back to home mid-test
 - One H1 per view, H2 sub-headings, no skipped levels
-- Visible focus indicator on every focusable element (3px amber)
+- Visible focus indicator on every focusable element (3px amber): native `:focus-visible` (with a same-effect fallback for engines lacking it) covers ordinary keyboard focus; a dedicated CSS class guarantees the identical ring, unconditionally, on every focus move the app makes by script — route navigation plus five other targets — regardless of whether `:focus-visible` matches. See [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for the measured mechanism
 - Color contrast: text ≥ 4.5:1, UI components ≥ 3:1 — audited across every pair in the app, see [`ACCESSIBILITY.md`](ACCESSIBILITY.md)
 - Color never the sole channel (confidence pills pair color + shape + text; chat speaker identity, the jump grid, and the current-question cell all have a non-color cue too)
 - Answer choices are native radio inputs in a `<fieldset>`; visible hint adapts to touch vs keyboard via `(pointer: coarse)`; revealed choices sit in a genuinely-`disabled` fieldset, not a lying `aria-disabled`
@@ -208,7 +208,7 @@ test-maker/
 │   ├── sampling.js            # Pure: shuffle, sampleQuestions, sampleMissedQuestions
 │   ├── scoring.js             # Pure: scoreTest, domainLabel
 │   ├── provenance.js          # IBM-style AI transparency badge + dialog
-│   ├── dom.js                 # Tiny helpers: escapeHtml, scrollIntoViewMotionSafe
+│   ├── dom.js                 # Tiny helpers: escapeHtml, scrollIntoViewMotionSafe, focusWithVisibleRing
 │   └── views/
 │       ├── home.js            # Home (test launchers + home chat)
 │       ├── question.js        # Practice question + jump grid
@@ -237,7 +237,9 @@ test-maker/
 │   ├── navigation.spec.js     # Tab order, click-driven focus, Back/Forward
 │   ├── focus-contract.spec.js # Focus-ring-on-programmatic-focus, per engine
 │   ├── motion-and-live-region.spec.js
-│   └── axe.spec.js            # axe-core scans across every route
+│   ├── reflow.spec.js         # No horizontal overflow at 320px
+│   ├── axe.spec.js            # axe-core scans across every route
+│   └── axe-chat.spec.js       # axe-core scans with the chat surface enabled
 ├── playwright.config.js       # e2e config: 3 browser projects, retries in CI
 ├── ARCHITECTURE.md            # How the code fits together
 ├── AI_TRANSPARENCY.md         # Detailed AI provenance and limitations doc
@@ -256,7 +258,7 @@ npm install      # one-time: pulls jsdom, Playwright, and axe-core
 npm test         # jsdom suite — runs everything, no browser needed
 ```
 
-Expect 151+ passing.
+Expect 157+ passing.
 
 The jsdom suite is intentionally split into layers:
 
@@ -272,7 +274,7 @@ There's also an end-to-end suite for what jsdom structurally can't check:
 npm run test:e2e   # Playwright — real Chromium, Firefox, and WebKit
 ```
 
-126 tests across 5 projects — chromium, firefox, webkit, a 320px mobile viewport, and a chat-enabled project — covering real layout, computed styles, focus rings, Tab order, scroll position, horizontal-overflow (reflow) checks, and automated `axe-core` accessibility scans against a real accessibility tree. See [`tests/README.md`](tests/README.md#end-to-end-tests-e2e) for the jsdom/e2e division of labour, and [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for what it found.
+130 tests across 5 projects — chromium, firefox, webkit, a 320px mobile viewport, and a chat-enabled project — covering real layout, computed styles, focus rings, Tab order, scroll position, horizontal-overflow (reflow) checks, and automated `axe-core` accessibility scans against a real accessibility tree. See [`tests/README.md`](tests/README.md#end-to-end-tests-e2e) for the jsdom/e2e division of labour, and [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for what it found.
 
 ---
 

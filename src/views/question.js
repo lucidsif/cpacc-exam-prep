@@ -2,7 +2,7 @@
 
 import { escapeHtml, focusWithVisibleRing } from '../dom.js';
 import { domainLabel } from '../scoring.js';
-import { renderProvenanceBadge } from '../provenance.js';
+import { renderProvenanceBadge, wireProvenanceToggles } from '../provenance.js';
 
 /**
  * Render the current question and wire its handlers.
@@ -106,7 +106,18 @@ export function renderQuestion(ctx) {
   const submitAnswerAttrs = canSubmitAnswer
     ? `aria-describedby="kbd-hint"`
     : `disabled aria-describedby="${revealed ? 'kbd-hint' : 'submit-help'}"`;
-  const submitHelpHtml = revealed
+  // Condition is `revealed || pending`, not just `revealed`: this used to
+  // render whenever `!revealed`, regardless of `pending`, so picking a
+  // choice (which sets `pending` without a full render — see the onchange
+  // handler below) left this exact node in the DOM, stale, on every
+  // subsequent render until reveal — e.g. Next then Prev back to this
+  // question re-rendered it reading "Select a choice to enable Submit
+  // answer" while a choice WAS selected and Submit WAS enabled, and nothing
+  // referenced it any more (submit-answer's aria-describedby had already
+  // moved to kbd-hint). Gating on `pending` too means a render computed
+  // AFTER a choice is picked never re-adds it, which is also what makes the
+  // onchange handler's one-shot `help.remove()` DOM patch unnecessary.
+  const submitHelpHtml = (revealed || pending)
     ? ''
     : `<span id="submit-help" class="sr-only">Select a choice to enable Submit answer.</span>`;
 
@@ -115,9 +126,19 @@ export function renderQuestion(ctx) {
       <div class="sub">CPACC Practice Test · answered ${answered}/${state.questions.length}</div>
       <div class="panel">
         <div class="qmeta">${domainLabel(q.domain)} · ${q.type}</div>
-        ${renderProvenanceBadge(prov, `Question ${state.index + 1}`)}
+        ${renderProvenanceBadge(prov, `Question ${state.index + 1}`, `question-${q.id}`, state.expandedProvenance?.has(`question-${q.id}`))}
         <p class="qtext">${escapeHtml(q.q)}</p>
-        <div id="kbd-hint" class="cite" style="display:block;margin-bottom:8px">Select an answer, then choose <b>Submit answer</b>.${!revealed ? '<span class="kbd-only"> Use arrow keys to move between choices.</span>' : ''}</div>
+        <!--
+          Content is conditional on revealed, not just the trailing
+          kbd-only hint: unconditional text here used to keep instructing
+          "choose Submit answer" even after reveal removes that button
+          entirely (below) and disables the fieldset this describes —
+          instructing an action that's no longer possible, visible to
+          sighted users too, not just the fieldset's aria-describedby text.
+        -->
+        <div id="kbd-hint" class="cite" style="display:block;margin-bottom:8px">${revealed
+          ? 'This question has been answered — choices are locked. Use Prev/Next to keep going.'
+          : 'Select an answer, then choose <b>Submit answer</b>.<span class="kbd-only"> Use arrow keys to move between choices.</span>'}</div>
         <!--
           Once revealed, every radio's aria-describedby="why-X" (set above,
           in the choicesHtml loop) is inherited-unfocusable via this
@@ -157,6 +178,7 @@ export function renderQuestion(ctx) {
       </div>
       ${renderJumpGrid(state)}
     `;
+  wireProvenanceToggles(app, state);
 
   // Selecting a radio just tracks pending — no auto-reveal.
   document.querySelectorAll('input[name="choice"]').forEach(el => {
@@ -168,15 +190,14 @@ export function renderQuestion(ctx) {
         btn.disabled = false;
         btn.setAttribute('aria-describedby', 'kbd-hint');
       }
-      // Picking a choice deliberately doesn't trigger a full render (see the
-      // comment above this forEach), so #submit-help — a plain node, not
-      // reactive to anything — would otherwise sit in the DOM forever after
-      // this point, telling a browse-mode user to "select a choice" long
-      // after they've done exactly that. Nothing else points at it once
-      // submit-answer's aria-describedby above moves to kbd-hint, so remove
-      // it outright rather than leave it an orphaned, stale description.
-      const help = document.getElementById('submit-help');
-      if (help) help.remove();
+      // #submit-help itself is left alone here (no DOM patch) — picking a
+      // choice deliberately doesn't trigger a full render (see the comment
+      // above this forEach), but submitHelpHtml's own render condition is
+      // now `revealed || pending`, so the NEXT full render (Next/Prev,
+      // submit, etc.) already omits it correctly. A one-shot `.remove()`
+      // here used to paper over the render condition still saying
+      // `!revealed` alone; fixing that condition is what makes this
+      // redundant, not a replacement for it.
       document.querySelectorAll('#choices .choice').forEach((lbl, i) => {
         const letter = ["A","B","C","D"][i];
         lbl.classList.toggle('selected', letter === e.target.value);

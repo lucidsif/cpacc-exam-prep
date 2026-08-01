@@ -1,7 +1,7 @@
 // src/views/legal.js — history/laws/standards reference (jurisdiction grid + detail list).
 
 import { escapeHtml, scrollIntoViewMotionSafe, focusWithVisibleRing } from '../dom.js';
-import { renderProvenanceBadge } from '../provenance.js';
+import { renderProvenanceBadge, wireProvenanceToggles } from '../provenance.js';
 
 /** Pick an emoji for a legal item based on its `type` field. */
 function emojiForType(type) {
@@ -48,9 +48,10 @@ export function renderLegal(ctx) {
     app.innerHTML = `
         <h1>History, laws & standards</h1>
         <div class="sub">${visible.length} CPACC-relevant items across ${d.jurisdictions.filter(c => visible.some(i => i.jurisdiction === c.id)).length} groups. Tap a group to browse.</div>
-        ${renderProvenanceBadge(prov, 'the laws and standards reference')}
+        ${renderProvenanceBadge(prov, 'the laws and standards reference', 'legal', state.expandedProvenance?.has('legal'))}
         <div class="cat-grid">${cards}</div>
       `;
+    wireProvenanceToggles(app, state);
     document.querySelectorAll('[data-jur]').forEach(el => {
       el.onclick = () => { state.legal = { view: 'list', category: el.dataset.jur }; state.view = 'legal'; actions.render(); };
     });
@@ -100,7 +101,15 @@ export function renderLegal(ctx) {
           </div>
           <p class="cat-summary">${escapeHtml(cat.summary || '')}</p>
         </div>
-        <div class="dis-anchor-bar"><div class="anchor-list" role="group" aria-label="${escapeHtml(cat.label)} items navigation">${anchors}</div></div>
+        <!--
+          tabindex="0" + role="group"/aria-label live together on this outer
+          element on purpose, not on .anchor-list inside it — see the
+          matching comment in disabilities.js's equivalent anchor bar for
+          why (app.css's overflow-y:auto, the scrollable-region-focusable
+          fix, is on .dis-anchor-bar; the accessible name has to live on
+          that same element to be guaranteed rather than assumed).
+        -->
+        <div class="dis-anchor-bar" role="group" aria-label="${escapeHtml(cat.label)} items navigation" tabindex="0"><div class="anchor-list">${anchors}</div></div>
         ${inline}
       `;
   document.getElementById('back-jurs').onclick = () => { state.legal = { view: 'categories' }; state.view = 'legal'; actions.render(); };

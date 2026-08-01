@@ -21,6 +21,8 @@
 //   flashcards     — flashcards session ({cards,index,flipped}) when active
 //   disabilities   — reference view ({view,category}) when active
 //   legal          — reference view ({view,category}) when active
+//   expandedProvenance — Set of provenance <details> ids the user has opened
+//                    (see provenance.js's renderProvenanceBadge/id param)
 //
 // `view` is explicit rather than inferred from data presence so that
 // navigating back to home doesn't require destroying `questions` — an
@@ -35,6 +37,15 @@
 // from. Backing it here means a re-render can restore exactly what was
 // there; views set it on `oninput` and clear it right before handing off to
 // the actual send action.
+//
+// `expandedProvenance` exists for the same reason: every render rebuilds
+// app.innerHTML from scratch, and a stateless `<details open>` (the old
+// provenance.js behaviour) silently collapsed on any in-place re-render —
+// including one landing mid-read for a virtual-cursor screen reader user.
+// Provenance ids are stable per view (e.g. `question-<qid>`), so surviving
+// resetState() (not cleared there) just means a badge the user previously
+// expanded stays expanded if they see that same id again later, which is
+// the more useful default for a user-set disclosure preference.
 
 export function createState() {
   return {
@@ -52,6 +63,7 @@ export function createState() {
     flashcards: null,
     disabilities: null,
     legal: null,
+    expandedProvenance: new Set(),
   };
 }
 

@@ -2,7 +2,7 @@
 
 import { escapeHtml } from '../dom.js';
 import { shuffle } from '../sampling.js';
-import { renderProvenanceBadge } from '../provenance.js';
+import { renderProvenanceBadge, wireProvenanceToggles } from '../provenance.js';
 
 /**
  * Render the active flashcards session.
@@ -21,7 +21,7 @@ export function renderFlashcards(ctx) {
   app.innerHTML = `
       <h1>Bear notes flashcards</h1>
       <div class="sub">Card ${fc.index + 1} of ${fc.cards.length}</div>
-      ${renderProvenanceBadge(prov, 'these flashcards')}
+      ${renderProvenanceBadge(prov, 'these flashcards', 'flashcards', state.expandedProvenance?.has('flashcards'))}
       <div class="panel">
         <!-- Plain container, not a button: its content (tag, front/back text) must be
              ordinary navigable text for screen readers, which a button's accessible-name
@@ -49,6 +49,7 @@ export function renderFlashcards(ctx) {
         </div>
       </div>
     `;
+  wireProvenanceToggles(app, state);
 
   // Flip toggles state, announces the newly revealed side's text (the live region
   // lives outside <main> and survives the innerHTML swap below), and explicitly

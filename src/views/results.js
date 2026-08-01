@@ -4,7 +4,7 @@ import { escapeHtml, scrollIntoViewMotionSafe, focusWithVisibleRing } from '../d
 import { domainLabel, scoreTest } from '../scoring.js';
 import { TEST_SIZE } from '../sampling.js';
 import { renderChatFragment } from './chat.js';
-import { renderProvenanceBadge } from '../provenance.js';
+import { renderProvenanceBadge, wireProvenanceToggles } from '../provenance.js';
 
 /**
  * Render the results page.
@@ -61,7 +61,7 @@ export function renderResults(ctx) {
     return `
         <div class="panel" data-qid="${q.id}" id="result-q-${i}">
           <h2 class="qmeta">Q${i+1} · ${domainLabel(q.domain)} · ${q.type} · your answer: ${picked || '—'} · correct: ${q.answer}</h2>
-          ${renderProvenanceBadge(prov, itemLabel)}
+          ${renderProvenanceBadge(prov, itemLabel, `results-${q.id}`, state.expandedProvenance?.has(`results-${q.id}`))}
           <p class="qtext">${escapeHtml(q.q)}</p>
           ${choices}
           ${q.cite ? `<div class="cite">Source: ${escapeHtml(q.cite)}</div>` : ''}
@@ -75,7 +75,7 @@ export function renderResults(ctx) {
                  same approach as renderProvenanceBadge's itemLabel. -->
             <button type="button" class="toggle linkish" data-toggle="${q.id}" aria-expanded="${!!chatOpen}" aria-controls="chat-panel-${q.id}"><span aria-hidden="true">${chatOpen ? '▾' : '▸'}</span> ${chatOpen ? 'Hide chat' : 'Discuss this question with the AI tutor'}<span class="sr-only"> — ${itemLabel}</span></button>
           </div>
-          <div id="chat-panel-${q.id}" data-item-label="${escapeHtml(itemLabel)}">${chatOpen ? renderChatFragment(q, state.chats[q.id], itemLabel) : ''}</div>` : ''}
+          <div id="chat-panel-${q.id}">${chatOpen ? renderChatFragment(q, state.chats[q.id], itemLabel) : ''}</div>` : ''}
         </div>`;
   }).join('');
 
@@ -119,29 +119,13 @@ export function renderResults(ctx) {
       </div>
       ${details}
     `;
+  wireProvenanceToggles(app, state);
 
   document.getElementById('retake').onclick = () => actions.startTest(state.mode);
   // "Back to start" invalidates the submission, not just the question set —
   // clear both so a stale #/results history entry can't be restored later
   // with nothing to show (see router.js's `results` restorability check).
   document.getElementById('back').onclick = () => { state.questions = []; state.submitted = false; state.view = 'home'; actions.render(); };
-
-  // renderChatFragment (chat.js) includes provenance.js's static "About AI
-  // in this app" button once per open chat panel. With several panels open
-  // at once that button's accessible name repeats identically across all of
-  // them — the same problem the .toggle buttons above solve with an
-  // sr-only itemLabel suffix. chat.js owns the call that renders this
-  // button and doesn't accept an itemLabel to thread through, so it's
-  // disambiguated here instead, after the fact, using the itemLabel this
-  // file already stashed on the chat panel's own data-item-label attribute.
-  document.querySelectorAll('[id^="chat-panel-"] [data-open-ai-info]').forEach(btn => {
-    const label = btn.closest('[data-item-label]')?.dataset.itemLabel;
-    if (!label) return;
-    const suffix = document.createElement('span');
-    suffix.className = 'sr-only';
-    suffix.textContent = ` — ${label}`;
-    btn.appendChild(suffix);
-  });
 
   document.querySelectorAll('[data-jump]').forEach(cell => {
     cell.onclick = () => {

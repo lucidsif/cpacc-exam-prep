@@ -50,7 +50,7 @@ export function renderChatFragment(q, chat, itemLabel) {
   // one.
   return `
       <div class="chat">
-        ${renderChatProvenanceBanner()}
+        ${renderChatProvenanceBanner(itemLabel)}
         <div class="log" id="log-${q.id}" role="log" aria-live="off" aria-label="Discussion of this question — ${safeLabel}" tabindex="0">${logHtml}</div>
         <div class="chat-input">
           <input type="text" data-input="${q.id}" placeholder="Type a question and press Enter..." aria-label="Ask about this question — ${safeLabel}" value="${escapeHtml(chat.draft || '')}" />

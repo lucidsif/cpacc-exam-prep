@@ -17,7 +17,7 @@
 //
 // This module renders the badge/disclosure UI. Data files own the metadata.
 
-import { escapeHtml } from './dom.js';
+import { escapeHtml, focusWithVisibleRing } from './dom.js';
 
 /** Provenance for live chat responses. Static — chat is never pre-reviewed. */
 export const CHAT_PROVENANCE = {
@@ -58,15 +58,23 @@ const CONFIDENCE = {
  * @param {string} itemLabel - human label for the item, appended via
  *   .sr-only so screen readers hear "... — AI provenance for Question 4"
  *   after the visible label/confidence, disambiguating repeated badges
+ * @param {string} [id] - stable key identifying this badge across renders
+ *   (e.g. `question-${q.id}`). Without one, the <details> can't carry
+ *   `data-prov-id` and wireProvenanceToggles() has nothing to hook, so the
+ *   disclosure falls back to always-closed — the same behaviour this had
+ *   before open state was backed in state.js.
+ * @param {boolean} [isOpen] - whether `id` is in state.expandedProvenance;
+ *   see the module doc above wireProvenanceToggles().
  * @returns {string} HTML string
  */
-export function renderProvenanceBadge(prov, itemLabel) {
+export function renderProvenanceBadge(prov, itemLabel, id, isOpen) {
   if (!prov) return '';
   const conf = CONFIDENCE[prov.confidence] || CONFIDENCE.variable;
   const safeLabel = escapeHtml(itemLabel || 'this item');
+  const idAttr = id ? ` data-prov-id="${escapeHtml(id)}"` : '';
 
   return `
-    <details class="provenance">
+    <details class="provenance"${isOpen ? ' open' : ''}${idAttr}>
       <summary>
         <span class="pv-icon" aria-hidden="true">🤖</span>
         <span class="pv-cat">${escapeHtml(prov.label)}</span>
@@ -100,16 +108,52 @@ function renderLimitations(items) {
 }
 
 /**
+ * Keep provenance <details> disclosures open across in-place re-renders.
+ * Every render rebuilds app.innerHTML wholesale, which resets any
+ * user-expanded native <details> back to closed — including one a
+ * virtual-cursor screen reader user is mid-read through, which is worse
+ * than the visible collapse: the subtree is removed out from under them,
+ * not just visually toggled. Call this once per render, after the badge
+ * markup is in the DOM; it listens for the native `toggle` event (fired on
+ * both open and close, from any input method) and records the id in
+ * `state.expandedProvenance` so the NEXT render's `isOpen` argument to
+ * renderProvenanceBadge reflects it.
+ * @param {ParentNode} container - element containing zero or more
+ *   `.provenance[data-prov-id]` <details> to wire (usually the app root)
+ * @param {{expandedProvenance?: Set<string>}} state - lazily gets
+ *   `expandedProvenance` if the caller's state object doesn't have one yet
+ *   (test fixtures built by hand, rather than via state.js's createState(),
+ *   commonly won't)
+ */
+export function wireProvenanceToggles(container, state) {
+  if (!state.expandedProvenance) state.expandedProvenance = new Set();
+  container.querySelectorAll('.provenance[data-prov-id]').forEach(det => {
+    const id = det.dataset.provId;
+    det.addEventListener('toggle', () => {
+      if (det.open) state.expandedProvenance.add(id);
+      else state.expandedProvenance.delete(id);
+    });
+  });
+}
+
+/**
  * Render the static AI-disclaimer banner shown above each chat transcript.
- * @param {Function} onOpen - called when "About AI in this app" link is clicked
+ * @param {string} [itemLabel] - human label for the panel this banner sits
+ *   in (e.g. "Question 4"), appended as a visually-hidden suffix on the
+ *   "About AI in this app" button — same reasoning as renderProvenanceBadge's
+ *   itemLabel: with several chat panels open at once (results.js) that
+ *   button's accessible name would otherwise repeat identically across all
+ *   of them. Omit it where only one banner exists on the page (home.js) —
+ *   there's nothing to disambiguate from.
  * @returns {string} HTML string (event wired separately via [data-open-ai-info])
  */
-export function renderChatProvenanceBanner() {
+export function renderChatProvenanceBanner(itemLabel) {
+  const suffix = itemLabel ? `<span class="sr-only"> — ${escapeHtml(itemLabel)}</span>` : '';
   return `
     <div class="pv-banner" role="note">
       <span class="pv-icon" aria-hidden="true">🤖</span>
       <span><b>AI live response — not pre-reviewed.</b> Verify against authoritative sources.</span>
-      <button type="button" class="linkish pv-info-link" data-open-ai-info aria-haspopup="dialog">About AI in this app</button>
+      <button type="button" class="linkish pv-info-link" data-open-ai-info aria-haspopup="dialog">About AI in this app${suffix}</button>
     </div>
   `;
 }
@@ -188,15 +232,28 @@ export function installAiInfoDialog() {
     if (typeof dlg.showModal === 'function') dlg.showModal();
     else dlg.setAttribute('open', '');
   }
-  // The Back/Forward router re-renders <main>, which can detach the
+  // An in-place re-render (e.g. a pending chat reply landing) can detach the
   // original trigger element while the dialog is open. Focusing a detached
   // node is a silent no-op that drops focus to <body>, so fall back to the
-  // app root when the trigger is gone.
+  // route's own heading when the trigger is gone — same landing spot
+  // moveFocusToRoute() (main.js) uses for navigation, and for the same
+  // reason: #app itself is focusable (this used to fall back to it
+  // directly), but a plain el.focus() there gets no visible ring —
+  // app.css's `:focus:not(:focus-visible)` suppressor kills the outline on
+  // any script-driven focus that isn't marked `.route-focus`, leaving a
+  // pointer-only/AT user on an unnamed `main` landmark with no indicator at
+  // all. focusWithVisibleRing (dom.js) is the fix already established for
+  // this exact class of problem; landing on the heading instead of bare
+  // <main> also gives the user something more useful to have focus land on.
   function restoreFocus() {
     if (lastFocus && lastFocus.isConnected && typeof lastFocus.focus === 'function') {
       lastFocus.focus();
-    } else {
-      document.getElementById('app')?.focus();
+      return;
+    }
+    const target = document.querySelector('#app h1') || document.getElementById('app');
+    if (target) {
+      target.setAttribute('tabindex', '-1');
+      focusWithVisibleRing(target);
     }
   }
 

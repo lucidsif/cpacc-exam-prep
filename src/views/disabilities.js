@@ -1,7 +1,7 @@
 // src/views/disabilities.js — human-disabilities reference (category grid + detail list).
 
 import { escapeHtml, scrollIntoViewMotionSafe, focusWithVisibleRing } from '../dom.js';
-import { renderProvenanceBadge } from '../provenance.js';
+import { renderProvenanceBadge, wireProvenanceToggles } from '../provenance.js';
 
 // Per-category top-line stat pills (curated from the source notes).
 const CATEGORY_STATS = {
@@ -45,9 +45,10 @@ export function renderDisabilities(ctx) {
         <h1>Human disabilities</h1>
         <div class="sub">${d.items.length} conditions across ${d.categories.length} categories. Tap a category to browse.</div>
         <p class="scope-note"><span class="scope-icon" aria-hidden="true">ℹ️</span> <span><b>Goes beyond CPACC scope</b> — for deeper study.</span></p>
-        ${renderProvenanceBadge(prov, 'the disabilities reference')}
+        ${renderProvenanceBadge(prov, 'the disabilities reference', 'disabilities', state.expandedProvenance?.has('disabilities'))}
         <div class="cat-grid">${cards}</div>
       `;
+    wireProvenanceToggles(app, state);
     document.querySelectorAll('[data-cat]').forEach(el => {
       el.onclick = () => { state.disabilities = { view: 'list', category: el.dataset.cat }; state.view = 'disabilities'; actions.render(); };
     });
@@ -98,7 +99,25 @@ export function renderDisabilities(ctx) {
           <p class="cat-summary">${escapeHtml(cat.summary || '')}</p>
           ${stats ? `<div class="stat-row">${stats}</div>` : ''}
         </div>
-        <div class="dis-anchor-bar"><div class="anchor-list" role="group" aria-label="${escapeHtml(cat.label)} conditions navigation">${anchors}</div></div>
+        <!--
+          tabindex="0" + role="group"/aria-label live together on this outer
+          element on purpose, not on .anchor-list inside it: app.css's
+          overflow-y:auto (the scrollable-region-focusable fix, WCAG 2.1.1)
+          is on .dis-anchor-bar, so THIS is the element that must be the tab
+          stop for real keyboard scrolling (arrow keys/Page Down/Home/End
+          act on whichever scrollable element has focus, not one of its
+          non-scrolling descendants). Putting role="group"+aria-label on a
+          separate, non-focusable child was tried first and looked fine in
+          Chromium — it computes a name for the focused generic wrapper from
+          the labelled child's content anyway — but that's an undocumented
+          Chromium fallback, not something the accessible-name spec
+          guarantees for a bare focusable role="generic" element in every
+          engine/AT. Keeping the name on the SAME element that gets
+          tabindex (matching .chat .log's pattern in home.js/chat.js, one
+          element carrying scrollability + tabindex + name together) is what
+          actually guarantees the announcement rather than assuming it.
+        -->
+        <div class="dis-anchor-bar" role="group" aria-label="${escapeHtml(cat.label)} conditions navigation" tabindex="0"><div class="anchor-list">${anchors}</div></div>
         ${inline}
       `;
   document.getElementById('back-cats').onclick = () => { state.disabilities = { view: 'categories' }; state.view = 'disabilities'; actions.render(); };

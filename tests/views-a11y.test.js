@@ -47,6 +47,7 @@ function baseState(overrides = {}) {
     chats: {}, homeChat: { history: [], draft: '' },
     chatEnabled: true,
     flashcards: null, disabilities: null, legal: null,
+    expandedProvenance: new Set(),
     ...overrides,
   };
 }
@@ -267,17 +268,24 @@ export async function run({ test, assertTrue, assertEq }) {
     assertEq(chatSends, 1, 'sanity: a genuine Enter (not composing) should still send');
   });
 
-  // ---- anchor bars need the same group semantics as the jump grids ----
+  // ---- anchor bars need the same group semantics as the jump grids, AND
+  // need to be a real keyboard-operable scrollable region ----
   //
   // question.js's and results.js's jump grids carry role="group" +
   // aria-label on their container so a screen reader announces them as a
   // named group of 20-ish sibling buttons, not an unlabelled flat list.
   // disabilities.js's and legal.js's anchor bars are the same shape (up to
-  // 26 sibling <button class="anchor">s in a bare <div>) and previously had
-  // none of that. This pins both now carry it, matching the jump grids'
-  // existing pattern instead of being the odd one out.
+  // 26 sibling <button class="anchor">s) and previously had none of that.
+  //
+  // role="group"/aria-label live on .dis-anchor-bar itself (not the nested
+  // .anchor-list) because that's also the element styles/app.css caps at
+  // max-height:30vh with overflow-y:auto — a later pass gave that a
+  // scrollable-region-focusable fix (WCAG 2.1.1) by adding tabindex="0",
+  // and the accessible name has to live on the SAME element that becomes
+  // the tab stop to be guaranteed rather than assumed (see the comment in
+  // disabilities.js/legal.js above this markup for the reasoning).
 
-  await test('disabilities.js anchor bar carries role="group" + a non-empty aria-label, matching the jump grid pattern', async () => {
+  await test('disabilities.js anchor bar (.dis-anchor-bar) carries role="group" + a non-empty aria-label + tabindex="0", matching the jump grid pattern and .chat .log\'s scrollable-region-focusable fix', async () => {
     makeDom();
     const { renderDisabilities } = await loadView('src/views/disabilities.js');
     const data = { DISABILITIES: {
@@ -291,14 +299,15 @@ export async function run({ test, assertTrue, assertEq }) {
     const { actions } = spyActions();
     renderDisabilities({ app: document.getElementById('app'), state, data, actions, provenance: null });
 
-    const anchorList = document.querySelector('.anchor-list');
-    assertTrue(anchorList, '.anchor-list missing');
-    assertEq(anchorList.getAttribute('role'), 'group', 'anchor bar should carry role="group" like the jump grids');
-    const label = anchorList.getAttribute('aria-label');
+    const anchorBar = document.querySelector('.dis-anchor-bar');
+    assertTrue(anchorBar, '.dis-anchor-bar missing');
+    assertEq(anchorBar.getAttribute('role'), 'group', 'anchor bar should carry role="group" like the jump grids');
+    const label = anchorBar.getAttribute('aria-label');
     assertTrue(!!label && label.includes('Test Category'), 'anchor bar aria-label should be non-empty and name the category');
+    assertEq(anchorBar.getAttribute('tabindex'), '0', '.dis-anchor-bar is the scrollable element (app.css max-height/overflow-y:auto) and must itself be a keyboard-reachable tab stop');
   });
 
-  await test('legal.js anchor bar carries role="group" + a non-empty aria-label, matching the jump grid pattern', async () => {
+  await test('legal.js anchor bar (.dis-anchor-bar) carries role="group" + a non-empty aria-label + tabindex="0", matching the jump grid pattern and .chat .log\'s scrollable-region-focusable fix', async () => {
     makeDom();
     const { renderLegal } = await loadView('src/views/legal.js');
     const data = { LEGAL: {
@@ -312,11 +321,12 @@ export async function run({ test, assertTrue, assertEq }) {
     const { actions } = spyActions();
     renderLegal({ app: document.getElementById('app'), state, data, actions, provenance: null });
 
-    const anchorList = document.querySelector('.anchor-list');
-    assertTrue(anchorList, '.anchor-list missing');
-    assertEq(anchorList.getAttribute('role'), 'group', 'anchor bar should carry role="group" like the jump grids');
-    const label = anchorList.getAttribute('aria-label');
+    const anchorBar = document.querySelector('.dis-anchor-bar');
+    assertTrue(anchorBar, '.dis-anchor-bar missing');
+    assertEq(anchorBar.getAttribute('role'), 'group', 'anchor bar should carry role="group" like the jump grids');
+    const label = anchorBar.getAttribute('aria-label');
     assertTrue(!!label && label.includes('Test Jurisdiction'), 'anchor bar aria-label should be non-empty and name the jurisdiction');
+    assertEq(anchorBar.getAttribute('tabindex'), '0', '.dis-anchor-bar is the scrollable element (app.css max-height/overflow-y:auto) and must itself be a keyboard-reachable tab stop');
   });
 
   // ---- "About AI in this app" must not repeat across simultaneously-open
@@ -341,5 +351,107 @@ export async function run({ test, assertTrue, assertEq }) {
     assertTrue(aiBtn1.textContent !== aiBtn2.textContent, '"About AI in this app" buttons must not share one accessible name across open panels');
     assertTrue(aiBtn1.textContent.includes('Question 1'), 'Q1\'s "About AI in this app" name should identify question 1');
     assertTrue(aiBtn2.textContent.includes('Question 2'), 'Q2\'s "About AI in this app" name should identify question 2');
+  });
+
+  // ---- provenance <details> disclosure state must survive an in-place
+  // re-render, not silently collapse (every render rebuilds app.innerHTML,
+  // and the old stateless <details> had nothing to rebuild `open` from) ----
+  //
+  // An existing views.test.js test focuses a provenance <summary> through
+  // this exact kind of re-render and stays green while the disclosure
+  // collapses underneath it (it never asserts `.open`) — this test asserts
+  // `.open` directly so that regression can't hide the same way again.
+
+  await test('a provenance <details> disclosure the user opened stays open across an in-place re-render (state.expandedProvenance), instead of silently collapsing', async () => {
+    const dom = makeDom();
+    const { renderDisabilities } = await loadView('src/views/disabilities.js');
+    const data = { DISABILITIES: {
+      categories: [{ id: 'testcat', label: 'Test Category', emoji: '🧪', color: '#000' }],
+      items: [{ id: 'item1', category: 'testcat', emoji: '🧪', name: 'Item One', prevalence: '', description: '', keyFacts: [], a11ySolutions: [] }],
+    }};
+    const prov = { label: 'AI-derived', citations: ['x'], generatedBy: 'Claude', generatedAt: 'now', humanReview: 'none', confidence: 'medium', limitations: [] };
+    const state = baseState({ view: 'disabilities', disabilities: { view: 'categories' } });
+    const { actions } = spyActions();
+    const ctx = { app: document.getElementById('app'), state, data, actions, provenance: { DISABILITIES: prov } };
+
+    renderDisabilities(ctx);
+    const details = document.querySelector('details.provenance');
+    assertTrue(details, 'provenance <details> missing');
+    assertEq(details.open, false, 'sanity: starts closed');
+
+    // Open it the way a real user would — native <details> flips its own
+    // `.open` and fires `toggle`; wireProvenanceToggles (provenance.js)
+    // listens for exactly that event to record the id in state.
+    details.open = true;
+    details.dispatchEvent(new dom.window.Event('toggle'));
+    assertTrue(state.expandedProvenance.has('disabilities'), 'opening the disclosure should record its id in state.expandedProvenance');
+
+    // An unrelated in-place re-render (e.g. a chat reply landing elsewhere)
+    // rebuilds app.innerHTML wholesale. The bug: this used to always emit a
+    // stateless <details> with no `open`, so it silently collapsed here
+    // even though the user never touched it — and for a virtual-cursor
+    // screen reader user reading through it, that's the subtree being
+    // pulled out from under them mid-read, not just a visual collapse.
+    renderDisabilities(ctx);
+    const detailsAfter = document.querySelector('details.provenance');
+    assertTrue(detailsAfter, 'provenance <details> should still exist after the re-render');
+    assertTrue(detailsAfter !== details, 'sanity: re-render should have replaced the node, not reused it');
+    assertEq(detailsAfter.open, true, 'the disclosure must stay open across an in-place re-render, not silently collapse');
+  });
+
+  // ---- #submit-help must not resurrect once a choice is pending ----
+
+  await test('#submit-help does not resurrect as a stale, contradictory description once a choice is pending (e.g. across a Next-then-Prev round trip)', async () => {
+    makeDom();
+    const { renderQuestion } = await loadView('src/views/question.js');
+    const q1 = fakeQuestion(1, 'A');
+    const q2 = fakeQuestion(2, 'B');
+    const state = baseState({ view: 'test', questions: [q1, q2], index: 0, pending: {} });
+    const { actions } = spyActions();
+    const ctx = { app: document.getElementById('app'), state, missed: fakeMissed, actions };
+
+    renderQuestion(ctx);
+    assertTrue(document.getElementById('submit-help'), 'sanity: submit-help present before any choice is picked');
+
+    // Pick a choice — the onchange handler records state.pending directly
+    // and deliberately does not trigger a render (see question.js's own
+    // comment on that forEach).
+    const radioB = document.querySelector('input[name="choice"][value="B"]');
+    radioB.checked = true;
+    radioB.onchange({ target: radioB });
+    assertEq(state.pending[q1.id], 'B', 'sanity: pending recorded');
+
+    // Simulate a Next-then-Prev round trip: two ordinary full re-renders of
+    // the same (still-pending, still-unrevealed) question.
+    renderQuestion(ctx);
+    renderQuestion(ctx);
+
+    assertTrue(!document.getElementById('submit-help'), '#submit-help must not resurrect once a choice is pending — it used to unconditionally reappear on any render while !revealed, regardless of pending, reading "Select a choice to enable Submit answer" while a choice WAS selected and Submit WAS enabled');
+    const btn = document.getElementById('submit-answer');
+    assertTrue(btn, 'submit-answer missing');
+    assertEq(btn.hasAttribute('disabled'), false, 'sanity: submit-answer should be enabled once a choice is pending');
+    assertEq(btn.getAttribute('aria-describedby'), 'kbd-hint', 'submit-answer should describe via kbd-hint, not the stale submit-help, once a choice is pending');
+  });
+
+  // ---- #kbd-hint must not keep instructing an action that's no longer
+  // possible once the answer is revealed ----
+
+  await test('#kbd-hint stops instructing "choose Submit answer" once the question is revealed (that button and the enabled fieldset are both gone by then)', async () => {
+    makeDom();
+    const { renderQuestion } = await loadView('src/views/question.js');
+    const q = fakeQuestion(1, 'A');
+
+    const unrevealedState = baseState({ view: 'test', questions: [q], index: 0, pending: {} });
+    renderQuestion({ app: document.getElementById('app'), state: unrevealedState, missed: fakeMissed, actions: spyActions().actions });
+    const hintBefore = document.getElementById('kbd-hint');
+    assertTrue(hintBefore, 'kbd-hint missing');
+    assertTrue(hintBefore.textContent.includes('Submit answer'), 'sanity: the unrevealed hint should mention Submit answer');
+
+    const revealedState = baseState({ view: 'test', questions: [q], index: 0, answers: { 1: 'A' }, revealed: { 1: true } });
+    renderQuestion({ app: document.getElementById('app'), state: revealedState, missed: fakeMissed, actions: spyActions().actions });
+    const hintAfter = document.getElementById('kbd-hint');
+    assertTrue(hintAfter, 'kbd-hint missing after reveal');
+    assertTrue(!hintAfter.textContent.includes('Submit answer'), 'the revealed hint must not still instruct "choose Submit answer" — that control no longer exists once revealed');
+    assertTrue(!document.getElementById('submit-answer'), 'sanity: submit-answer really is gone once revealed');
   });
 }

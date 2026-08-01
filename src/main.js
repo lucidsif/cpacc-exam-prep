@@ -474,10 +474,24 @@ function restoreFocus(info) {
 
   if (isFocusable(el)) {
     el.focus();
-    if (info.selectionStart !== null && typeof el.setSelectionRange === 'function') {
-      el.setSelectionRange(info.selectionStart, info.selectionEnd);
+    // Confirm the focus actually landed instead of trusting the call.
+    // `.focus()` is a spec-mandated no-op — not an error — on an element
+    // outside the focusable area, and isFocusable() can't detect that: it
+    // only rules out `:disabled` and `aria-hidden`. The gap is real and it
+    // hits the most common element in the app. moveFocusToRoute() below and
+    // the jump handlers in results.js/disabilities.js/legal.js all apply
+    // `tabindex="-1"` *imperatively*, so it lives only on the live node —
+    // the `app.innerHTML` write this render just performed erases it. The
+    // re-found <h1> or panel therefore looks focusable, silently refuses
+    // focus, and without this check we'd return here leaving focus on
+    // <body>: exactly the bug the whole capture/restore apparatus exists to
+    // prevent. Falling through reaches the sibling and route fallbacks.
+    if (document.activeElement === el) {
+      if (info.selectionStart !== null && typeof el.setSelectionRange === 'function') {
+        el.setSelectionRange(info.selectionStart, info.selectionEnd);
+      }
+      return;
     }
-    return;
   }
 
   // The control that had focus got disabled by this same re-render — e.g.

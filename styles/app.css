@@ -21,7 +21,9 @@
      Not "and pills" — .pill is a <span>, not an interactive control, so it has no
      target size to meet. 2.5.8 has NOT been audited across every control; see
      ACCESSIBILITY.md for the scope of what was actually checked.
-   - .dis-item uses scroll-margin-top so the sticky anchor bar doesn't obscure focused items (WCAG 2.4.11).
+   - .dis-anchor-bar is height-capped and .dis-item's scroll-margin-top matches that cap,
+     so the sticky bar can't obscure the heading it scrolled to (WCAG 2.4.11). The two
+     values are coupled — change one and you must change the other.
    - forced-colors: active gets an explicit outline on the current-question cell, since
      box-shadow (its normal indicator) is stripped in that mode (WCAG 1.4.1).
    ============================================================ */
@@ -202,7 +204,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .cat-overview .cat-summary { color: #cbd2e0; line-height: 1.55; margin: 0; }
 .cat-overview .stat-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .cat-overview .stat-pill { background: #11151f; border: 1px solid var(--border); padding: 6px 12px; border-radius: 999px; font-size: 13px; color: var(--accent); }
-.dis-item { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; scroll-margin-top: 60px; /* keep heading clear of sticky anchor bar */ }
+.dis-item { background: var(--panel-2); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; margin-bottom: 12px; scroll-margin-top: calc(30vh + 16px); /* must match .dis-anchor-bar's max-height (+ its border and margin) or the sticky bar covers the heading this scrolled to — see the note there */ }
 .dis-item .dis-head { display: flex; gap: 16px; align-items: center; margin-bottom: 12px; }
 .dis-item .dis-emoji { font-size: 52px; line-height: 1; flex-shrink: 0; }
 .dis-item .dis-name { font-weight: 700; font-size: 18px; margin: 0; }
@@ -213,7 +215,19 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 @media (max-width: 600px) { .dis-item .dis-cols { grid-template-columns: 1fr; } }
 .dis-item ul { margin: 0; padding-left: 18px; }
 .dis-item li { margin: 4px 0; line-height: 1.5; font-size: 14px; color: #cbd2e0; }
-.dis-anchor-bar { position: sticky; top: 0; background: var(--bg); padding: 8px 0; margin-bottom: 12px; border-bottom: 1px solid var(--border); z-index: 10; }
+/* max-height is load-bearing for WCAG 2.4.11, not cosmetic. The anchor list
+   wraps to as many rows as it needs, and measured it reached 389px at 1280px
+   wide and 1015px at 320px on #/legal/timeline (26 anchors) — 158% of the
+   viewport, i.e. a sticky bar taller than the screen. Against the old fixed
+   60px scroll-margin the focused heading was fully covered on 14 of 16
+   measured route/viewport combinations, on #/disabilities/* as well as
+   #/legal/*. Capping at 30vh bounds it so .dis-item's matching
+   scroll-margin-top can actually clear it at any viewport or anchor count.
+   overflow-y makes the overflow reachable by pointer. NOTE: this makes the
+   bar a scrollable region, so it needs tabindex="0" in disabilities.js and
+   legal.js to be scrollable by keyboard (axe scrollable-region-focusable,
+   WCAG 2.1.1) — same treatment .chat .log already has. Not yet applied. */
+.dis-anchor-bar { position: sticky; top: 0; background: var(--bg); padding: 8px 0; margin-bottom: 12px; border-bottom: 1px solid var(--border); z-index: 10; max-height: 30vh; overflow-y: auto; }
 .dis-anchor-bar .anchor-list { display: flex; flex-wrap: wrap; gap: 6px; }
 .dis-anchor-bar .anchor { background: var(--panel-2); border: 1px solid var(--border); padding: 6px 12px; border-radius: 999px; font-size: 12px; color: var(--text); text-decoration: none; cursor: pointer; min-height: 24px; line-height: 1.2; font-family: inherit; }
 .dis-anchor-bar .anchor:hover { border-color: var(--accent); }

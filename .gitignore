@@ -21,6 +21,13 @@ dist/
 # Wrangler local session/cache state (written by `wrangler pages dev`)
 .wrangler/
 
+# Playwright output (traces, screenshots, HTML/blob reports) — regenerated
+# by every `npm run test:e2e` run, not something to commit. Note: this does
+# NOT ignore e2e/ itself, only what Playwright writes as a byproduct.
+test-results/
+playwright-report/
+blob-report/
+
 # Copyrighted reference material — not ours to redistribute.
 # CPACC_BoK.pdf (the IAAP Body of Knowledge PDF) lives on the author's disk
 # at the repo root for local reference when writing/verifying question

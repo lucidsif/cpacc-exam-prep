@@ -103,7 +103,7 @@ Click any badge in the app to see the full provenance card (source, model, gener
 
 ### The code was AI-written too, and it got accessibility wrong
 
-The table above covers the app's *content*. The **code** — including the accessibility implementation — was also largely written by Claude: `git log` carries `Co-Authored-By: Claude` on 35 of 43 commits.
+The table above covers the app's *content*. The **code** — including the accessibility implementation — was also largely written by Claude: most commits carry a `Co-Authored-By: Claude` trailer, which you can count yourself with `git log --format='%b' | grep -c 'Co-Authored-By: Claude'`.
 
 That is worth stating bluntly rather than burying, because a pre-publication audit found AI-written accessibility code in this repo claiming conformance it did not have, repeating a factually wrong premise about `disabled` in seven places, shipping a focus-indicator fix that covered one of five cases while documenting it as complete, and dropping keyboard focus to `<body>` on every route. Both test suites were green through all of it.
 

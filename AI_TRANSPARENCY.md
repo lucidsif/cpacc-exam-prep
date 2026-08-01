@@ -60,7 +60,12 @@ This is the bucket most likely to surprise you. Any of these models can produce 
 
 Everything above is about *content* — the questions, the references, the chat. This section is about the **code**, including the accessibility implementation. If you are an accessibility professional deciding whether to take this project seriously, this is probably the section you actually came for.
 
-**A large share of this codebase was written by Claude, including accessibility-critical code.** `git log` records `Co-Authored-By: Claude` on 35 of 43 commits. You do not have to take that on faith — run `git log --format='%b' | grep -c 'Co-Authored-By: Claude'` yourself.
+**A large share of this codebase was written by Claude, including accessibility-critical code.** Most commits in this repository carry a `Co-Authored-By: Claude` trailer. Rather than quote a count that goes stale on the next commit, check it yourself:
+
+```sh
+git log --format='%b' | grep -c 'Co-Authored-By: Claude'   # AI-co-authored commits
+git rev-list --count HEAD                                  # total commits
+```
 
 ### What was human and what was not
 

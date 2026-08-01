@@ -247,7 +247,7 @@ async function sendHomeChat() {
   input.value = '';
   render();
   const res = await sendHomeMessage(state.homeChat.history.slice(0, -1), text);
-  // The transcript is `role="log"` with no `aria-live` (a live region
+  // The transcript is `role="log"` with an explicit `aria-live="off"` (a live region
   // can't announce content that was already part of the innerHTML write
   // that created it — see src/views/chat.js), so the reply has to be
   // spoken through #route-status explicitly. Only the assistant's reply
@@ -279,7 +279,7 @@ async function sendChat(qid) {
   input.value = '';
   render();
   const res = await sendQuestionMessage(q, state.answers[q.id] || null, chat.history.slice(0, -1), text);
-  // Same reasoning as sendHomeChat above: role="log" has no aria-live, so
+  // Same reasoning as sendHomeChat above: role="log" carries aria-live="off", so
   // announce the reply/error through #route-status; don't echo the user's
   // own message back to them.
   if (res.ok) {

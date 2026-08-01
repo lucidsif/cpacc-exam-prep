@@ -17,7 +17,10 @@
    - --focus-ring is 3px solid amber on every focusable element (WCAG 2.4.7), including a
      @supports-guarded fallback for engines without :focus-visible, and on script-driven focus
      via .route-focus (main.js's moveFocusToRoute()) — not just native :focus-visible matches.
-   - Cells, anchors, and pills all meet ≥24×24 CSS px target size (WCAG 2.5.8).
+   - Cells, anchors, and .toggle buttons meet ≥24×24 CSS px target size (WCAG 2.5.8).
+     Not "and pills" — .pill is a <span>, not an interactive control, so it has no
+     target size to meet. 2.5.8 has NOT been audited across every control; see
+     ACCESSIBILITY.md for the scope of what was actually checked.
    - .dis-item uses scroll-margin-top so the sticky anchor bar doesn't obscure focused items (WCAG 2.4.11).
    - forced-colors: active gets an explicit outline on the current-question cell, since
      box-shadow (its normal indicator) is stripped in that mode (WCAG 1.4.1).
@@ -271,7 +274,21 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   color: #e9d6a8; font-size: 13px;
 }
 .pv-banner .pv-icon { font-size: 16px; }
-.pv-info-link { color: var(--accent); font-weight: 600; }
+/* Underlined for the same reason as .cite .linkish above (WCAG 1.4.1 /
+   technique F73): this is the second "About AI in this app" trigger, and it
+   sits inline in the provenance banner where its only other cue would be hue.
+   --accent (#7aa2ff) against the banner's own text (#e9d6a8) is 1.74:1 — far
+   under the 3:1 that lets colour alone carry a distinction — and font-weight
+   600 is not a distinguishing cue here either, since it follows a <b> run in
+   the same banner. Note axe cannot catch this: link-in-text-block only fires
+   on <a>, and this is a <button>.
+   Selector is `button.pv-info-link`, not the bare class: `button.linkish`
+   above sets `color: inherit; font: inherit` at specificity (0,1,1), so the
+   bare class (0,1,0) lost and this rule's colour and weight never applied at
+   all — measured, the trigger rendered in the banner's own #e9d6a8 at weight
+   400, i.e. identical to the surrounding text. Tying specificity and winning
+   on source order is what makes it take effect. */
+button.pv-info-link { color: var(--accent); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
 
 .ai-dialog {
   max-width: 640px; width: calc(100% - 32px);

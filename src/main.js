@@ -34,6 +34,7 @@ import { renderResults }      from './views/results.js';
 import { renderFlashcards }   from './views/flashcards.js';
 import { renderDisabilities } from './views/disabilities.js';
 import { renderLegal }        from './views/legal.js';
+import { renderAccessibility } from './views/accessibility.js';
 
 // -------- boot -----------------------------------------------------------
 
@@ -87,6 +88,7 @@ function titleFor(state) {
       const label = state.legal?.category && legalCategoryLabels.get(state.legal.category);
       return label ? `${label} — History, laws & standards — CPACC Practice Test` : 'History, laws & standards — CPACC Practice Test';
     }
+    case 'accessibility': return 'Accessibility statement — CPACC Practice Test';
     case 'home':
     default:              return 'CPACC Practice Test';
   }
@@ -130,11 +132,24 @@ function announce(msg, { assertive = false } = {}) {
 // -------- actions --------------------------------------------------------
 
 function startTest(mode) {
-  state.mode = mode || 'weighted';
-  state.questions =
-    state.mode === 'missed' ? sampleMissedQuestions([CPACC_BANK, BEAR_BANK], missed.get())
-    : state.mode === 'bear' ? sampleQuestions(BEAR_BANK)
+  const nextMode = mode || 'weighted';
+  const questions =
+    nextMode === 'missed' ? sampleMissedQuestions([CPACC_BANK, BEAR_BANK], missed.get())
+    : nextMode === 'bear' ? sampleQuestions(BEAR_BANK)
     : sampleQuestions(CPACC_BANK);
+  // weighted/bear always sample from a fixed non-empty bank, so this is only
+  // reachable in practice for 'missed' when the missed set is empty (e.g.
+  // results.js's retake button after a missed-practice run that came back
+  // clean). Entering the test view with zero questions is what used to crash
+  // question.js (state.questions[state.index] is undefined). Bail before any
+  // state is touched and tell the user why nothing happened, rather than
+  // silently doing nothing or navigating them somewhere new.
+  if (questions.length === 0) {
+    announce(`No missed questions to practice — you're all caught up.`);
+    return;
+  }
+  state.mode = nextMode;
+  state.questions = questions;
   state.answers = {};
   state.pending = {};
   state.revealed = {};
@@ -434,6 +449,7 @@ function render(opts = {}) {
     case 'flashcards':  renderFlashcards(ctx); break;
     case 'results':     renderResults(ctx); break;
     case 'test':        renderQuestion(ctx); break;
+    case 'accessibility': renderAccessibility(ctx); break;
     case 'home':
     default:            renderHome(ctx); break;
   }

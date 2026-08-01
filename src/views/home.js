@@ -91,13 +91,29 @@ export function renderHome(ctx) {
       <div class="cite">Real CPACC exam: 100 multiple-choice questions in 2 hours, ~70% pass. (Per IAAP exam info — not from the BoK itself.)</div>
       <div class="cite"><button type="button" class="linkish" data-open-ai-info aria-haspopup="dialog"><span aria-hidden="true">🤖</span> About AI in this app</button> — provenance, confidence levels, and limitations of every content type.</div>
       <div class="cite">Chat tutor: ${state.chatEnabled === null ? 'checking availability…' : state.chatEnabled ? 'enabled.' : 'disabled. Optional: set <code>LLM_PROVIDER</code> and <code>LLM_API_KEY</code>, then run via <code>node server.js</code>. Works with Anthropic, OpenAI, or a local OpenAI-compatible server.'}</div>
+      <div class="cite"><a href="#/accessibility">Accessibility statement</a> — conformance status, what's been tested, and what hasn't.</div>
       ${state.chatEnabled ? `
       <div class="panel">
         <h2 class="qmeta"><span class="qmeta-emoji" aria-hidden="true">💬</span> Ask the CPACC tutor</h2>
         <div class="qtext" style="font-size:14px;color:var(--muted);margin-bottom:10px">Free-form chat — ask about disabilities, laws, WCAG, UD principles, anything CPACC-related.</div>
         <div class="chat">
           ${renderChatProvenanceBanner()}
-          <div class="log" id="home-log" role="log" aria-label="Chat conversation">${state.homeChat.history.map(m => `<div class="msg ${m.role}"><b class="msg-role">${ROLE_LABELS[m.role] || ''}</b>${escapeHtml(m.content)}</div>`).join('') || `<div class="msg assistant"><b class="msg-role">${ROLE_LABELS.assistant}</b>Hi — ask me anything CPACC-related.</div>`}</div>
+          <!--
+            aria-live="off" here is deliberate, not an oversight — see the
+            matching comment above renderChatFragment() in chat.js for the
+            full reasoning. Short version: role="log" implies
+            aria-live="polite" even with no explicit attribute; this
+            transcript is rebuilt wholesale via innerHTML on every render;
+            and every reply/error already gets announced explicitly through
+            announce() -> #route-status (see sendHomeChat in main.js). Two
+            live paths to the same message is an ambiguity we don't want, so
+            this explicit override makes the region silent on its own and
+            leaves #route-status as the single announcement path. Do NOT
+            delete this attribute to reconcile it with role="log" — that is
+            what reintroduces the ambiguity. role="log" is kept for its
+            navigational semantics; only the implicit live behaviour is off.
+          -->
+          <div class="log" id="home-log" role="log" aria-live="off" aria-label="Chat conversation">${state.homeChat.history.map(m => `<div class="msg ${m.role}"><b class="msg-role">${ROLE_LABELS[m.role] || ''}</b>${escapeHtml(m.content)}</div>`).join('') || `<div class="msg assistant"><b class="msg-role">${ROLE_LABELS.assistant}</b>Hi — ask me anything CPACC-related.</div>`}</div>
           <div class="chat-input">
             <label for="home-input" class="sr-only">Ask the tutor a question</label>
             <input type="text" id="home-input" placeholder="Type a question and press Enter..." />

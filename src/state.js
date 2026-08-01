@@ -6,7 +6,7 @@
 // (they invoke action callbacks instead).
 //
 // State shape:
-//   view           — current screen ("home" | "test" | "results" | "flashcards" | "disabilities" | "legal")
+//   view           — current screen ("home" | "test" | "results" | "flashcards" | "disabilities" | "legal" | "accessibility")
 //   mode           — active test mode ("weighted" | "missed" | "bear")
 //   questions      — currently sampled questions for this test
 //   answers        — map of qid → committed answer letter

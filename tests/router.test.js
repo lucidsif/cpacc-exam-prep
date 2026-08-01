@@ -212,4 +212,47 @@ export function run({ test, assertTrue, assertEq }) {
     assertEq(state.view, 'results');
     assertEq(pathFor(state), '#/results');
   });
+
+  // #/accessibility — a static accessibility statement page with no
+  // in-memory dependency (unlike #/test/<n> or #/results, both of which
+  // require a sampled question set / submitted run to already exist).
+  test('#/accessibility round-trips', () => {
+    const state = createState();
+    const ok = applyPath('#/accessibility', state);
+    assertTrue(ok, '#/accessibility should be restorable');
+    assertEq(state.view, 'accessibility');
+    assertEq(pathFor(state), '#/accessibility');
+  });
+
+  // This is the property that makes the statement deep-linkable and
+  // shareable: unlike #/test/<n> and #/results (see the "unrestorable on a
+  // cold load" tests above, both of which require state populated by a
+  // live session), #/accessibility must restore on a completely fresh
+  // state with nothing sampled and nothing submitted — e.g. someone opens
+  // the URL directly, or a search engine/screen reader user follows a
+  // bookmarked link straight to it.
+  test('#/accessibility is restorable on a COLD load — nothing in memory, unlike #/results or #/test/n', () => {
+    const state = createState();
+    assertEq(state.questions.length, 0, 'fixture precondition: no questions in memory');
+    assertEq(state.submitted, false, 'fixture precondition: nothing submitted');
+    const ok = applyPath('#/accessibility', state);
+    assertTrue(ok, '#/accessibility must restore even with no in-memory session state — that is what makes it deep-linkable/shareable, unlike #/test/n or #/results');
+    assertEq(state.view, 'accessibility');
+  });
+
+  // #/accessibility takes no argument, so a trailing segment is unknown —
+  // same treatment as an unrecognised #/disabilities/<id> or #/legal/<id>.
+  // Both halves matter here: returning false alone isn't enough proof, since
+  // a caller (main.js's popstate handler) uses the false return to decide
+  // to replaceState the junk hash away, but reads state.view (via titleFor)
+  // to know what it's replacing the URL WITH. If state.view were left
+  // whatever it was before this call instead of falling back to
+  // 'accessibility', the caller would replaceState to a URL for one view
+  // while rendering a different one.
+  test('#/accessibility/<trailing segment> is unrestorable but still falls back to state.view = "accessibility" (matches how disabilities/legal treat an unknown category id)', () => {
+    const state = createState();
+    const ok = applyPath('#/accessibility/foo', state);
+    assertEq(ok, false, '#/accessibility takes no argument — a trailing segment must not be restorable');
+    assertEq(state.view, 'accessibility', 'state.view must still fall back to accessibility, not be left at whatever it was before this call');
+  });
 }

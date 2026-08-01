@@ -35,6 +35,7 @@ export function pathFor(state) {
     case 'legal':         return state.legal.category
       ? `#/legal/${state.legal.category}`
       : `#/legal`;
+    case 'accessibility': return `#/accessibility`;
     case 'home':
     default:              return `#/`;
   }
@@ -118,6 +119,16 @@ export function applyPath(path, state, ids = {}) {
     }
     state.legal = { view: 'list', category: arg };
     state.view = 'legal';
+    return true;
+  }
+
+  if (head === 'accessibility') {
+    // Static content, no in-memory dependency (unlike #/test or #/results) —
+    // always restorable, including a cold load straight to this URL. Takes
+    // no argument, so a trailing segment is unrecognised, same as an
+    // unknown disabilities/legal category id.
+    state.view = 'accessibility';
+    if (arg) return false;
     return true;
   }
 

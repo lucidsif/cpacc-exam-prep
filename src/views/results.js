@@ -67,6 +67,21 @@ export function renderResults(ctx) {
     : state.mode === 'bear' ? 'Bear notes practice'
     : 'Weighted practice test';
 
+  // A missed-practice run that comes back with nothing missed (every
+  // question answered correctly) has no pool left to retake — sampling.js
+  // would hand back an empty set, which used to reach the test view with
+  // zero questions and crash question.js. Disable rather than repurpose the
+  // button into an unrelated "new random set" action: this mirrors the
+  // guard already on home.js's #practice-missed button (disabled at count
+  // 0), so the retake control behaves the same way everywhere it appears.
+  // #back sits right next to #retake in the same .nav row, so a keyboard
+  // user tabbing here still lands on a live control either way.
+  const retakeDisabled = state.mode === 'missed' && missedNow === 0;
+  const retakeLabel = retakeDisabled
+    ? 'No missed questions left to retake'
+    : state.mode === 'missed' ? `Practice ${Math.min(TEST_SIZE, missedNow)} missed again`
+    : `Take another ${TEST_SIZE} (new random set)`;
+
   app.innerHTML = `
       <h1>Results</h1>
       <div class="sub">${modeLabel} · ${total} questions · missed list now: ${missedNow}</div>
@@ -79,7 +94,8 @@ export function renderResults(ctx) {
         </div>
         <div class="grid" style="margin-top:14px" role="group" aria-label="Question results navigation">${cells}</div>
         <div class="nav">
-          <button id="retake">${state.mode === 'missed' ? `Practice ${Math.min(TEST_SIZE, missedNow)} missed again` : `Take another ${TEST_SIZE} (new random set)`}</button>
+          <button id="retake"${retakeDisabled ? ' disabled aria-describedby="retake-help"' : ''}>${retakeLabel}</button>
+          ${retakeDisabled ? '<span id="retake-help" class="sr-only">You answered every missed question correctly, so there\'s nothing left to retake. Start a new test from the home page instead.</span>' : ''}
           <button class="secondary" id="back">Back to start</button>
         </div>
       </div>

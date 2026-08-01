@@ -928,6 +928,116 @@ export async function run({ test, assertTrue, assertEq }) {
     assertTrue(headingOutlineHasNoSkips(doc), 'heading outline must not skip a level (h1 -> h2 -> h3)');
   });
 
+  // ---- #/accessibility — the accessibility statement page (static content) ----
+
+  await test('renderAccessibility: exactly one visible h1 (not sr-only) as the route-focus target, and the heading outline has no skipped levels', async () => {
+    // This branch's governing rule — set by the disabilities/legal detail
+    // route fixes above — is that the route-focus target h1 must be
+    // visible, not sr-only. Pinning it here too so a future author copying
+    // this page's structure can't silently regress it.
+    const dom = makeDom();
+    const { renderAccessibility } = await loadView('src/views/accessibility.js');
+    renderAccessibility({ app: dom.window.document.getElementById('app') });
+    const doc = dom.window.document;
+    const h1s = doc.querySelectorAll('h1');
+    assertEq(h1s.length, 1, 'expected exactly one h1 on the accessibility statement page');
+    assertEq(h1s[0].classList.contains('sr-only'), false, 'the route-focus target h1 must be visible, not sr-only');
+    assertTrue(headingOutlineHasNoSkips(doc), 'heading outline must not skip a level (h1 -> h2 -> h3)');
+  });
+
+  await test('renderAccessibility: Feedback section has a working mailto: link to tawsif@perenniala11y.com, not the "not yet published" placeholder copy', async () => {
+    // The statement's whole purpose depends on a working report route. This
+    // guards against FEEDBACK_CONTACT in src/views/accessibility.js being
+    // reset to null/empty and the page silently shipping with placeholder
+    // copy instead of a real contact.
+    const dom = makeDom();
+    const { renderAccessibility } = await loadView('src/views/accessibility.js');
+    renderAccessibility({ app: dom.window.document.getElementById('app') });
+    const doc = dom.window.document;
+    const mailLink = doc.querySelector('a[href="mailto:tawsif@perenniala11y.com"]');
+    assertTrue(mailLink, 'accessibility statement must contain a mailto: link to tawsif@perenniala11y.com');
+    assertTrue(
+      !doc.body.textContent.includes('A public contact route for accessibility feedback is not yet published'),
+      'placeholder copy ("A public contact route ... is not yet published") must not ship once a real contact exists'
+    );
+  });
+
+  await test('renderHome: links to the accessibility statement (#/accessibility) with descriptive link text', async () => {
+    // A statement nobody can find is not a feedback mechanism.
+    const dom = makeDom();
+    const { renderHome } = await loadView('src/views/home.js');
+    renderHome({
+      app: dom.window.document.getElementById('app'),
+      state: fakeState,
+      data: { CPACC_BANK: [fakeQuestion], BEAR_BANK: [], BEAR_FLASHCARDS: [], DISABILITIES: { categories: [], items: [] }, LEGAL: { jurisdictions: [], items: [] } },
+      provenance: {},
+      missed: fakeMissed,
+      actions: fakeActions,
+    });
+    const doc = dom.window.document;
+    const link = doc.querySelector('a[href="#/accessibility"]');
+    assertTrue(link, 'renderHome must contain a link to #/accessibility');
+    const text = link.textContent.trim();
+    assertTrue(text.length > 0, 'the #/accessibility link must have visible text');
+    const lower = text.toLowerCase();
+    const ambiguous = ['click here', 'read more', 'here', 'learn more', 'more info'];
+    assertTrue(!ambiguous.some(bad => lower === bad || lower.includes(bad)), `link text must be descriptive (WCAG 2.4.4), not ambiguous boilerplate — got "${text}"`);
+  });
+
+  await test('booted app: activating the home page\'s "Accessibility statement" link actually renders #/accessibility end to end — proves main.js\'s render dispatcher and titleFor both wire the route, not just that the view mounts in isolation or that applyPath maps the path', async () => {
+    // The isolation-mounted renderAccessibility test above and router.test.js's
+    // applyPath tests each prove one half of the wiring. Neither proves
+    // main.js's render() dispatcher and titleFor() actually connect them:
+    // deleting the `case 'accessibility':` line from both left the suite
+    // green because nothing drove a real navigation through main.js to
+    // #/accessibility. Driving it through the real home-page link (rather
+    // than setting location.hash directly) also proves the link itself
+    // works end to end, not just that the route exists.
+    await bootApp('#/');
+    const link = document.querySelector('a[href="#/accessibility"]');
+    assertTrue(link, 'sanity: home page must have a link to #/accessibility');
+
+    link.dispatchEvent(new window.MouseEvent('click', { bubbles: true, cancelable: true }));
+    await new Promise(r => setTimeout(r, 20));
+
+    assertEq(location.hash, '#/accessibility', 'sanity: activating the link should navigate to #/accessibility');
+
+    const h1 = document.querySelector('h1');
+    assertTrue(h1, 'expected an h1 to render');
+    assertEq(h1.textContent, 'Accessibility statement', 'the rendered h1 must be the statement\'s heading, not home\'s "CPACC Practice Test" — this fails if main.js\'s render() dispatcher silently falls through to renderHome for the accessibility view');
+    assertEq(document.title, 'Accessibility statement — CPACC Practice Test', 'document.title must be the statement\'s unique title, not the generic home title — this fails if titleFor() drops its accessibility case');
+    assertEq(document.activeElement, h1, 'focus must land on the route\'s h1, consistent with this branch\'s focus contract for every other route — proves the new route participates in that contract rather than merely rendering');
+  });
+
+  // ---- Chat transcripts are explicitly non-live (role="log" + aria-live="off") ----
+
+  await test('chat transcripts (#home-log and #log-<id>) carry role="log" AND an explicit aria-live="off" together — this is deliberate, not a contradiction to "clean up": role="log" implies aria-live="polite", but both transcripts are rebuilt wholesale via app.innerHTML on every render, and replies are announced through #route-status instead — aria-live="off" is what makes #route-status the single deterministic announcement path instead of leaving double-announcement to chance. Do NOT delete the aria-live to "fix" the apparent contradiction.', async () => {
+    const domHome = makeDom();
+    const { renderHome } = await loadView('src/views/home.js');
+    const homeState = { ...fakeState, chatEnabled: true, homeChat: { history: [] } };
+    renderHome({
+      app: domHome.window.document.getElementById('app'),
+      state: homeState,
+      data: { CPACC_BANK: [fakeQuestion], BEAR_BANK: [], BEAR_FLASHCARDS: [], DISABILITIES: { categories: [], items: [] }, LEGAL: { jurisdictions: [], items: [] } },
+      provenance: {},
+      missed: fakeMissed,
+      actions: fakeActions,
+    });
+    const homeLog = domHome.window.document.getElementById('home-log');
+    assertTrue(homeLog, '#home-log missing (chatEnabled: true should render the chat panel)');
+    assertEq(homeLog.getAttribute('role'), 'log', '#home-log must carry role="log"');
+    assertEq(homeLog.getAttribute('aria-live'), 'off', '#home-log must carry an explicit aria-live="off" — role="log" implies aria-live="polite", but the transcript is rebuilt wholesale by innerHTML and chat replies are announced through #route-status instead; without this override, a screen reader could double-announce or announce unpredictably');
+
+    const { renderChatFragment } = await loadView('src/views/chat.js');
+    const html = renderChatFragment(fakeQuestion, { history: [] });
+    const wrap = domHome.window.document.createElement('div');
+    wrap.innerHTML = html;
+    const qLog = wrap.querySelector(`#log-${fakeQuestion.id}`);
+    assertTrue(qLog, '#log-<id> missing');
+    assertEq(qLog.getAttribute('role'), 'log', '#log-<id> must carry role="log"');
+    assertEq(qLog.getAttribute('aria-live'), 'off', '#log-<id> must carry an explicit aria-live="off" for the same reason as #home-log: role="log" implies aria-live="polite", but the transcript is innerHTML-rebuilt and replies are announced through #route-status instead');
+  });
+
   await test('document.title differs between #/disabilities and #/disabilities/<id>', async () => {
     // titleFor() is internal to main.js (not exported), so it's exercised
     // through the booted app rather than tested in isolation.
@@ -1213,6 +1323,112 @@ export async function run({ test, assertTrue, assertEq }) {
   // #practice-missed + #clear-missed) disabling together, so neither the
   // immediate parent (.row) nor the .panel has anything left to hand focus
   // to, and the search has to widen all the way to #app.
+  // ---- Part 5: results-empty-missed-pool regression (results.js + main.js) ----
+  //
+  // Regression coverage for the production bug: finishing a missed-practice
+  // run with everything correct empties the missed set; the results page
+  // used to render an enabled "Practice 0 missed again" button whose click
+  // handler called startTest('missed'), which sampled zero questions,
+  // entered the test view anyway, and crashed renderQuestion on
+  // state.questions[state.index] being undefined. Two independent guards
+  // were added — results.js disables/relabels #retake, and main.js's
+  // startTest() refuses to touch state when the sampled pool is empty — and
+  // each test below is scoped to catch exactly one of them reverting.
+
+  await test('renderResults: #retake is genuinely disabled (not aria-disabled) with a real aria-describedby target when a missed-practice run comes back with nothing left to retake', async () => {
+    const dom = makeDom();
+    const { renderResults } = await loadView('src/views/results.js');
+    const zeroMissed = { get: () => new Set(), add() {}, remove() {}, persist: async () => {}, clear: async () => {} };
+    renderResults({
+      app: dom.window.document.getElementById('app'),
+      state: { ...fakeState, mode: 'missed', answers: { 1: 'A' }, revealed: { 1: true }, submitted: true },
+      missed: zeroMissed,
+      actions: fakeActions,
+    });
+    const doc = dom.window.document;
+    const retake = doc.getElementById('retake');
+    assertTrue(retake, 'retake button missing');
+
+    // The real, native disabled attribute — not a lookalike.
+    assertTrue(retake.hasAttribute('disabled'), 'retake should carry the real disabled attribute when the missed pool is empty');
+    // aria-disabled was deliberately removed from this codebase (it leaves a
+    // control focusable/actionable to assistive tech despite looking
+    // disabled — see the fieldset/aria-disabled test above for the same
+    // reasoning applied elsewhere) — pin that it never comes back here.
+    assertEq(retake.hasAttribute('aria-disabled'), false, 'retake must not carry aria-disabled — that lie was deliberately removed from this codebase');
+
+    const describedBy = retake.getAttribute('aria-describedby');
+    assertTrue(describedBy, 'retake needs aria-describedby pointing at an explanation');
+    const explanation = doc.getElementById(describedBy);
+    assertTrue(explanation, `aria-describedby="${describedBy}" must resolve to an element that actually exists`);
+    assertTrue(explanation.classList.contains('sr-only'), 'the retake explanation must be visually hidden (.sr-only)');
+
+    assertTrue(!retake.textContent.includes('Practice 0'), 'label must no longer read "Practice 0 missed again"');
+
+    // #back sits in the same .nav row so the page isn't a dead end for a
+    // keyboard user once #retake goes inert.
+    const back = doc.getElementById('back');
+    assertTrue(back, 'back button missing');
+    assertEq(back.hasAttribute('disabled'), false, '#back must stay enabled so the page is not a dead end');
+  });
+
+  await test('renderResults: #retake stays enabled with no retake-help wiring when the missed pool is non-empty (guards against an over-broad "always disable retake in missed mode" fix)', async () => {
+    const dom = makeDom();
+    const { renderResults } = await loadView('src/views/results.js');
+    const nonEmptyMissed = { get: () => new Set([1, 2, 3]), add() {}, remove() {}, persist: async () => {}, clear: async () => {} };
+    renderResults({
+      app: dom.window.document.getElementById('app'),
+      state: { ...fakeState, mode: 'missed', answers: { 1: 'A' }, revealed: { 1: true }, submitted: true },
+      missed: nonEmptyMissed,
+      actions: fakeActions,
+    });
+    const doc = dom.window.document;
+    const retake = doc.getElementById('retake');
+    assertTrue(retake, 'retake button missing');
+    assertEq(retake.hasAttribute('disabled'), false, 'retake must not be disabled while there are still missed questions to retake');
+    assertEq(retake.hasAttribute('aria-describedby'), false, 'retake must carry no aria-describedby/retake-help wiring when it is not disabled');
+    assertTrue(!doc.getElementById('retake-help'), 'no #retake-help explanation should render when retake is not disabled');
+  });
+
+  await test("startTest('missed') refuses to enter the test view when the sampled pool is empty (src/main.js guard), leaving the app exactly where it was and announcing why", async () => {
+    // Both real UI entry points to actions.startTest('missed') — home's
+    // #practice-missed and results' #retake — are themselves disabled at
+    // zero missed (the tests above cover #retake; #practice-missed mirrors
+    // it in home.js). A disabled button's onclick handler is wired but
+    // never reachable via a real click (confirmed: jsdom, like real
+    // browsers, does not dispatch 'click' through .click() on a disabled
+    // element) — so exercising this via a literal click would only test
+    // the UI-level disablement a second time. Calling the handler directly
+    // instead reaches actions.startTest('missed') the same way the button
+    // would if it were ever wired without that guard, isolating the
+    // separate, defense-in-depth guard inside startTest() itself.
+    const restore = stubFetch([
+      ['/chat-status', () => ({ ok: true, json: async () => ({ enabled: false }) })],
+      ['/missed', () => ({ ok: true, json: async () => ({ ids: [] }) })],
+    ]);
+    try {
+      await bootApp('#/');
+      assertTrue(document.getElementById('start'), 'sanity: booted on the home page');
+      assertEq(location.hash, '#/', 'sanity: starting hash is #/');
+
+      const practiceBtn = document.getElementById('practice-missed');
+      assertTrue(practiceBtn, 'sanity: #practice-missed exists');
+      assertTrue(practiceBtn.disabled, 'sanity: #practice-missed is disabled with an empty missed set (home.js\'s own guard, not what this test targets)');
+
+      practiceBtn.onclick();
+      await new Promise(r => setTimeout(r, 150)); // past announce()'s 75ms debounce
+
+      assertEq(location.hash, '#/', 'startTest must not push #/test/1 when the sampled pool is empty');
+      assertTrue(!document.getElementById('choices'), 'no #choices fieldset should mount — the app must not enter the test view');
+      assertTrue(document.getElementById('start'), 'the home page should still be showing, untouched');
+
+      const routeStatus = document.getElementById('route-status');
+      assertTrue(routeStatus.textContent.includes('No missed questions to practice'), 'announce() should tell the user why nothing happened');
+    } finally {
+      restore();
+    }
+  });
+
   await test('focus restoration: clearing the missed list disables #practice-missed AND #clear-missed together — focus does not fall to <body> (nearestFocusableSibling widens past .row and .panel to #app)', async () => {
     const restore = stubFetch([
       ['/chat-status', () => ({ ok: true, json: async () => ({ enabled: false }) })],

@@ -4,7 +4,7 @@
 
 [![Live on Cloudflare Pages](https://img.shields.io/badge/live-cpacc--test--maker.pages.dev-orange)](https://cpacc-test-maker.pages.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![WCAG 2.2 AA](https://img.shields.io/badge/WCAG-2.2%20AA-blue.svg)](#accessibility)
+[![WCAG 2.2 AA target](https://img.shields.io/badge/WCAG-2.2%20AA%20target-blue.svg)](#accessibility)
 [![Zero deps](https://img.shields.io/badge/runtime-zero%20deps-success)](#zero-runtime-dependencies)
 [![AI transparency](https://img.shields.io/badge/AI%20transparency-IBM%20FactSheet%20style-9cf)](AI_TRANSPARENCY.md)
 
@@ -115,7 +115,7 @@ Click any badge in the app to see the full provenance card (source, model, gener
 | History / laws / standards | 51 CPACC-relevant items × 7 jurisdictions, plus a timeline view |
 | Per-question chat tutor | Click "Discuss this question with the AI tutor" — gets question + BoK rationale as context |
 | Home-page chat tutor | Free-form CPACC chat |
-| Accessibility | WCAG 2.2 AA conformant; see [Accessibility](#accessibility) |
+| Accessibility | Targets WCAG 2.2 AA, partially conformant; see the in-app [Accessibility statement](https://cpacc-test-maker.pages.dev/#/accessibility) and [Accessibility](#accessibility) below |
 
 ---
 

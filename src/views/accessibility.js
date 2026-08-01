@@ -59,7 +59,8 @@ export function renderAccessibility(ctx) {
       <p>This section is the most important part of this statement.</p>
 
       <h3>Screen reader testing predates the current version</h3>
-      <p>Manual screen reader testing was done in the past on desktop and mobile, using NVDA, JAWS, and VoiceOver. That testing was done on an older version of the app.</p>
+      <p>The only screen reader ever used against this app is <b>VoiceOver</b>, and that was on an older version. <b>NVDA and JAWS have never been used against this app at any point</b> — an earlier version of this statement said they had, which was wrong, and it is corrected here rather than quietly deleted. How systematic that VoiceOver session was, and on which platform, is not characterised, so treat it as unverified rather than as a testing pass.</p>
+      <p>Windows screen readers are the gap that matters most. NVDA and JAWS together account for the large majority of desktop screen reader use, and they differ from VoiceOver in exactly the areas this app leans on hardest — browse versus focus mode, how live regions are queued and interrupted, and quick-navigation keys. Nothing on this page should be read as evidence about how this app behaves in either of them.</p>
       <p>Two rounds of accessibility changes have shipped: a large first pass on 31 July 2026 altering focus behaviour, heading structure, live region announcements, flashcard markup, and the answer choice controls, and a second pass on 1 August 2026 that fixed several defects a follow-up audit found in the first pass itself (see "What has been fixed" below). Neither round has been re-tested with a screen reader. A fresh manual pass is planned but has not happened yet.</p>
       <p>Everything in "What has been fixed" below is therefore verified by automated tests, plus manual keyboard testing of the focus and navigation work specifically, in one browser. Not by a screen reader user.</p>
 
@@ -153,7 +154,7 @@ export function renderAccessibility(ctx) {
 
       <h2>Feedback</h2>
       <p>We want to hear about accessibility problems with this app. If something does not work for you, tell us what you were trying to do and what assistive technology or browser you were using.</p>
-      <p>We aim to respond to accessibility reports within one week. Accessibility issues are triaged ahead of other bugs.</p>
+      <p>This is a personal project maintained by one person, so no response time is promised. Accessibility reports are read and are prioritised ahead of other bugs.</p>
       ${feedbackContact}
 
       <h2>Preparation of this statement</h2>

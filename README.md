@@ -256,7 +256,7 @@ PRs welcome. The bar:
 
 If you're correcting a wrong answer, use the [Wrong answer issue template](.github/ISSUE_TEMPLATE/wrong-answer.yml) to give the maintainer the source they need to verify.
 
-If you find an accessibility issue, please file it — those get triaged first. Template: [Accessibility issue](.github/ISSUE_TEMPLATE/accessibility.yml).
+If you find an accessibility issue, please report it — those get triaged first. Email [tawsif@perenniala11y.com](mailto:tawsif@perenniala11y.com), the channel disclosed in the in-app [accessibility statement](https://cpacc-test-maker.pages.dev/#/accessibility). This repo has no public git remote yet, so the [accessibility issue template](.github/ISSUE_TEMPLATE/accessibility.yml) isn't a reachable channel for anyone outside this machine — it's the intended contributor format once the project has one.
 
 ---
 

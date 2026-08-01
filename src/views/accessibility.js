@@ -54,7 +54,7 @@ export function renderAccessibility(ctx) {
       <h3>Screen reader testing predates the current version</h3>
       <p>Manual screen reader testing was done in the past on desktop and mobile, using NVDA, JAWS, and VoiceOver. That testing was done on an older version of the app.</p>
       <p>On 31 July 2026 a large set of accessibility changes shipped, altering focus behaviour, heading structure, live region announcements, flashcard markup, and the answer choice controls. None of it has been re-tested with a screen reader. A fresh manual pass is planned but has not happened yet.</p>
-      <p>Everything in "What has been fixed" below is therefore verified by automated tests and by manual keyboard testing in one browser. Not by a screen reader user.</p>
+      <p>Everything in "What has been fixed" below is therefore verified by automated tests, plus manual keyboard testing of the focus and navigation work specifically, in one browser. Not by a screen reader user.</p>
 
       <h3>Other open questions</h3>
       <ol>

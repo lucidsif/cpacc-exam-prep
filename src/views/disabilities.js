@@ -44,7 +44,7 @@ export function renderDisabilities(ctx) {
     app.innerHTML = `
         <h1>Human disabilities</h1>
         <div class="sub">${d.items.length} conditions across ${d.categories.length} categories. Tap a category to browse.</div>
-        <p class="scope-note"><span class="scope-icon" aria-hidden="true">ℹ️</span> <span><b>Goes beyond CPACC scope</b> — for deeper study.</span></p>
+        <p class="scope-note"><span class="scope-icon" aria-hidden="true">ℹ️</span> <span><b>Goes beyond CPACC scope</b>, included here for deeper study.</span></p>
         ${renderProvenanceBadge(prov, 'the disabilities reference', 'disabilities', state.expandedProvenance?.has('disabilities'))}
         <div class="cat-grid">${cards}</div>
       `;
@@ -92,7 +92,7 @@ export function renderDisabilities(ctx) {
           <div class="cat-hero">
             <div class="cat-hero-emoji" aria-hidden="true">${escapeHtml(cat.emoji)}</div>
             <div>
-              <h1>${escapeHtml(cat.label)} — human disabilities</h1>
+              <h1>${escapeHtml(cat.label)} · human disabilities</h1>
               <div class="sub" style="margin:4px 0 0">${items.length} condition${items.length === 1 ? '' : 's'}</div>
             </div>
           </div>

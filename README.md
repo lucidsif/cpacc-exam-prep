@@ -14,11 +14,11 @@ A study tool for the **IAAP Certified Professional in Accessibility Core Compete
 - Bear-notes-derived practice + flashcards (if you, like the author, take notes in Bear)
 - Missed-question focused review
 - 71-condition human disabilities reference with prevalence + accessibility solutions
-- 53-item history / laws / standards reference in CPACC scope (61 total in the underlying dataset — see [`data/README.md`](data/README.md))
+- 53-item history / laws / standards reference in CPACC scope (61 total in the underlying dataset; see [`data/README.md`](data/README.md))
 - Optional AI chat tutor (per-question and free-form), backed by Anthropic, OpenAI, or a local model you run yourself
 - **Every AI-touched piece of content carries an [IBM-style provenance badge](AI_TRANSPARENCY.md) with confidence + sources + limitations.**
 
-> Built for myself, opened up because it might help others. The audience is intentionally mixed — solo students, a11y professionals (rightly skeptical of AI), AI folks curious about accessibility, and experienced a11y engineers who'd want to fix things. Each group's needs shaped a different part of the project.
+> Built for myself, opened up because it might help others. The audience is intentionally mixed: solo students, a11y professionals (rightly skeptical of AI), AI folks curious about accessibility, and experienced a11y engineers who'd want to fix things. Each group's needs shaped a different part of the project.
 
 ---
 
@@ -27,9 +27,9 @@ A study tool for the **IAAP Certified Professional in Accessibility Core Compete
 | If you are | Start here |
 |---|---|
 | **Studying for CPACC yourself** | [Run it locally](#run-it-locally), then read [How sampling works](#how-sampling-works) |
-| **An a11y professional curious about the AI claims** | Read [`AI_TRANSPARENCY.md`](AI_TRANSPARENCY.md) first — every content bucket, source, review status, and limitation is documented. Then [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for the conformance statement. |
+| **An a11y professional curious about the AI claims** | Read [`AI_TRANSPARENCY.md`](AI_TRANSPARENCY.md) first: every content bucket, source, review status, and limitation is documented. Then [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for the conformance statement. |
 | **An a11y engineer who wants to audit / contribute** | Skim [`ARCHITECTURE.md`](ARCHITECTURE.md), then [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`src/README.md`](src/README.md) |
-| **Deploying your own copy** | [`DEPLOY.md`](DEPLOY.md) — Cloudflare Pages (recommended) or local Node |
+| **Deploying your own copy** | [`DEPLOY.md`](DEPLOY.md): Cloudflare Pages (recommended) or local Node |
 | **AI-curious, not an a11y specialist** | Read the [AI section](#how-ai-is-used) below, then poke around |
 | **Reporting a security issue** | [`SECURITY.md`](SECURITY.md) |
 | **Asking a support question** | [`SUPPORT.md`](SUPPORT.md) |
@@ -55,7 +55,7 @@ export LLM_API_KEY=sk-ant-...
 export LLM_PROVIDER=openai
 export LLM_API_KEY=sk-...
 
-# A local OpenAI-compatible server (LM Studio, Ollama, llama.cpp, vLLM) — no key needed
+# A local OpenAI-compatible server (LM Studio, Ollama, llama.cpp, vLLM), no key needed
 export LLM_PROVIDER=local
 export LLM_BASE_URL=http://127.0.0.1:1234/v1
 export LLM_MODEL=qwen/qwen3.6-35b-a3b
@@ -63,7 +63,7 @@ export LLM_MODEL=qwen/qwen3.6-35b-a3b
 node server.js
 ```
 
-`LLM_MODEL` is optional everywhere; each provider has a default (`claude-sonnet-4-6`, `gpt-4o-mini`, `qwen/qwen3.6-35b-a3b`). `LLM_MAX_TOKENS` is optional too — it overrides the per-provider answer budget (1024 for the cloud providers, 3000 for `local`, which needs room for a reasoning model's hidden thinking tokens). Existing `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` setups keep working without changes.
+`LLM_MODEL` is optional everywhere; each provider has a default (`claude-sonnet-4-6`, `gpt-4o-mini`, `qwen/qwen3.6-35b-a3b`). `LLM_MAX_TOKENS` is optional too: it overrides the per-provider answer budget (1024 for the cloud providers, 3000 for `local`, which needs room for a reasoning model's hidden thinking tokens). Existing `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` setups keep working without changes.
 
 The server prints both URLs on startup:
 
@@ -73,7 +73,7 @@ CPACC test app running:
   LAN:    http://192.168.1.100:8787  (open this on your phone — same Wi-Fi)
 ```
 
-Open `Local:` on your laptop and `LAN:` on your phone — both share the same missed-questions list via a server-side `data.json`.
+Open `Local:` on your laptop and `LAN:` on your phone; both share the same missed-questions list via a server-side `data.json`.
 
 Without a configured provider, everything works *except* the chat tutor.
 
@@ -103,13 +103,13 @@ Click any badge in the app to see the full provenance card (source, model, gener
 
 ### The code was AI-written too, and it got accessibility wrong
 
-The table above covers the app's *content*. The **code** — including the accessibility implementation — was also largely written by Claude: most commits carry a `Co-Authored-By: Claude` trailer, which you can count yourself with `git log --format='%b' | grep -c 'Co-Authored-By: Claude'`.
+The table above covers the app's *content*. The **code** (including the accessibility implementation) was also largely written by Claude: most commits carry a `Co-Authored-By: Claude` trailer, which you can count yourself with `git log --format='%b' | grep -c 'Co-Authored-By: Claude'`.
 
-That is worth stating bluntly rather than burying. A pre-publication audit found AI-written accessibility code in this repo claiming conformance it did not have, and repeating a factually wrong premise about `disabled` in seven places. It also found a focus-indicator fix that covered one of five cases while being documented as complete, and keyboard focus dropping to `<body>` on every route. Both test suites were green through all of it.
+A pre-publication audit found AI-written accessibility code in this repo claiming conformance it did not have, and repeating a factually wrong premise about `disabled` in seven places. It also found a focus-indicator fix that covered one of five cases while being documented as complete, and keyboard focus dropping to `<body>` on every route. Both test suites were green through all of it.
 
 The author set the standards and did some informal keyboard checking. Per-commit human review was not performed, which is how those defects reached `main`. What caught them was adversarial review plus measurement in real browsers. Measurement contradicted static analysis in *both* directions: it invented one defect that did not exist, and understated another.
 
-**The long version:** [`AI_TRANSPARENCY.md`](AI_TRANSPARENCY.md), specifically [How the app itself was built](AI_TRANSPARENCY.md#how-the-app-itself-was-built). Read it. Especially if you're skeptical — that's the audience it's written for.
+**The long version:** [`AI_TRANSPARENCY.md`](AI_TRANSPARENCY.md), specifically [How the app itself was built](AI_TRANSPARENCY.md#how-the-app-itself-was-built). Read it, especially if you're skeptical: that's the audience it's written for.
 
 ---
 
@@ -123,7 +123,7 @@ The author set the standards and did some informal keyboard checking. Per-commit
 | Bear-notes flashcards | 50 dense study cards distilled from notes |
 | Human disabilities reference | 71 conditions × 9 categories, prevalence + accessibility solutions |
 | History / laws / standards | 53 CPACC-relevant items × 7 jurisdictions shown in the app (61 total in `data/legal.js`; 8 are kept in the dataset but excluded from rendering), plus a timeline view |
-| Per-question chat tutor | Click "Discuss this question with the AI tutor" — gets question + BoK rationale as context |
+| Per-question chat tutor | Click "Discuss this question with the AI tutor": gets question + BoK rationale as context |
 | Home-page chat tutor | Free-form CPACC chat |
 | Accessibility | Targets WCAG 2.2 AA, partially conformant; see the in-app [Accessibility statement](https://cpacc-test-maker.pages.dev/#/accessibility) and [Accessibility](#accessibility) below |
 
@@ -133,9 +133,9 @@ The author set the standards and did some informal keyboard checking. Per-commit
 
 Each weighted practice test draws 20 questions matched to the BoK domain mix:
 
-- Domain 1 (Disabilities & AT) — **40%** → 8 questions
-- Domain 2 (Accessibility & UD) — **40%** → 8 questions
-- Domain 3 (Standards, Laws & Mgmt) — **20%** → 4 questions
+- Domain 1 (Disabilities & AT): **40%** → 8 questions
+- Domain 2 (Accessibility & UD): **40%** → 8 questions
+- Domain 3 (Standards, Laws & Mgmt): **20%** → 4 questions
 
 Bear practice uses the same sampling against the Bear bank. Retakes reshuffle.
 
@@ -152,8 +152,8 @@ Targets **WCAG 2.2 AA**. Notable contracts (enforced by `tests/views.test.js`):
 - Browser Back/Forward, and every click-driven navigation, move focus to the destination route's own `<h1>` and update `document.title`. In-place re-renders (chat send, card flip, a toggle) preserve focus and caret position instead.
 - Skip link intercepts its own click, so it can't be misread as an unknown route and bounce you back to home mid-test.
 - One H1 per view, H2 sub-headings, no skipped levels.
-- Visible focus indicator on every focusable element (3px amber). Native `:focus-visible` covers ordinary keyboard focus, with a same-effect fallback for engines lacking it. A dedicated CSS class guarantees the identical ring, unconditionally, on every focus move the app makes by script — route navigation plus five other targets — regardless of whether `:focus-visible` matches. See [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for the measured mechanism.
-- Color contrast: text ≥ 4.5:1, UI components ≥ 3:1 — audited across every pair in the app, see [`ACCESSIBILITY.md`](ACCESSIBILITY.md).
+- Visible focus indicator on every focusable element (3px amber). Native `:focus-visible` covers ordinary keyboard focus, with a same-effect fallback for engines lacking it. A dedicated CSS class guarantees the identical ring, unconditionally, on every focus move the app makes by script (route navigation plus five other targets), regardless of whether `:focus-visible` matches. See [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for the measured mechanism.
+- Color contrast: text ≥ 4.5:1, UI components ≥ 3:1, audited across every pair in the app, see [`ACCESSIBILITY.md`](ACCESSIBILITY.md).
 - Color never the sole channel. Confidence pills pair color + shape + text; chat speaker identity, the jump grid, and the current-question cell all have a non-color cue too.
 - Answer choices are native radio inputs in a `<fieldset>`. The visible hint adapts to touch vs keyboard via `(pointer: coarse)`. Revealed choices sit in a genuinely-`disabled` fieldset, not a lying `aria-disabled`.
 - Announcements (verdict, chat replies/errors) go through one of two persistent, static live regions that survive DOM rewrites: `#route-status` (polite) or `#route-alert` (assertive). `announce()` picks the region, rather than mutating one per call.
@@ -162,7 +162,7 @@ Targets **WCAG 2.2 AA**. Notable contracts (enforced by `tests/views.test.js`):
 - AI provenance disclosure uses native `<details>`/`<summary>` (zero JS, mobile-friendly, implicit `aria-expanded`).
 - AI-info dialog is a native `<dialog>` with focus return on close.
 
-Beyond the jsdom contracts above, an end-to-end suite (`npm run test:e2e`, Playwright) drives the app in real Chromium, Firefox, and WebKit. That gives real layout, real computed styles, real focus rings, real Tab order, and automated `axe-core` scans against a real accessibility tree — none of which jsdom can check. See [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for what it found, including two documented WebKit-specific behavioural differences. It also covers what is still open: manual screen reader testing of the current version is the biggest gap, and remains undone.
+Beyond the jsdom contracts above, an end-to-end suite (`npm run test:e2e`, Playwright) drives the app in real Chromium, Firefox, and WebKit. That gives real layout, real computed styles, real focus rings, real Tab order, and automated `axe-core` scans against a real accessibility tree, none of which jsdom can check. See [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for what it found, including two documented WebKit-specific behavioural differences. It also covers what is still open: manual screen reader testing of the current version is the biggest gap, and remains undone.
 
 Every UI change in this repo went through accessibility-lead review before merging. See [`CONTRIBUTING.md`](CONTRIBUTING.md#accessibility-expectations) if you want to contribute.
 
@@ -176,7 +176,7 @@ The runtime is plain browser + plain Node + Cloudflare Workers runtime. No bundl
 node server.js   # works out of the box, no install
 ```
 
-The only dependencies are `jsdom`, `@playwright/test`, and `@axe-core/playwright` for the test suites — and only if you want to run tests:
+The only dependencies are `jsdom`, `@playwright/test`, and `@axe-core/playwright` for the test suites, and only if you want to run tests:
 
 ```bash
 npm install      # dev dependencies only
@@ -190,7 +190,7 @@ npm run test:e2e # Playwright suite (real browsers)
 
 ```
 test-maker/
-├── index.html                 # Page shell — skip link, home button, <main>, script tag
+├── index.html                 # Page shell: skip link, home button, <main>, script tag
 ├── styles/app.css             # All styles, organized into 10 commented sections
 ├── server.js                  # Local Node http server: static files + /chat + /missed
 ├── functions/                 # Cloudflare Pages Functions
@@ -225,7 +225,7 @@ test-maker/
 │   ├── disabilities.js        # 71 conditions × 9 categories + DISABILITIES_PROVENANCE
 │   └── legal.js               # 61 laws/standards × 7 jurisdictions (53 rendered, see cpacc filter in src/views/legal.js) + LEGAL_PROVENANCE
 ├── tests/
-│   ├── run.js                 # Runner — discovers + executes every *.test.js
+│   ├── run.js                 # Runner: discovers + executes every *.test.js
 │   ├── sampling.test.js       # Unit tests for sampling logic
 │   ├── scoring.test.js        # Unit tests for scoring
 │   ├── storage.test.js        # Unit tests for missed-set persistence
@@ -255,23 +255,23 @@ test-maker/
 
 ```bash
 npm install      # one-time: pulls jsdom, Playwright, and axe-core
-npm test         # jsdom suite — runs everything, no browser needed
+npm test         # jsdom suite: runs everything, no browser needed
 ```
 
 Expect 157+ passing.
 
 The jsdom suite is intentionally split into layers:
 
-- **Data smoke** (inline) — every dataset is well-formed, IDs unique, provenance present
-- **Unit tests** — `sampling`, `scoring`, `storage` (mocked fetch + localStorage), `llm` (provider resolution + per-provider wire format), `router` (hash-path ↔ state round-tripping and fallbacks)
-- **DOM smoke** — `views` (jsdom) asserts the accessibility contracts of every view
+- **Data smoke** (inline): every dataset is well-formed, IDs unique, provenance present
+- **Unit tests**: `sampling`, `scoring`, `storage` (mocked fetch + localStorage), `llm` (provider resolution + per-provider wire format), `router` (hash-path ↔ state round-tripping and fallbacks)
+- **DOM smoke**: `views` (jsdom) asserts the accessibility contracts of every view
 
 `tests/views.test.js` is the regression guard. If you change a view, every contract there must still hold.
 
 There's also an end-to-end suite for what jsdom structurally can't check:
 
 ```bash
-npm run test:e2e   # Playwright — real Chromium, Firefox, and WebKit
+npm run test:e2e   # Playwright: real Chromium, Firefox, and WebKit
 ```
 
 130 tests across 5 projects: chromium, firefox, webkit, a 320px mobile viewport, and a chat-enabled project. They cover real layout, computed styles, focus rings, Tab order, scroll position, horizontal-overflow (reflow) checks, and automated `axe-core` accessibility scans against a real accessibility tree. See [`tests/README.md`](tests/README.md#end-to-end-tests-e2e) for the jsdom/e2e division of labour, and [`ACCESSIBILITY.md`](ACCESSIBILITY.md) for what it found.
@@ -288,7 +288,7 @@ PRs welcome. The bar:
 
 If you're correcting a wrong answer, use the [Wrong answer issue template](.github/ISSUE_TEMPLATE/wrong-answer.yml) to give the maintainer the source they need to verify.
 
-If you find an accessibility issue, please report it — those get triaged first. Email [tawsif@perenniala11y.com](mailto:tawsif@perenniala11y.com), the channel disclosed in the in-app [accessibility statement](https://cpacc-test-maker.pages.dev/#/accessibility). This repo has no public git remote yet, so the [accessibility issue template](.github/ISSUE_TEMPLATE/accessibility.yml) isn't a reachable channel for anyone outside this machine — it's the intended contributor format once the project has one.
+If you find an accessibility issue, please report it: those get triaged first. Email [tawsif@perenniala11y.com](mailto:tawsif@perenniala11y.com), the channel disclosed in the in-app [accessibility statement](https://cpacc-test-maker.pages.dev/#/accessibility). This repo has no public git remote yet, so the [accessibility issue template](.github/ISSUE_TEMPLATE/accessibility.yml) isn't a reachable channel for anyone outside this machine. It's the intended contributor format once the project has one.
 
 ---
 
@@ -302,6 +302,6 @@ The code, the AI choices, the tests, and the docs are all answerable to that goa
 
 ## License
 
-MIT — see [`LICENSE`](LICENSE).
+MIT: see [`LICENSE`](LICENSE).
 
 Not affiliated with or endorsed by IAAP. CPACC is a trademark of the International Association of Accessibility Professionals.

@@ -95,7 +95,7 @@ export function renderLegal(ctx) {
           <div class="cat-hero">
             <div class="cat-hero-emoji" aria-hidden="true">${escapeHtml(cat.emoji)}</div>
             <div>
-              <h1>${escapeHtml(cat.label)} — history, laws & standards</h1>
+              <h1>${escapeHtml(cat.label)} · history, laws & standards</h1>
               <div class="sub" style="margin:4px 0 0">${items.length} item${items.length === 1 ? '' : 's'}${cat.id === 'timeline' ? ' · sorted by year' : ''}</div>
             </div>
           </div>

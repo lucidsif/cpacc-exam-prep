@@ -137,7 +137,7 @@ export function renderQuestion(ctx) {
           sighted users too, not just the fieldset's aria-describedby text.
         -->
         <div id="kbd-hint" class="cite" style="display:block;margin-bottom:8px">${revealed
-          ? 'This question has been answered — choices are locked. Use Prev/Next to keep going.'
+          ? 'This question has been answered, so choices are locked. Use Prev/Next to keep going.'
           : 'Select an answer, then choose <b>Submit answer</b>.<span class="kbd-only"> Use arrow keys to move between choices.</span>'}</div>
         <!--
           Once revealed, every radio's aria-describedby="why-X" (set above,

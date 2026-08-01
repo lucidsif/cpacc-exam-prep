@@ -203,7 +203,7 @@ export function renderAiInfoDialog() {
           <dt><span class="pv-conf pv-conf-med"><span aria-hidden="true">◐</span> Medium</span></dt>
           <dd>Derived from the author's notes or secondary sources. The author states they spot-checked it, rather than reviewing all of it.</dd>
           <dt><span class="pv-conf pv-conf-low"><span aria-hidden="true">○</span> Low</span></dt>
-          <dd>Significant uncertainty flagged — usually paired with a visible Confidence note on the item.</dd>
+          <dd>Significant uncertainty flagged, usually paired with a visible Confidence note on the item.</dd>
           <dt><span class="pv-conf pv-conf-var"><span aria-hidden="true">?</span> Variable</span></dt>
           <dd>Live AI response. Quality varies per query.</dd>
         </dl>

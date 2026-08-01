@@ -34,6 +34,7 @@ test-maker/
 │       ├── flashcards.js   # Bear-notes flashcards
 │       ├── disabilities.js # Human-disabilities reference
 │       ├── legal.js        # History/laws/standards reference
+│       ├── accessibility.js # Accessibility statement (#/accessibility)
 │       └── chat.js         # Per-question chat fragment (shared)
 ├── data/
 │   ├── questions.js        # Main CPACC bank
@@ -75,7 +76,7 @@ The server prints both the local and LAN URLs on startup. Open the LAN URL on yo
 npm install
 ```
 
-Installs `jsdom` for the DOM smoke tests.
+Installs `jsdom` for the DOM smoke tests. `package-lock.json` is committed, so `npm ci` gives a reproducible install with the pinned integrity hash.
 
 ## Running tests
 
@@ -85,7 +86,7 @@ node tests/run.js
 npm test
 ```
 
-Expect to see "113/113 passed" (or whatever the current count is). Every PR must keep tests green.
+Expect to see "131/131 passed" (or whatever the current count is). Every PR must keep tests green.
 
 ## Adding a new practice question
 

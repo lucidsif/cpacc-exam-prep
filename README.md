@@ -203,6 +203,7 @@ test-maker/
 │       ├── flashcards.js      # Bear flashcards
 │       ├── disabilities.js    # Disabilities reference
 │       ├── legal.js           # Laws & standards reference
+│       ├── accessibility.js   # Accessibility statement (#/accessibility)
 │       └── chat.js            # Per-question chat fragment (shared)
 ├── data/
 │   ├── questions.js           # Main CPACC bank + CPACC_BANK_PROVENANCE
@@ -234,7 +235,7 @@ npm install      # one-time: pulls jsdom for the DOM tests
 npm test         # runs everything
 ```
 
-Expect 113+ passing.
+Expect 131+ passing.
 
 The test suite is intentionally split into layers:
 

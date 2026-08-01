@@ -16,7 +16,7 @@ These constraints are what keep the project readable for new contributors. Pleas
 ```mermaid
 graph TD
   accTitle: High-level architecture of the CPACC test-maker app
-  accDescr: index.html loads main.js which imports data and provenance, creates state, and runs a render dispatcher. The dispatcher delegates to one of seven view modules based on the explicit state.view field, then syncs the URL hash via the router module so browser Back and Forward work. Views read from a shared state object and never mutate it directly — they invoke actions defined in main.js. The chat endpoints are served either by a local Node server or by Cloudflare Pages Functions. Both call the same shared helper, functions/_lib/llm.js, which forwards the request to the configured LLM provider: Anthropic, OpenAI, or a local OpenAI-compatible model server.
+  accDescr: index.html loads main.js which imports data and provenance, creates state, and runs a render dispatcher. The dispatcher delegates to one of eight view modules based on the explicit state.view field, then syncs the URL hash via the router module so browser Back and Forward work. Views read from a shared state object and never mutate it directly — they invoke actions defined in main.js. The chat endpoints are served either by a local Node server or by Cloudflare Pages Functions. Both call the same shared helper, functions/_lib/llm.js, which forwards the request to the configured LLM provider: Anthropic, OpenAI, or a local OpenAI-compatible model server.
 
   H[index.html<br/>page shell: skip link, home button,<br/>&lt;main&gt;, #route-status live region]
   M[src/main.js<br/>imports data + provenance<br/>creates state, defines actions<br/>runs render dispatcher<br/>syncs URL via router]
@@ -24,7 +24,7 @@ graph TD
   R[src/router.js<br/>pure hash path ⟷ state mapping]
   ST[src/storage.js<br/>missed-set: server probe<br/>+ localStorage fallback]
   P[src/provenance.js<br/>IBM-style AI badge + dialog]
-  V[src/views/*<br/>home · question · results<br/>flashcards · disabilities · legal · chat]
+  V[src/views/*<br/>home · question · results<br/>flashcards · disabilities · legal<br/>accessibility · chat]
   D[data/*.js<br/>ES modules<br/>+ *_PROVENANCE constants]
   CL[src/chat.js<br/>fetch wrappers]
   SRV[/POST /chat /chat-general<br/>GET /chat-status/]
@@ -68,7 +68,7 @@ graph TD
 ```mermaid
 flowchart TD
   accTitle: Render dispatcher decision tree
-  accDescr: render(opts) computes a route key from view, question index, and reference category, and captures the currently focused element, before switching on the explicit state.view field to one of six views. After rendering and syncing the URL hash, it resolves focus in priority order — an explicit opts.focus selector wins if it resolves; otherwise a route-key change moves focus to the destination's own h1, falling back to main; otherwise the captured focus and caret position are restored, falling back to the nearest focusable sibling if the original control became disabled by this same render. After every state mutation, render() is called again.
+  accDescr: render(opts) computes a route key from view, question index, and reference category, and captures the currently focused element, before switching on the explicit state.view field to one of seven views. After rendering and syncing the URL hash, it resolves focus in priority order — an explicit opts.focus selector wins if it resolves; otherwise a route-key change moves focus to the destination's own h1, falling back to main; otherwise the captured focus and caret position are restored, falling back to the nearest focusable sibling (or, if the whole cluster disabled itself, the route heading) if the original control became disabled by this same render. After every state mutation, render() is called again.
 
   A[Action mutates state incl. state.view]
   A --> KEY[compute route key<br/>capture current focus]
@@ -78,12 +78,14 @@ flowchart TD
   R -->|state.view = flashcards| F[renderFlashcards]
   R -->|state.view = results| RR[renderResults]
   R -->|state.view = test| Q[renderQuestion]
+  R -->|state.view = accessibility| AC[renderAccessibility]
   R -->|state.view = home| H[renderHome]
   L --> SYNC{{sync URL via router.pathFor}}
   D --> SYNC
   F --> SYNC
   RR --> SYNC
   Q --> SYNC
+  AC --> SYNC
   H --> SYNC
   SYNC --> FOCUS{{resolve focus}}
   FOCUS -->|opts.focus selector resolves| FE[focus that element]
@@ -91,9 +93,9 @@ flowchart TD
   FOCUS -->|in-place: route key unchanged| FC[restore captured focus + caret,<br/>else nearest focusable sibling]
 ```
 
-**Plain-text description:** every state mutation calls `render()` again. There is no virtual DOM, no reactive framework — every render replaces the entire `<main>` contents. There is a router (`src/router.js`), used only for URL sync, not for dispatch. The dispatcher itself switches on the explicit `state.view` field (`'home' | 'test' | 'results' | 'flashcards' | 'disabilities' | 'legal'`), set by whichever action last changed the screen — it is not inferred from data presence. That distinction is load-bearing: inferring the screen from data (e.g. "home = empty `state.questions`") would force "go back to home" to destroy the in-progress test, which would make Forward unable to resume it. With an explicit view, Back to home leaves `state.questions` (and `answers`, `pending`, `revealed`) intact in memory, and Forward restores the `test` view with everything still in place.
+**Plain-text description:** every state mutation calls `render()` again. There is no virtual DOM, no reactive framework — every render replaces the entire `<main>` contents. There is a router (`src/router.js`), used only for URL sync, not for dispatch. The dispatcher itself switches on the explicit `state.view` field (`'home' | 'test' | 'results' | 'flashcards' | 'disabilities' | 'legal' | 'accessibility'`), set by whichever action last changed the screen — it is not inferred from data presence. That distinction is load-bearing: inferring the screen from data (e.g. "home = empty `state.questions`") would force "go back to home" to destroy the in-progress test, which would make Forward unable to resume it. With an explicit view, Back to home leaves `state.questions` (and `answers`, `pending`, `revealed`) intact in memory, and Forward restores the `test` view with everything still in place.
 
-`render(opts = {})` also owns focus. Before the DOM is replaced it computes a **route key** — `[state.view, state.index, state.disabilities?.category, state.legal?.category]` — and compares it against the key from the previous render to decide whether this is a real navigation or an in-place re-render (chat send, card flip, a toggle). It also captures whatever is currently focused (`captureFocus()`), in case the in-place path is taken. After rendering and syncing the URL, focus resolves in priority order: an explicit `opts.focus` CSS selector, if it resolves, wins outright; otherwise a route-key change (or `opts.focus === 'route'`) moves focus to the destination's own `<h1>` (or `<main>` if the view has none); otherwise the captured focus and caret position are restored (`restoreFocus()`), falling back to the nearest focusable sibling if the originally-focused control was disabled by this same render (e.g. Prev at flashcard 1). See `ACCESSIBILITY.md`'s "Focus contract" section for the accessibility rationale, including why the focus target must always be visible.
+`render(opts = {})` also owns focus. Before the DOM is replaced it computes a **route key** — `[state.view, state.index, state.disabilities?.category, state.legal?.category]` — and compares it against the key from the previous render to decide whether this is a real navigation or an in-place re-render (chat send, card flip, a toggle). It also captures whatever is currently focused (`captureFocus()`), in case the in-place path is taken. After rendering and syncing the URL, focus resolves in priority order: an explicit `opts.focus` CSS selector, if it resolves, wins outright; otherwise a route-key change (or `opts.focus === 'route'`) moves focus to the destination's own `<h1>` (or `<main>` if the view has none); otherwise the captured focus and caret position are restored (`restoreFocus()`), falling back to the nearest focusable sibling if the originally-focused control was disabled by this same render (e.g. Prev at flashcard 1). That sibling search widens through progressively wider containers — the control's parent, then its nearest `.panel`, then the whole route (`#app`) — so a control cluster that disables as a unit (e.g. home's `#practice-missed` and `#clear-missed`, which both disable together when the missed list empties) doesn't strand focus just because the immediate parent has nothing left; if even `#app` has nothing focusable, it falls back to the route's own heading rather than leaving focus on the removed node. See `ACCESSIBILITY.md`'s "Focus contract" section for the accessibility rationale, including why the focus target must always be visible.
 
 `announce(msg, { assertive })`, also in `main.js`, writes to `#route-status` — a persistent `role="status"` region that is a sibling of `<main>` in `index.html`, so `app.innerHTML` rewrites can't destroy it. It carries the submit verdict, chat replies/errors, and the "that page isn't available" popstate fallback message. A pending message is cleared, then re-set on a 75ms `setTimeout` (not `requestAnimationFrame`) so that announcing the same string twice in a row still fires — `aria-live` only speaks on a text *change*, and rAF runs the clear and the set within the same paint, which can coalesce them into one no-op mutation. See the comment above `announce()` in `src/main.js` for the full reasoning.
 
@@ -108,13 +110,14 @@ function render(opts = {}) {
   const preserved = captureFocus();
 
   switch (state.view) {
-    case 'legal':        renderLegal(ctx); break;
-    case 'disabilities': renderDisabilities(ctx); break;
-    case 'flashcards':   renderFlashcards(ctx); break;
-    case 'results':      renderResults(ctx); break;
-    case 'test':         renderQuestion(ctx); break;
+    case 'legal':          renderLegal(ctx); break;
+    case 'disabilities':   renderDisabilities(ctx); break;
+    case 'flashcards':     renderFlashcards(ctx); break;
+    case 'results':        renderResults(ctx); break;
+    case 'test':           renderQuestion(ctx); break;
+    case 'accessibility':  renderAccessibility(ctx); break;
     case 'home':
-    default:             renderHome(ctx); break;
+    default:               renderHome(ctx); break;
   }
   document.title = titleFor(state);
   // sync URL hash to state.view (see "Browser Back/Forward" below)
@@ -134,7 +137,7 @@ A single mutable object created in `src/state.js`. Views never own state; they r
 
 ```js
 {
-  view:           // "home" | "test" | "results" | "flashcards" | "disabilities" | "legal"
+  view:           // "home" | "test" | "results" | "flashcards" | "disabilities" | "legal" | "accessibility"
   mode:           // "weighted" | "missed" | "bear"
   questions:      // sampled questions for the current test
   answers:        // qid → "A"|"B"|"C"|"D" (committed)
@@ -178,6 +181,7 @@ Route table:
 #/disabilities/<categoryId> category detail list
 #/legal                     jurisdiction grid
 #/legal/<categoryId>        jurisdiction detail list
+#/accessibility             accessibility statement
 ```
 
 Two functions:
@@ -190,6 +194,7 @@ Two functions:
 - Question index IS in the path — stepping between questions in a sampled, in-memory test is a genuine navigation axis, and Back/Forward between questions preserves answers because of the `state.view` refactor (see "The render loop" above).
 - Flashcard index is NOT in the path. Advancing a card is a study action on a freshly-shuffled deck, not navigation — putting 60 cards in history would make Back useless for actually leaving the deck.
 - `flipped` state, chat open/closed, and answer selections are NOT in the path.
+- `#/accessibility` needs no runtime state to render, so unlike `#/test/n`/`#/results` it's restorable on a cold load with nothing in memory — it round-trips the same way the reference routes' grid pages do.
 
 **Cold-load / unrestorable fallback.** `#/test/3` and `#/results` cannot be reconstructed from a URL alone: the question set is sampled at runtime and the answers live only in memory. On a fresh page load (or a Back into a stale entry after a reload), `applyPath` returns `false` for these and the caller falls back to home via `history.replaceState` — never `pushState` — so the URL never lies about what's on screen. The same applies to `#/disabilities/<id>` / `#/legal/<id>` with an unknown id (falls back to the category/jurisdiction grid) and `#/test/<n>` with `n` out of range (clamps to the nearest valid question instead of failing outright). `#/results` additionally requires `state.submitted` **and** a non-empty `state.questions`, not `submitted` alone — "Back to start" clears the question set but used to leave `submitted` true, so a stale `#/results` history entry could restore a page reporting a phantom `0 / 0 (0%)` score.
 
@@ -303,7 +308,7 @@ The runner discovers every `tests/*.test.js` and calls its exported `run({ test,
 | Unit tests | `sampling.test.js`, `scoring.test.js`, `storage.test.js`, `llm.test.js`, `router.test.js` |
 | DOM smoke tests (jsdom) | `views.test.js` — asserts every view's accessibility contracts, plus a full-app popstate-focus test |
 
-113+ tests as of writing; every PR should keep this green.
+131+ tests as of writing; every PR should keep this green.
 
 ```mermaid
 graph LR

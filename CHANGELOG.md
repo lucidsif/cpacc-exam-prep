@@ -6,6 +6,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Changed — repo hygiene ahead of first push (2026-07-31)
+
+First push makes all commits public and permanent, so this closes out the things that only matter once strangers can clone the repo.
+
+- `CPACC_BoK.pdf` (the copyrighted IAAP Body of Knowledge) stripped from all 33 commits with `git filter-repo` — it was present in the initial commit, so deleting it going forward would have done nothing for anyone who clones full history. It's now gitignored, along with any other root-level PDF, and stays on disk locally for citation work only
+- `data/questions.js`'s per-question citation comments pointed at "the BoK PDF in this folder," which was already wrong and would have dangled once the PDF stopped shipping. The comment now names the source and says where to get it instead of implying the repo bundles it
+- A real LAN IP used as a copy-paste example was scrubbed from two docs; `.wrangler/` local state is now gitignored
+- `package-lock.json` is committed — it was sitting under a stale gitignore comment about Bear-database backup files, which is not what a lockfile is. A public repo wants a pinned lockfile so contributors get reproducible installs and jsdom gets a pinned integrity hash
+- An audit of all 33 commits found no secrets, no committed `data.json`, no verbatim BoK reproduction in the question banks, and no bundled third-party assets
+
+### Added — public accessibility statement at `#/accessibility` (2026-07-31)
+
+- New route `#/accessibility` (`src/views/accessibility.js`), linked from home, with the same visible-`<h1>` and focus contract as every other route. It states plainly that manual screen reader testing predates the focus/colour fixes below and hasn't been redone, lists what has and hasn't been checked, and gives a real reporting address via `mailto:`. It does not claim conformance
+- `#/accessibility/<anything>` is rejected like any other unknown sub-path, matching the existing category/jurisdiction fallback behaviour
+- Reconciling the new statement against `ACCESSIBILITY.md` surfaced that the doc contradicted itself about whether Chromium verification had happened. `ACCESSIBILITY.md` now names the specific Chromium checks performed and states plainly that no screen reader and no Safari/Firefox testing has happened
+- README's "WCAG 2.2 AA conformant" claim corrected to "targets, partially conformant"; the badge relabelled to match
+- Follow-up polish from the final-gate review: README's accessibility-issue guidance pointed readers at the GitHub issue template, but the repo has no remote yet, so that template isn't a reachable channel for anyone outside this machine. It now names the working contact email and scopes the template as contributor-only guidance. `ACCESSIBILITY.md` gained the zoom/reflow/text-spacing gap the public statement already disclosed. The statement's claim that fixes were verified "by automated tests and by manual keyboard testing" read distributively but keyboard testing never touched the colour-only cues, provenance badge naming, or reduced motion — now scoped to the focus and navigation work only
+
+### Fixed — empty missed-pool crash, chat live-region ambiguity (2026-07-31)
+
+- Finishing a missed-question practice run with everything correct cleanly empties the missed set, so results still offered "Practice 0 missed again." Clicking it sampled an empty pool, entered the test view with zero questions, and `question.js` dereferenced `undefined`. Guarded at both layers: `results.js` disables `#retake` with an `aria-describedby` explanation when there's nothing left to retake, and `startTest` samples into a local variable first and bails with an `announce()` rather than touching state
+- Chat transcripts (`role="log"`) now carry an explicit `aria-live="off"` alongside it. `role="log"` implies a polite live region on its own, so leaving the attribute off had silently kept that implicit behavior rather than removed it, while replies were also announced through `#route-status` — the pairing risked a double announcement. Explicit `off` makes `#route-status` the single, deterministic announcement path
+
+### Fixed — residual focus-restoration gaps from adversarial review (2026-07-31)
+
+Follow-up to the focus-contract repair below, from an adversarial final-gate review that found the headline bug still surviving at boundaries the first pass missed.
+
+- `nearestFocusableSibling` only searched a disabled control's immediate parent, so a control cluster that disables as a unit could still strand focus on `<body>` — e.g. home's `#practice-missed` and `#clear-missed`, which share a `.row` and both disable together the instant the missed list empties. The search now widens progressively — parent → nearest `.panel` → `#app` — bounded there so it can't wander to the skip link or home button outside `<main>`; if even `#app` has nothing focusable, it falls back to the route's own heading instead of leaving focus on the removed node
+- `data-jump` was missing from `RESTORABLE_DATA_ATTRS`, so the results page's jump-grid cells were invisible to `captureFocus()` and lost focus on any in-place re-render (e.g. a chat reply landing while the user had tabbed to a jump cell)
+- `isFocusable()` now checks `:disabled` instead of `el.disabled`. `el.disabled` only reflects a control's own attribute, so a radio inside a `<fieldset disabled>` (how revealed answer choices render) reported `false` even though `.focus()` on it is a silent no-op; `:disabled` matches the real inherited state, including the spec's `<legend>` exception a hand-rolled `closest('fieldset[disabled]')` check would get wrong
+- Three regression tripwires added for fixes from the focus-contract repair below that this review found could be reverted with the suite staying fully green — the same blindness that let the original bugs ship: chat replies reaching `#route-status` on both the success and assertive-error paths, `aria-current` on the current jump-grid cell (which doubles as its only visual indicator via `.cell[aria-current]`), and focus/caret restoration driven through the app's own real async startup probes rather than test-side focus poking
+
 ### Fixed — accessibility: focus, skip link, flashcard content, colour-only signals (2026-07-31)
 
 **Critical**

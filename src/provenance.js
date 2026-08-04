@@ -60,28 +60,26 @@ const CONFIDENCE = {
  *   after the visible label/confidence, disambiguating repeated badges
  * @param {string} [id] - stable key identifying this badge across renders
  *   (e.g. `question-${q.id}`). Without one, the <details> can't carry
- *   `data-prov-id` and wireProvenanceToggles() has nothing to hook, so the
- *   disclosure falls back to always-closed — the same behaviour this had
- *   before open state was backed in state.js.
- * @param {boolean} [isOpen] - whether `id` is in state.expandedProvenance;
- *   see the module doc above wireProvenanceToggles().
- * @returns {string} HTML string
+  *   `data-prov-id` and wireProvenanceToggles() has nothing to hook, so the
+  *   disclosure falls back to always-closed — the same behaviour this had
+  *   before open state was backed in state.js.
+  * @returns {string} HTML string
  */
-export function renderProvenanceBadge(prov, itemLabel, id, isOpen) {
+export function renderProvenanceBadge(prov, itemLabel, id) {
   if (!prov) return '';
   const conf = CONFIDENCE[prov.confidence] || CONFIDENCE.variable;
   const safeLabel = escapeHtml(itemLabel || 'this item');
   const idAttr = id ? ` data-prov-id="${escapeHtml(id)}"` : '';
 
   return `
-    <details class="provenance"${isOpen ? ' open' : ''}${idAttr}>
+    <details class="provenance"${idAttr}>
       <summary>
         <span class="pv-icon" aria-hidden="true">🤖</span>
         <span class="pv-cat">${escapeHtml(prov.label)}</span>
         <span class="pv-conf ${conf.cls}">
           <span class="pv-conf-glyph" aria-hidden="true">${conf.glyph}</span> ${conf.text}
         </span>
-        <span class="pv-chev" aria-hidden="true">${isOpen ? '▾' : '▸'}</span>
+        <span class="pv-chev" aria-hidden="true">▸</span>
         <span class="sr-only"> — AI provenance for ${safeLabel}</span>
       </summary>
       <dl class="provenance-card">
@@ -132,6 +130,10 @@ export function wireProvenanceToggles(container, state) {
     det.addEventListener('toggle', () => {
       if (det.open) state.expandedProvenance.add(id);
       else state.expandedProvenance.delete(id);
+      // Update the chevron immediately from the DOM element's open state,
+      // before the next render's innerHTML rebuild overwrites it.
+      const chev = det.querySelector('.pv-chev');
+      if (chev) chev.textContent = det.open ? '▾' : '▸';
     });
   });
 }

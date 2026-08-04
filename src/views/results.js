@@ -61,7 +61,7 @@ export function renderResults(ctx) {
     return `
         <div class="panel" data-qid="${q.id}" id="result-q-${i}">
           <h2 class="qmeta">Q${i+1} · ${domainLabel(q.domain)} · ${q.type} · your answer: ${picked || '—'} · correct: ${q.answer}</h2>
-          ${renderProvenanceBadge(prov, itemLabel, `results-${q.id}`, state.expandedProvenance?.has(`results-${q.id}`))}
+          ${renderProvenanceBadge(prov, itemLabel, `results-${q.id}`)}
           <p class="qtext">${escapeHtml(q.q)}</p>
           ${choices}
           ${q.cite ? `<div class="cite">Source: ${escapeHtml(q.cite)}</div>` : ''}

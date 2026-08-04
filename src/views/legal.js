@@ -48,7 +48,7 @@ export function renderLegal(ctx) {
     app.innerHTML = `
         <h1>History, laws & standards</h1>
         <div class="sub">${visible.length} CPACC-relevant items across ${d.jurisdictions.filter(c => visible.some(i => i.jurisdiction === c.id)).length} groups. Tap a group to browse.</div>
-        ${renderProvenanceBadge(prov, 'the laws and standards reference', 'legal', state.expandedProvenance?.has('legal'))}
+        ${renderProvenanceBadge(prov, 'the laws and standards reference', 'legal')}
         <div class="cat-grid">${cards}</div>
       `;
     wireProvenanceToggles(app, state);

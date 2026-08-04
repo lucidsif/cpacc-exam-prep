@@ -38,7 +38,6 @@ export function renderHome(ctx) {
 
   app.innerHTML = `
       <h1>CPACC Practice Test</h1>
-      <div class="sub">Bank: ${bank.length} items (D1:${counts[1]} · D2:${counts[2]} · D3:${counts[3]}). Items reference the IAAP CPACC Body of Knowledge (Oct 2023, v4.0).</div>
       <div class="panel">
         <h2 class="qmeta"><span class="qmeta-emoji" aria-hidden="true">🎯</span> Weighted practice test</h2>
         <div class="qtext">${TEST_SIZE} questions drawn at random, weighted to the BoK mix (40% / 40% / 20%).</div>

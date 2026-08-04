@@ -96,7 +96,7 @@ For your own deploy, see [`DEPLOY.md`](DEPLOY.md#option-a--cloudflare-pages-reco
 | Category | What it is | Confidence | Examples |
 |---|---|---|---|
 | 🤖 **AI-authored from BoK** | Claude wrote it directly from a citable primary source; author reviewed against the citation | High | Main practice questions (`data/questions.js`), laws & standards reference |
-| 🤖 **AI-derived from author's notes** | Claude generated it from the author's personal study notes (one step removed from primary sources) | Medium | Bear-notes practice bank, flashcards, disabilities reference |
+| 🤖 **AI-derived from author's notes** | Claude generated it from the author's personal study notes (one step removed from primary sources); bear-notes bank and flashcards were reviewed by the author but may still contain errors, disabilities reference (71 conditions, far beyond CPACC scope) was spot-checked | Medium | Bear-notes practice bank, flashcards, disabilities reference |
 | 🤖 **AI live response** | The configured provider answers your chat message in real time; not pre-reviewed | Variable | Per-question chat tutor, home-page tutor chat |
 
 Click any badge in the app to see the full provenance card (source, model, generated date, human review, confidence, limitations). The home-page footer has an **"About AI in this app"** link that opens the page-level explainer.

@@ -5,11 +5,12 @@ export const BEAR_FLASHCARDS_PROVENANCE = {
   citations: ['Author\'s Bear notes tagged #cpacc/practice and #a11y/*'],
   generatedBy: 'Claude Sonnet 4.6',
   generatedAt: '2025-04',
-  humanReview: 'Spot-checked by the author for factual alignment.',
+  humanReview: 'Reviewed by the author for factual alignment; despite this, the author may have made mistakes — users should verify before relying on these in a high-stakes context.',
   confidence: 'medium',
   limitations: [
     'Cards distill the author\'s notes — may not match how the BoK frames concepts.',
     'Not endorsed by IAAP.',
+    'Reviewed content can still contain errors. Users should verify against the BoK or other authoritative sources before relying on these in a high-stakes context.',
   ],
 };
 

@@ -37,7 +37,7 @@ export function renderHome(ctx) {
   const missedCount = missed.get().size;
 
   app.innerHTML = `
-      <h1>CPACC Practice Test</h1>
+      <h1>CPACC Prep</h1>
       <div class="panel">
         <h2 class="qmeta"><span class="qmeta-emoji" aria-hidden="true">🎯</span> Weighted practice test</h2>
         <div class="qtext">${TEST_SIZE} questions drawn at random, weighted to the BoK mix (40% / 40% / 20%).</div>

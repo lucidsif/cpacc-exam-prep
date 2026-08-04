@@ -81,7 +81,7 @@ export function renderProvenanceBadge(prov, itemLabel, id, isOpen) {
         <span class="pv-conf ${conf.cls}">
           <span class="pv-conf-glyph" aria-hidden="true">${conf.glyph}</span> ${conf.text}
         </span>
-        <span class="pv-chev" aria-hidden="true">▸</span>
+        <span class="pv-chev" aria-hidden="true">${isOpen ? '▾' : '▸'}</span>
         <span class="sr-only"> — AI provenance for ${safeLabel}</span>
       </summary>
       <dl class="provenance-card">

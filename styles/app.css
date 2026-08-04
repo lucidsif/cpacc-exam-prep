@@ -256,8 +256,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .provenance .pv-conf-med  { color: #e3c067; }
 .provenance .pv-conf-low  { color: #ff9a9a; }
 .provenance .pv-conf-var  { color: #b9c1cf; }
-.provenance .pv-chev { font-size: 10px; transition: transform .15s; }
-.provenance[open] .pv-chev { transform: rotate(90deg); }
+.provenance .pv-chev { font-size: 16px; font-weight: 700; margin-left: 2px; transition: opacity .15s; opacity: 0.7; }
+.provenance .pv-chev:hover { opacity: 1; }
+.provenance[open] .pv-chev { opacity: 1; }
 .provenance-card {
   margin: 8px 0 0; padding: 12px 14px; background: #11151f;
   border: 1px solid var(--border); border-radius: 8px;

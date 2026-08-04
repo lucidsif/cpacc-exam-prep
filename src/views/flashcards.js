@@ -21,7 +21,7 @@ export function renderFlashcards(ctx) {
   app.innerHTML = `
       <h1>Bear notes flashcards</h1>
       <div class="sub">Card ${fc.index + 1} of ${fc.cards.length}</div>
-      ${renderProvenanceBadge(prov, 'these flashcards', 'flashcards')}
+      ${renderProvenanceBadge(prov, 'these flashcards', 'flashcards', state.expandedProvenance?.has('flashcards'))}
       <div class="panel">
         <!-- Plain container, not a button: its content (tag, front/back text) must be
              ordinary navigable text for screen readers, which a button's accessible-name

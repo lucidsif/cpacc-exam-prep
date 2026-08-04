@@ -63,16 +63,22 @@ const CONFIDENCE = {
   *   `data-prov-id` and wireProvenanceToggles() has nothing to hook, so the
   *   disclosure falls back to always-closed — the same behaviour this had
   *   before open state was backed in state.js.
+  * @param {boolean} [isOpen] - whether `id` is in state.expandedProvenance;
+  *   used to set the native `<details open>` attribute so the disclosure
+  *   persists across in-place re-renders. The chevron direction is set
+  *   directly on the DOM element by wireProvenanceToggles during the toggle
+  *   event, so it updates immediately on user interaction even before the
+  *   next render.
   * @returns {string} HTML string
  */
-export function renderProvenanceBadge(prov, itemLabel, id) {
+export function renderProvenanceBadge(prov, itemLabel, id, isOpen) {
   if (!prov) return '';
   const conf = CONFIDENCE[prov.confidence] || CONFIDENCE.variable;
   const safeLabel = escapeHtml(itemLabel || 'this item');
   const idAttr = id ? ` data-prov-id="${escapeHtml(id)}"` : '';
 
   return `
-    <details class="provenance"${idAttr}>
+    <details class="provenance"${isOpen ? ' open' : ''}${idAttr}>
       <summary>
         <span class="pv-icon" aria-hidden="true">🤖</span>
         <span class="pv-cat">${escapeHtml(prov.label)}</span>

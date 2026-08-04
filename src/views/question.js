@@ -126,7 +126,7 @@ export function renderQuestion(ctx) {
       <div class="sub">CPACC Practice Test · answered ${answered}/${state.questions.length}</div>
       <div class="panel">
         <div class="qmeta">${domainLabel(q.domain)} · ${q.type}</div>
-        ${renderProvenanceBadge(prov, `Question ${state.index + 1}`, `question-${q.id}`)}
+        ${renderProvenanceBadge(prov, `Question ${state.index + 1}`, `question-${q.id}`, state.expandedProvenance?.has(`question-${q.id}`))}
         <p class="qtext">${escapeHtml(q.q)}</p>
         <!--
           Content is conditional on revealed, not just the trailing

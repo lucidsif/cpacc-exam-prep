@@ -18,7 +18,7 @@ test('app boots, renders a laid-out h1, and navigates to a route', async ({ page
   await page.goto('/');
 
   const h1 = page.locator('h1');
-  await expect(h1).toHaveText('CPACC Practice Test');
+  await expect(h1).toHaveText('CPACC Prep');
 
   // A real layout box — this is the thing jsdom cannot give us. jsdom's
   // getBoundingClientRect() always returns zeros; a real browser lays the

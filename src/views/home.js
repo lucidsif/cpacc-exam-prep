@@ -89,8 +89,9 @@ export function renderHome(ctx) {
       </div>
       <div class="cite">Real CPACC exam: 100 multiple-choice questions in 2 hours, ~70% pass. (Per IAAP exam info, not from the BoK itself.)</div>
       <div class="cite"><button type="button" class="linkish" data-open-ai-info aria-haspopup="dialog"><span aria-hidden="true">🤖</span> About AI in this app</button>: provenance, confidence levels, and limitations of every content type.</div>
-      <div class="cite">Chat tutor: ${state.chatEnabled === null ? 'checking availability…' : state.chatEnabled ? 'enabled.' : 'disabled. Optional: set <code>LLM_PROVIDER</code> and <code>LLM_API_KEY</code>, then run via <code>node server.js</code>. Works with Anthropic, OpenAI, or a local OpenAI-compatible server.'}</div>
-      <div class="cite"><a href="#/accessibility">Accessibility statement</a>: conformance status, what's been tested, and what hasn't.</div>
+       <!-- No AI tutor on this deploy — chat status line commented out. -->
+       <!-- <div class="cite">Chat tutor: ${state.chatEnabled === null ? 'checking availability…' : state.chatEnabled ? 'enabled.' : 'disabled. Optional: set <code>LLM_PROVIDER</code> and <code>LLM_API_KEY</code>, then run via <code>node server.js</code>. Works with Anthropic, OpenAI, or a local OpenAI-compatible server.'}</div> -->
+       <div class="cite"><a href="#/accessibility">Accessibility statement</a>: conformance status, what's been tested, and what hasn't.</div>
       ${state.chatEnabled ? `
       <div class="panel">
         <h2 class="qmeta"><span class="qmeta-emoji" aria-hidden="true">💬</span> Ask the CPACC tutor</h2>

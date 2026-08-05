@@ -1,7 +1,7 @@
 // src/views/legal.js — history/laws/standards reference (jurisdiction grid + detail list).
 
 import { escapeHtml, scrollIntoViewMotionSafe, focusWithVisibleRing } from '../dom.js';
-import { renderProvenanceBadge, wireProvenanceToggles } from '../provenance.js';
+import { renderProvenanceBadge, wireProvenanceInteractions } from '../provenance.js';
 
 /** Pick an emoji for a legal item based on its `type` field. */
 function emojiForType(type) {
@@ -51,7 +51,7 @@ export function renderLegal(ctx) {
         ${renderProvenanceBadge(prov, 'the laws and standards reference', 'legal', state.expandedProvenance?.has('legal'))}
         <div class="cat-grid">${cards}</div>
       `;
-    wireProvenanceToggles(app, state);
+    wireProvenanceInteractions(app, state);
     document.querySelectorAll('[data-jur]').forEach(el => {
       el.onclick = () => { state.legal = { view: 'list', category: el.dataset.jur }; state.view = 'legal'; actions.render(); };
     });

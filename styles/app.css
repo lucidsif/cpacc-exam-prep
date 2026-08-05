@@ -344,3 +344,36 @@ button.pv-info-link { color: var(--accent); font-weight: 600; text-decoration: u
     outline-offset: -2px;
   }
 }
+
+/* 12. Flag form inside provenance badge (user-submitted corrections)
+    ------------------------------------------------------------ */
+/* .provenance-row wraps <details> + flag button so the button stays visible
+    when collapsed. Putting a <button> inside <summary> triggers axe's
+    nested-interactive rule (both are focusable controls, WCAG 4.12). */
+.provenance-row { display: inline-flex; align-items: center; gap: 6px; }
+.provenance-row .provenance { display: inline; }
+/* Flag button uses the same linkish pill vocabulary as .toggle and
+    .linkish — visible text, accent color, 24px target (WCAG 2.5.8). */
+.provenance-row .pv-flag-btn {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 12px; padding: 3px 8px; border-radius: 999px; font-family: inherit;
+  min-width: 24px; min-height: 24px; display: inline-flex; align-items: center;
+  border: 1px solid var(--border);
+}
+.provenance-row .pv-flag-btn:hover { border-color: var(--accent); color: var(--text); }
+
+.provenance .pv-flag-form { margin: 8px 0 0; }
+.provenance .pv-flag-form label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; font-weight: 600; }
+.provenance .pv-flag-form textarea {
+  width: 100%; background: var(--panel-2); border: 1px solid var(--border);
+  color: var(--text); border-radius: 6px; padding: 8px 10px; font: inherit;
+  font-size: 14px; resize: vertical; min-height: 60px;
+}
+.provenance .pv-flag-form textarea::placeholder { color: var(--muted); opacity: 1; }
+.provenance .flag-actions { display: flex; gap: 8px; margin-top: 8px; }
+.provenance .flag-actions button[type="submit"] { font-size: 13px; padding: 6px 14px; }
+.provenance .pv-flag-cancel { font-size: 13px; padding: 6px 10px; background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; font-family: inherit; }
+.provenance .pv-flag-cancel:hover { border-color: var(--accent); color: var(--text); }
+.provenance .pv-flag-status { margin-top: 8px; font-size: 13px; }
+.provenance .pv-flag-status.success { color: var(--right); }
+.provenance .pv-flag-status.error { color: var(--wrong); }

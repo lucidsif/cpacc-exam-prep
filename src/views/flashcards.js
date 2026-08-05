@@ -2,7 +2,7 @@
 
 import { escapeHtml } from '../dom.js';
 import { shuffle } from '../sampling.js';
-import { renderProvenanceBadge, wireProvenanceToggles } from '../provenance.js';
+import { renderProvenanceBadge, wireProvenanceInteractions } from '../provenance.js';
 
 /**
  * Render the active flashcards session.
@@ -49,7 +49,7 @@ export function renderFlashcards(ctx) {
         </div>
       </div>
     `;
-  wireProvenanceToggles(app, state);
+  wireProvenanceInteractions(app, state);
 
   // Flip toggles state, announces the newly revealed side's text (the live region
   // lives outside <main> and survives the innerHTML swap below), and explicitly

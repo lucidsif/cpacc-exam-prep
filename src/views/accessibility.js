@@ -45,7 +45,8 @@ export function renderAccessibility(ctx) {
       <h2>In short</h2>
       <ul>
         <li>This app targets WCAG 2.2 Level AA. It does not fully meet that target yet.</li>
-        <li>One known fault is not fixed. While the AI tutor is working on a reply, nothing tells a screen reader that anything is happening.</li>
+        <!-- <li>One known fault is not fixed. While the AI tutor is working on a reply, nothing tells a screen reader that anything is happening.</li> -->
+        <li>No AI tutor is configured on this deploy.</li>
         <li>The largest gap is missing evidence rather than a known fault. No screen reader has been used on the current version, and NVDA and JAWS have never been used at all.</li>
         <li>Most of the evidence here comes from automated tests. Very little comes from a person using the app by hand, and none from a screen reader on the current version.</li>
         <li>No third party has audited this app. The author built it and did all the testing described here.</li>
@@ -54,11 +55,11 @@ export function renderAccessibility(ctx) {
       <p>The rest of this page gives the detail, and the evidence behind each of those points.</p>
 
       <h2>What this statement applies to</h2>
-      <p>This statement applies to the CPACC Practice Test web app at <a href="https://cpacc-test-maker.pages.dev">cpacc-test-maker.pages.dev</a>. It covers all views: home, weighted practice tests, Bear-notes practice, missed-question review, flashcards, the human disabilities reference, the history and laws reference, results pages, and the optional AI tutor chat.</p>
+       <p>This statement applies to the CPACC Practice Test web app at <a href="https://cpacc-test-maker.pages.dev">cpacc-test-maker.pages.dev</a>. It covers all views: home, weighted practice tests, Bear-notes practice, missed-question review, flashcards, the human disabilities reference, the history and laws reference, and results pages.</p>
       <p>It does not apply to:</p>
       <ul>
         <li>The IAAP CPACC Body of Knowledge itself (third-party content published elsewhere).</li>
-        <li>Responses generated live by the AI tutor (produced by whichever language model the operator configured, not written or reviewed in advance).</li>
+        <!-- <li>Responses generated live by the AI tutor (produced by whichever language model the operator configured, not written or reviewed in advance).</li> -->
         <li>Copies of this app deployed by other people, which may have been modified.</li>
       </ul>
 
@@ -70,7 +71,8 @@ export function renderAccessibility(ctx) {
         <dd>Partially conformant with WCAG 2.2 Level AA.</dd>
       </dl>
       <p>Partially conformant means some parts may not fully meet the standard, for two reasons kept separate here.</p>
-      <p>First, at least one specific failure is known and unfixed: nothing in this app exposes a busy or pending state to assistive technology while the AI tutor's reply is in flight. <code>aria-busy</code> appears nowhere in this codebase, and a long or failed round trip is indistinguishable from a frozen page. See "Known limitations beyond conformance" below for the detail, and every other known-and-not-fixed item.</p>
+       <!-- No AI tutor on this deploy — the aria-busy gap that made us "partially conformant" no longer applies. -->
+       <!-- <p>First, at least one specific failure is known and unfixed: nothing in this app exposes a busy or pending state to assistive technology while the AI tutor's reply is in flight. <code>aria-busy</code> appears nowhere in this codebase, and a long or failed round trip is indistinguishable from a frozen page. See "Known limitations beyond conformance" below for the detail, and every other known-and-not-fixed item.</p> -->
       <p>Second, separately, the evidence for full conformance is incomplete even where no failure is known, the largest gap being manual screen reader testing of the current version (see "What has not been verified" below).</p>
       <p>I do not claim the current version meets WCAG 2.2 Level AA. Large parts of it do, by the evidence below; not all of it does, and this is not a rounding-error qualification.</p>
 
@@ -96,7 +98,7 @@ export function renderAccessibility(ctx) {
       <p>Two rounds of accessibility fixes have shipped, on 31 July and 1 August 2026, covering focus, navigation, screen reader content, keyboard operability, layout, and colour. The full technical record (what changed, why, and how each fix was checked) is in <code>ACCESSIBILITY.md</code>; the commit-by-commit history is in <code>CHANGELOG.md</code>.</p>
 
       <h2>How this app was evaluated</h2>
-      <p>Two automated suites run on every change. A jsdom suite checks DOM structure and ARIA wiring against a simulated document: no painted pixels, no real accessibility tree. A Playwright suite drives real browsers across five configurations (Chromium, Firefox, WebKit, a 320px viewport, and a chat-enabled build), including axe-core scans at two rule levels: zero violations, nothing suppressed.</p>
+       <p>Two automated suites run on every change. A jsdom suite checks DOM structure and ARIA wiring against a simulated document: no painted pixels, no real accessibility tree. A Playwright suite drives real browsers across four configurations (Chromium, Firefox, WebKit, and a 320px viewport), including axe-core scans at two rule levels: zero violations, nothing suppressed.</p>
       <p>Beyond that: informal, ad-hoc keyboard checking by the author, in Chromium only. No screen reader has been used on the current version, and no third party has audited this app.</p>
       <p>Automated scanning, however thorough, catches only a minority of accessibility problems by its nature and is not a substitute for manual or assistive-technology testing. Full detail is in <code>ACCESSIBILITY.md</code>.</p>
 
@@ -104,14 +106,16 @@ export function renderAccessibility(ctx) {
       <p>Accessibility relies on HTML, CSS, and JavaScript.</p>
       <p>JavaScript is required. The app is a client-side single-page application using a hash-based router, and nothing renders with JavaScript disabled.</p>
       <p>The app keeps a list of questions you answered incorrectly so you can review them. On the public deploy, that list is stored in your browser only.</p>
-      <p>The AI tutor chat is optional. It only appears when whoever deployed the app has configured a language model provider. AI-generated content carries a visible provenance badge with a confidence level. AI chat responses are generated live and not reviewed before you see them, so check anything important against an authoritative source.</p>
+       <!-- No AI tutor on this deploy. -->
+       <!-- <p>The AI tutor chat is optional. It only appears when whoever deployed the app has configured a language model provider. AI-generated content carries a visible provenance badge with a confidence level. AI chat responses are generated live and not reviewed before you see them, so check anything important against an authoritative source.</p> -->
 
       <h2>Known limitations beyond conformance</h2>
       <ul>
         <li>The human disabilities reference goes beyond CPACC exam scope. This is intentional and labelled as such in the app.</li>
-        <li>AI tutor responses are not pre-reviewed. This is by design and disclosed in the app above every chat transcript.</li>
-        <li><b>No busy or pending state is exposed to assistive technology while the AI tutor's reply is in flight.</b> <code>aria-busy</code> appears nowhere in this codebase, and nothing stands in for it. A screen reader user who sends a chat message cannot tell the request is in progress, as opposed to stalled, until a reply or error arrives. The request also has no client-side timeout or cancellation, so a non-responding server or model produces permanent silence, not just a long one. This is a known, unfixed failure, not a gap in evidence.</li>
-        <li>Announcements are coalesced on a 100ms timer, per live region: two of the <i>same</i> urgency within that window means only the later one is spoken. The reply and error regions now run independent timers, so a reply and an error can no longer clobber each other, but two same-urgency messages still can; since chat transcripts are silent, a reply that loses that race goes unannounced.</li>
+        <!-- No AI tutor on this deploy — these limitations no longer apply. -->
+        <!-- <li>AI tutor responses are not pre-reviewed. This is by design and disclosed in the app above every chat transcript.</li> -->
+        <!-- <li><b>No busy or pending state is exposed to assistive technology while the AI tutor's reply is in flight.</b> <code>aria-busy</code> appears nowhere in this codebase, and nothing stands in for it. A screen reader user who sends a chat message cannot tell the request is in progress, as opposed to stalled, until a reply or error arrives. The request also has no client-side timeout or cancellation, so a non-responding server or model produces permanent silence, not just a long one. This is a known, unfixed failure, not a gap in evidence.</li> -->
+        <!-- <li>Announcements are coalesced on a 100ms timer, per live region: two of the <i>same</i> urgency within that window means only the later one is spoken. The reply and error regions now run independent timers, so a reply and an error can no longer clobber each other, but two same-urgency messages still can; since chat transcripts are silent, a reply that loses that race goes unannounced.</li> -->
         <li>In WebKit (Safari's engine), the default Tab key only moves focus through form fields, skipping links and buttons. This is a platform default outside this app's control, not a defect in its own DOM order or tabindex usage. The evidence is Playwright's WebKit on Linux in CI, not a hands-on test of real macOS Safari. The Safari-match is reasoned from Safari's documented default (Tab visits only text fields unless "Full Keyboard Access" is on, or Option+Tab is used), not confirmed against an actual Mac.</li>
         <li>Clicking non-focusable content inside <code>&lt;main&gt;</code> (itself focusable) leaves <code>document.activeElement</code> on <code>&lt;main&gt;</code> in Chromium, Firefox, and WebKit alike, simply because nothing focusable was clicked, not WebKit-specific. WebKit's genuine, narrower difference: it does not focus a <code>&lt;button&gt;</code> on mouse click at all, where Chromium and Firefox do, so a self-disabling button leaves this app's focus-preservation logic landing on <code>&lt;main&gt;</code> instead of the next control. This affects mouse and trackpad users in Safari, including AT users who point rather than tab; keyboard users on WebKit are unaffected. Documented, not engineered around.</li>
       </ul>

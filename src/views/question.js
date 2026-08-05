@@ -2,7 +2,7 @@
 
 import { escapeHtml, focusWithVisibleRing } from '../dom.js';
 import { domainLabel } from '../scoring.js';
-import { renderProvenanceBadge, wireProvenanceToggles } from '../provenance.js';
+import { renderProvenanceBadge, wireProvenanceInteractions } from '../provenance.js';
 
 /**
  * Render the current question and wire its handlers.
@@ -178,7 +178,7 @@ export function renderQuestion(ctx) {
       </div>
       ${renderJumpGrid(state)}
     `;
-  wireProvenanceToggles(app, state);
+  wireProvenanceInteractions(app, state);
 
   // Selecting a radio just tracks pending — no auto-reveal.
   document.querySelectorAll('input[name="choice"]').forEach(el => {

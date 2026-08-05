@@ -59,7 +59,11 @@ export function createState() {
     submitted: false,
     chats: {},
     homeChat: { history: [], draft: '' },
-    chatEnabled: null,
+    // No AI tutor on this deploy — set to false so chat UI never renders.
+    // (Was null, probed at boot via fetchChatStatus; left as false to skip
+    // the probe entirely. The chat infrastructure (chat.js, functions/chat.js)
+    // remains in the repo for deploys that do want it.)
+    chatEnabled: false,
     flashcards: null,
     disabilities: null,
     legal: null,

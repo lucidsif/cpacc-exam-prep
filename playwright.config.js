@@ -79,10 +79,8 @@ export default defineConfig({
     // Runs the whole default suite at that width, same as the other
     // projects, per this file's own "don't narrow coverage" philosophy above.
     { name: 'mobile-320', use: { ...devices['Desktop Chrome'], viewport: { width: 320, height: 640 } }, testIgnore: /axe-chat\.spec\.js/ },
-    // Chat surface coverage (see the CHAT_PORT server below): scoped to
-    // just axe-chat.spec.js so the rest of the suite isn't pointlessly run
-    // twice against a second server that differs only in chatEnabled.
-    { name: 'chat', testMatch: /axe-chat\.spec\.js/, use: { ...devices['Desktop Chrome'], baseURL: CHAT_BASE_URL } },
+    // No AI tutor on this deploy — chat project and second server commented out.
+    // { name: 'chat', testMatch: /axe-chat\.spec\.js/, use: { ...devices['Desktop Chrome'], baseURL: CHAT_BASE_URL } },
   ],
 
   // Starts the same server a developer runs locally (`node server.js`), so
@@ -97,6 +95,8 @@ export default defineConfig({
       timeout: 30_000,
       env: { PORT: String(PORT) },
     },
+    // No AI tutor on this deploy — second (chat-enabled) server commented out.
+    /*
     {
       // Chat ENABLED (see CHAT_PORT comment above) — only the 'chat'
       // project points its baseURL here.
@@ -106,5 +106,6 @@ export default defineConfig({
       timeout: 30_000,
       env: { PORT: String(CHAT_PORT), LLM_PROVIDER: 'local', LLM_BASE_URL: 'http://127.0.0.1:65535' },
     },
+    */
   ],
 });

@@ -697,25 +697,15 @@ if (!restoredAtBoot) {
 // shouldn't steal focus into <main> before the user has done anything.
 lastRouteKey = routeKey(state);
 
-// Probe chat availability (server may or may not have an LLM provider configured).
-fetchChatStatus().then(enabled => {
-  state.chatEnabled = enabled;
-  // Repaint whatever the user is looking at now that availability is
-  // known, regardless of view: chat affordances render on more than just
-  // home (results gates its per-question "Discuss with the AI tutor"
-  // toggle on state.chatEnabled too — see src/views/results.js), so
-  // gating this on state.view === 'home' silently left results without
-  // its toggles if the probe was still pending when the user got there.
-  // Unconditionally re-rendering is safe now that render() is in-place
-  // and focus-preserving (captureFocus/restoreFocus) — that was the whole
-  // point of adding them.
+// Chat status probe still runs for its side effect: tests and boot flow
+// rely on the deferred .then(render()) to exercise in-place re-renders.
+// The result is ignored (state.chatEnabled stays false from state.js) so
+// no chat UI ever appears.
+fetchChatStatus().then(() => {
+  // Don't set state.chatEnabled — stays false from state.js.
+  // Still call render() so the deferred-probe re-render path exercises
+  // focus restoration (same as the missed-set probe below).
   render();
-  // No announcement here: chatEnabled starts `null` on every single page
-  // load and this probe only ever runs once, at boot, before the user has
-  // seen anything chat-related on screen. "The probe settled" isn't an
-  // event that needs correcting — announcing it here fired on every visit
-  // where chat happened to be configured, regardless of whether anything
-  // actually changed from the user's perspective.
 });
 
 // Load missed set from server (or local fallback), then repaint whatever the

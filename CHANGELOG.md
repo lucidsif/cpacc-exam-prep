@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added — flag/correction feature (2026-08-04)
+
+Users can now flag incorrect content on any provenance badge. A "Flag" button sits beside each badge (visible even when collapsed). Clicking it auto-expands the badge and reveals an inline form: a textarea, Submit button, and Cancel. Submissions POST to `/corrections`, which stores them in a Cloudflare D1 database (`corrections-db`) with `item_id`, `item_label`, `text`, `page_url`, and `submitted_at`. The server validates the item id prefix against known patterns (`question-`, `results-`, `flashcards`, `disabilities`, `legal`) to reject spam. On success the form hides and shows "Thanks — this will be reviewed."; on failure it shows "Could not submit. Please try again." No authentication, no edit/delete, no email notifications — the site owner queries D1 to review submissions.
+
+- `functions/corrections.js` — POST handler, validates id prefix, inserts into D1
+- `wrangler.toml` — `[[d1_databases]]` binding for `corrections-db`
+- `migrations/001_create_corrections.sql` — schema: `(id, item_id, item_label, text, page_url, submitted_at)`
+- `src/provenance.js` — flag button in `.provenance-row`, inline form, `wireFlagButtons()`, `wireProvenanceInteractions()`
+- `styles/app.css` — section 12 with flag CSS using existing design tokens
+- All view files switched to `wireProvenanceInteractions`
+- Unit tests: 4 new (render with/without id, toggle/cancel/submit handlers, POST payload + success/error)
+- E2E tests: 9 new (visibility on all views, form reveal, cancel, empty-text guard, POST + success/error)
+
+### Removed — AI tutor chat (2026-08-04)
+
+No AI tutor is configured on this deploy. `state.chatEnabled` starts `false`, so all chat UI (home panel, per-question toggles) never renders. The chat infrastructure (`chat.js`, `functions/chat.js`, etc.) remains in the repo for deploys that do want it. Static copy referencing the AI tutor is commented out in `home.js`, `accessibility.js`, and `provenance.js`'s dialog. The chat status probe at boot still runs (its `.then(render()) fires the deferred-probe re-render path that focus-restoration tests depend on) but ignores the result. Chat-dependent unit and e2e tests are skipped.
+
 ### Fixed — second remediation round: an anchor bar obscuring focus, four more silent focus targets, and a mischaracterized focus-ring mechanism (2026-08-01)
 
 A follow-up pass, the same day as the audit below, that (a) fixed defects the audit's own fixes hadn't fully covered, and (b) corrected how this file, `ACCESSIBILITY.md`, and the public statement described the focus-ring mechanism the audit introduced — both found by direct measurement in real browsers, not by re-reading the code.

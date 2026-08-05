@@ -4,7 +4,7 @@ import { escapeHtml, scrollIntoViewMotionSafe, focusWithVisibleRing } from '../d
 import { domainLabel, scoreTest } from '../scoring.js';
 import { TEST_SIZE } from '../sampling.js';
 import { renderChatFragment } from './chat.js';
-import { renderProvenanceBadge, wireProvenanceToggles } from '../provenance.js';
+import { renderProvenanceBadge, wireProvenanceInteractions } from '../provenance.js';
 
 /**
  * Render the results page.
@@ -119,7 +119,7 @@ export function renderResults(ctx) {
       </div>
       ${details}
     `;
-  wireProvenanceToggles(app, state);
+  wireProvenanceInteractions(app, state);
 
   document.getElementById('retake').onclick = () => actions.startTest(state.mode);
   // "Back to start" invalidates the submission, not just the question set —

@@ -15,8 +15,8 @@ A study tool for the **IAAP Certified Professional in Accessibility Core Compete
 - Missed-question focused review
 - 71-condition human disabilities reference with prevalence + accessibility solutions
 - 53-item history / laws / standards reference in CPACC scope (61 total in the underlying dataset; see [`data/README.md`](data/README.md))
-- Optional AI chat tutor (per-question and free-form), backed by Anthropic, OpenAI, or a local model you run yourself
 - **Every AI-touched piece of content carries an [IBM-style provenance badge](AI_TRANSPARENCY.md) with confidence + sources + limitations.**
+- **Flag button on every badge** — report incorrect content inline; submissions stored in Cloudflare D1 for the site owner to review
 
 > Built for myself, opened up because it might help others. The audience is intentionally mixed: solo students, a11y professionals (rightly skeptical of AI), AI folks curious about accessibility, and experienced a11y engineers who'd want to fix things. Each group's needs shaped a different part of the project.
 
@@ -75,7 +75,7 @@ CPACC test app running:
 
 Open `Local:` on your laptop and `LAN:` on your phone; both share the same missed-questions list via a server-side `data.json`.
 
-Without a configured provider, everything works *except* the chat tutor.
+Without a configured provider, everything works *except* the chat tutor. The AI tutor is disabled by default on this deploy (see [`AI_TRANSPARENCY.md`](AI_TRANSPARENCY.md) for how to enable it).
 
 `LLM_PROVIDER=local` only works when *you* are running the server (`node server.js`, or `npm run dev:cf` on your own machine). Cloudflare Pages Functions execute on Cloudflare's edge network and cannot reach `localhost`, a LAN address, or a Tailscale `100.x` address. See [`DEPLOY.md`](DEPLOY.md#using-a-local-model).
 
@@ -89,15 +89,14 @@ For your own deploy, see [`DEPLOY.md`](DEPLOY.md#option-a--cloudflare-pages-reco
 
 ## How AI is used
 
-**Short version:** every AI-touched piece of content has a visible badge near it that tells you exactly what generated it, what it was trained on / cited from, whether a human reviewed it, and how much you should trust it.
+**Short version:** every AI-touched piece of content has a visible badge near it that tells you exactly what generated it, what it was trained on / cited from, whether a human reviewed it, and how much you should trust it. A **Flag** button beside each badge lets you report incorrect content inline (stored in Cloudflare D1 for the site owner to review).
 
-**Three categories, three labels:**
+**Two categories, two labels:** (the AI chat tutor is disabled by default on this deploy)
 
 | Category | What it is | Confidence | Examples |
 |---|---|---|---|
 | 🤖 **AI-authored from BoK** | Claude wrote it directly from a citable primary source; author reviewed against the citation | High | Main practice questions (`data/questions.js`), laws & standards reference |
 | 🤖 **AI-derived from author's notes** | Claude generated it from the author's personal study notes (one step removed from primary sources); bear-notes bank and flashcards were reviewed by the author but may still contain errors, disabilities reference (71 conditions, far beyond CPACC scope) was spot-checked | Medium | Bear-notes practice bank, flashcards, disabilities reference |
-| 🤖 **AI live response** | The configured provider answers your chat message in real time; not pre-reviewed | Variable | Per-question chat tutor, home-page tutor chat |
 
 Click any badge in the app to see the full provenance card (source, model, generated date, human review, confidence, limitations). The home-page footer has an **"About AI in this app"** link that opens the page-level explainer.
 
@@ -123,8 +122,7 @@ The author set the standards and did some informal keyboard checking. Per-commit
 | Bear-notes flashcards | 50 dense study cards distilled from notes |
 | Human disabilities reference | 71 conditions × 9 categories, prevalence + accessibility solutions |
 | History / laws / standards | 53 CPACC-relevant items × 7 jurisdictions shown in the app (61 total in `data/legal.js`; 8 are kept in the dataset but excluded from rendering), plus a timeline view |
-| Per-question chat tutor | Click "Discuss this question with the AI tutor": gets question + BoK rationale as context |
-| Home-page chat tutor | Free-form CPACC chat |
+| Flag incorrect content | "Flag" button on every provenance badge; inline form submits to Cloudflare D1 for site owner review |
 | Accessibility | Targets WCAG 2.2 AA, partially conformant; see the in-app [Accessibility statement](https://cpacc-test-maker.pages.dev/#/accessibility) and [Accessibility](#accessibility) below |
 
 ---
